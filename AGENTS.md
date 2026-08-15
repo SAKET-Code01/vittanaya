@@ -50,7 +50,32 @@
 ### 11. Architectural Escalation Protocol
 - **Stop and ask before making major architectural changes**, introducing new frameworks, adding third-party dependencies, or altering core directory layouts.
 
+### 12. Start-of-Session Protocol
+- At the start of every new AI session:
+  1. Read `AGENTS.md`.
+  2. Read relevant `docs/`.
+  3. Read `.ai-memory/CURRENT_STATE.md`.
+  4. Read recent relevant `.ai-memory/SESSION_LOG.md` entries.
+  5. Read `.ai-memory/KNOWN_ISSUES.md`.
+  6. Read `.ai-memory/TODO.md`.
+  7. Inspect `git status` and current branch.
+  8. Inspect relevant source code.
+- Reconstruct project context before initiating code changes.
+
+### 13. Automatic Memory Update Protocol
+- **AI must maintain the private `.ai-memory/` directory automatically after every MEANINGFUL engineering event.**
+- Meaningful events include: feature implementation, important code modification, bug discovery/fix, architectural decision, dependency/schema change, test result, phase completion, or agreed next steps.
+- Do NOT wait for user prompt; do NOT log trivial navigation (file opening, directory listing).
+- Keep memory structured, concise, and actionable.
+
+### 14. Public vs Private Knowledge & Memory Safety
+- **PUBLIC**: `AGENTS.md` and `docs/` store shared, permanent project specifications and architecture decisions.
+- **PRIVATE**: `.ai-memory/` is local working memory and MUST NEVER be committed to Git (must remain in `.gitignore`).
+- Permanent project truths must be promoted to `docs/` or `AGENTS.md`.
+- **Zero Secrets in Memory**: Never record passwords, API keys, private tokens, real financial data, or sensitive PII in `.ai-memory/`. Record only that sensitive data was excluded if encountered.
+
 ---
+
 
 ## Approved Technology Stack & Boundaries
 
