@@ -2,15 +2,19 @@
 
 MSME financial decision-support system for cash-flow forecasting, liquidity risk analysis, scenario simulation, and action comparison.
 
-## Focus
+## What it does
+
+Vittanaya is organized as a multi-part application for exploring MSME financial decisions using forecasting, liquidity analysis, machine-learning components, and scenario comparison.
+
+## Core capabilities
 
 - Cash-flow forecasting
-- Liquidity risk assessment
+- Liquidity risk analysis
 - Financial scenario simulation
-- Comparison of possible actions
-- Data-driven financial decision support
+- Comparison of possible financial actions
+- Data-driven decision support
 
-## Project Structure
+## Repository structure
 
 ```text
 vittanaya/
@@ -19,13 +23,19 @@ vittanaya/
 ├── ml/             # Machine-learning components
 ├── data/           # Project data
 ├── docs/           # Documentation
-└── tests/          # Tests
+└── tests/          # Automated tests
 ```
 
 ## Development
 
-The repository contains separate frontend, backend, and ML components. Environment-specific configuration should be supplied through `.env` files based on `.env.example`.
+The repository separates the web interface, backend/application services, machine-learning work, project data, documentation, and tests.
+
+Python tooling is configured through `pyproject.toml`, including pytest and Ruff settings. Environment-specific configuration should be supplied through local `.env` files based on the repository's environment examples.
 
 ## Status
 
-Working project / development repository.
+**Working project / development repository.**
+
+## Notes
+
+This repository is currently presented as a development project. Additional setup commands, deployment details, screenshots, and contribution-specific information should be added only after they are verified against the current implementation.
