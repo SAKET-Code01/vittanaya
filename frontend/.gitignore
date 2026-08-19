@@ -1,0 +1,12 @@
+# Frontend Dependencies and Build Artifacts
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+
+# Editor / Environment
+.env
+.env.local
+.DS_Store
+*.log
