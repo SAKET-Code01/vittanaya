@@ -1,0 +1,1027 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background-color: #F8FAFC;
+  color: #0F172A;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Tabular numbers for financial figures */
+.num-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   VITTANAYA LIGHT DASHBOARD SURFACE SYSTEM
+   ========================================================= */
+
+/* Crisp Premium White Dashboard Card */
+.dash-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  border-radius: 18px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+}
+
+.dash-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
+  border-color: rgba(203, 213, 225, 0.9);
+}
+
+/* =========================================================
+   VITTANAYA DARK LIQUID-GLASS SIDEBAR (REFERENCE 1)
+   ========================================================= */
+
+.glass-sidebar {
+  background: rgba(7, 10, 14, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 4px 0 24px -2px rgba(0, 0, 0, 0.35);
+}
+
+/* Active Locked Navigation Item (Liquid Glass Effect) */
+.liquid-glass-active {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25) !important;
+  border-radius: 12px;
+}
+
+/* Hover Smart Glow */
+.glow-follow-hover:hover {
+  background: rgba(16, 185, 129, 0.10);
+  border: 1px solid rgba(16, 185, 129, 0.20);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Prefers-reduced-motion override */
+@media (prefers-reduced-motion: reduce) {
+  .dash-card-hover:hover {
+    transform: none;
+  }
+  .animate-fadeIn {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* =========================================================
+   VITTANAYA PREMIUM DARK THEME SYSTEM (EXACT PRECISION TOKENS)
+   ========================================================= */
+
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #070D14;
+  color: #F5F7FA;
+}
+
+/* Dark mode for main application layout & background */
+html.dark .bg-\[\#F8FAFC\] {
+  background-color: #070D14 !important;
+}
+
+html.dark .bg-\[\#F8FAFC\]\/90 {
+  background-color: rgba(7, 13, 20, 0.94) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+/* Dark mode cards & primary surfaces */
+html.dark .dash-card {
+  background: #111C28;
+  border-color: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .dash-card-hover:hover {
+  transform: translateY(-2px);
+  background: #162231;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.7), 0 0 15px rgba(16, 185, 129, 0.08);
+}
+
+/* High-Contrast Dark Mode Typography */
+html.dark .text-slate-900 {
+  color: #F5F7FA !important;
+}
+
+html.dark .text-slate-800 {
+  color: #F5F7FA !important;
+}
+
+html.dark .text-slate-700 {
+  color: #C3CCD7 !important;
+}
+
+html.dark .text-slate-600 {
+  color: #C3CCD7 !important;
+}
+
+html.dark .text-slate-500 {
+  color: #95A2B2 !important;
+}
+
+html.dark .text-slate-400 {
+  color: #95A2B2 !important;
+}
+
+html.dark .text-slate-300 {
+  color: #C3CCD7 !important;
+}
+
+html.dark .text-slate-200 {
+  color: #F5F7FA !important;
+}
+
+/* Dark Mode Subtle Borders & Dividers */
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-200\/80,
+html.dark .border-slate-200\/90 {
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+html.dark .border-slate-300,
+html.dark .border-slate-300\/60 {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+
+html.dark .border-slate-400 {
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+
+html.dark hr,
+html.dark .divide-slate-100 > * + *,
+html.dark .divide-slate-200 > * + * {
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+/* Dark Mode Card Backgrounds & Containers */
+html.dark .bg-white {
+  background-color: #111C28 !important;
+  color: #F5F7FA !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/80,
+html.dark .bg-slate-50\/90,
+html.dark .bg-slate-100 {
+  background-color: #0D151F !important;
+}
+
+html.dark .bg-slate-200,
+html.dark .bg-slate-200\/60,
+html.dark .bg-slate-200\/80 {
+  background-color: #162231 !important;
+}
+
+html.dark .bg-slate-900 {
+  background-color: #162231 !important;
+  color: #F5F7FA !important;
+}
+
+html.dark .bg-slate-800 {
+  background-color: #1A2C42 !important;
+}
+
+/* Dark Mode Inputs, Selects, Dropdowns & Controls */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #0B141E !important;
+  color: #F5F7FA !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #7F8B9A !important;
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: #10B981 !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.25) !important;
+}
+
+html.dark select option {
+  background-color: #0D151F !important;
+  color: #F5F7FA !important;
+}
+
+html.dark kbd {
+  background-color: #162231 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #95A2B2 !important;
+}
+
+/* Dark Mode Modals Backdrops & Dialogs */
+html.dark .bg-slate-900\/60,
+html.dark .bg-slate-900\/40 {
+  background-color: rgba(4, 8, 14, 0.85) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Dark Mode Semantic Badges & Category Accents */
+/* Emerald / Green (Healthy, Positive, Active) */
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/50,
+html.dark .bg-emerald-50\/60,
+html.dark .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+}
+
+html.dark .text-emerald-700,
+html.dark .text-emerald-800,
+html.dark .text-emerald-900 {
+  color: #34D399 !important;
+}
+
+html.dark .text-emerald-600 {
+  color: #10B981 !important;
+}
+
+html.dark .border-emerald-100,
+html.dark .border-emerald-200,
+html.dark .border-emerald-300,
+html.dark .border-emerald-500\/40 {
+  border-color: rgba(16, 185, 129, 0.38) !important;
+}
+
+/* Amber / Orange (Warning, Attention, Medium) */
+html.dark .bg-amber-50,
+html.dark .bg-amber-50\/50,
+html.dark .bg-amber-100,
+html.dark .bg-orange-50 {
+  background-color: rgba(245, 158, 11, 0.18) !important;
+}
+
+html.dark .text-amber-700,
+html.dark .text-amber-800,
+html.dark .text-amber-900,
+html.dark .text-orange-700,
+html.dark .text-orange-800 {
+  color: #FBBF24 !important;
+}
+
+html.dark .text-amber-600,
+html.dark .text-orange-600 {
+  color: #F59E0B !important;
+}
+
+html.dark .border-amber-100,
+html.dark .border-amber-200,
+html.dark .border-amber-300,
+html.dark .border-orange-200 {
+  border-color: rgba(245, 158, 11, 0.38) !important;
+}
+
+/* Rose / Red (Danger, Low, Outflow, Needs Attention) */
+html.dark .bg-rose-50,
+html.dark .bg-rose-50\/40,
+html.dark .bg-rose-50\/50,
+html.dark .bg-rose-100,
+html.dark .bg-red-50,
+html.dark .bg-red-100 {
+  background-color: rgba(244, 63, 94, 0.18) !important;
+}
+
+html.dark .text-rose-700,
+html.dark .text-rose-800,
+html.dark .text-rose-900,
+html.dark .text-red-700,
+html.dark .text-red-800 {
+  color: #FB7185 !important;
+}
+
+html.dark .text-rose-600,
+html.dark .text-red-600 {
+  color: #F43F5E !important;
+}
+
+html.dark .border-rose-100,
+html.dark .border-rose-200,
+html.dark .border-rose-300,
+html.dark .border-red-100,
+html.dark .border-red-200 {
+  border-color: rgba(244, 63, 94, 0.38) !important;
+}
+
+/* Blue (Bank, Working Capital, Inflow, Info) */
+html.dark .bg-blue-50,
+html.dark .bg-blue-50\/50,
+html.dark .bg-blue-100,
+html.dark .bg-sky-50 {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+}
+
+html.dark .text-blue-700,
+html.dark .text-blue-800,
+html.dark .text-blue-900 {
+  color: #60A5FA !important;
+}
+
+html.dark .text-blue-600 {
+  color: #3B82F6 !important;
+}
+
+html.dark .border-blue-100,
+html.dark .border-blue-200,
+html.dark .border-blue-300 {
+  border-color: rgba(59, 130, 246, 0.38) !important;
+}
+
+/* Purple (Forecast, Intelligence, User Guide) */
+html.dark .bg-purple-50,
+html.dark .bg-purple-50\/50,
+html.dark .bg-purple-100,
+html.dark .bg-indigo-50 {
+  background-color: rgba(168, 85, 247, 0.18) !important;
+}
+
+html.dark .text-purple-700,
+html.dark .text-purple-800,
+html.dark .text-purple-900,
+html.dark .text-indigo-700,
+html.dark .text-indigo-800 {
+  color: #C084FC !important;
+}
+
+html.dark .text-purple-600,
+html.dark .text-indigo-600 {
+  color: #A855F7 !important;
+}
+
+html.dark .border-purple-100,
+html.dark .border-purple-200,
+html.dark .border-purple-300 {
+  border-color: rgba(168, 85, 247, 0.38) !important;
+}
+
+/* Cyan / Teal (Cash on Hand) */
+html.dark .bg-cyan-50,
+html.dark .bg-cyan-50\/50,
+html.dark .bg-teal-50 {
+  background-color: rgba(6, 182, 212, 0.18) !important;
+}
+
+html.dark .text-cyan-700,
+html.dark .text-cyan-800,
+html.dark .text-teal-700,
+html.dark .text-teal-800 {
+  color: #22D3EE !important;
+}
+
+html.dark .text-cyan-600,
+html.dark .text-teal-600 {
+  color: #06B6D4 !important;
+}
+
+html.dark .border-cyan-100,
+html.dark .border-cyan-200,
+html.dark .border-teal-100,
+html.dark .border-teal-200 {
+  border-color: rgba(6, 182, 212, 0.38) !important;
+}
+
+/* Dark Mode Charts & Analytics */
+html.dark .recharts-cartesian-grid line {
+  stroke: rgba(255, 255, 255, 0.07) !important;
+}
+
+html.dark .recharts-cartesian-axis-line {
+  stroke: rgba(255, 255, 255, 0.12) !important;
+}
+
+html.dark .recharts-cartesian-axis-tick-line {
+  stroke: rgba(255, 255, 255, 0.08) !important;
+}
+
+html.dark .recharts-text,
+html.dark .recharts-cartesian-axis-tick-value {
+  fill: #95A2B2 !important;
+  font-size: 11px !important;
+}
+
+html.dark .recharts-legend-item-text {
+  color: #C3CCD7 !important;
+}
+
+html.dark .recharts-default-tooltip {
+  background-color: #111C28 !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: #F5F7FA !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7) !important;
+  border-radius: 12px !important;
+}
+
+html.dark .recharts-reference-area-rect {
+  fill: rgba(168, 85, 247, 0.10) !important;
+}
+
+html.dark .recharts-reference-line line {
+  stroke: #C084FC !important;
+}
+
+/* SVG Track & Gauge Color Inversions for Dark Mode */
+html.dark svg circle[stroke="#E2E8F0"],
+html.dark svg path[stroke="#E2E8F0"] {
+  stroke: rgba(255, 255, 255, 0.12) !important;
+}
+
+html.dark svg circle[stroke="#CBD5E1"],
+html.dark svg path[stroke="#CBD5E1"] {
+  stroke: rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Dark Mode Tables */
+html.dark table th,
+html.dark table thead {
+  background-color: #0D151F !important;
+  color: #C3CCD7 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+html.dark table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+html.dark table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.035) !important;
+}
+
+/* Dark Mode Scrollbars */
+html.dark ::-webkit-scrollbar-track {
+  background: #070D14;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #162231;
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #23344B;
+}
+
+/* =========================================================
+   VITTANAYA COMPACT MODE SYSTEM
+   ========================================================= */
+
+html.compact-mode .dash-card {
+  padding: 1rem !important;
+  border-radius: 14px !important;
+}
+
+html.compact-mode main {
+  padding: 1rem 1.25rem !important;
+  gap: 1rem !important;
+}
+
+html.compact-mode .space-y-6 > * + * {
+  margin-top: 1rem !important;
+}
+
+html.compact-mode .space-y-4 > * + * {
+  margin-top: 0.75rem !important;
+}
+
+html.compact-mode .gap-6 {
+  gap: 1rem !important;
+}
+
+/* =========================================================
+   VITTANAYA HAND-CRAFTED / TORN-PAPER UTILITIES
+   ========================================================= */
+
+.torn-paper {
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.05), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
+  position: relative;
+  border-radius: 24px;
+}
+
+html.dark .torn-paper {
+  background: #111C28 !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.6) !important;
+  color: #F5F7FA !important;
+}
+
+.torn-paper-hero {
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 12px 35px -5px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  position: relative;
+  border-radius: 28px;
+}
+
+html.dark .torn-paper-hero {
+  background: #111C28 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.65) !important;
+  color: #F5F7FA !important;
+}
+
+.torn-paper-badge {
+  background: #FFFFFF;
+  border: 1.5px solid rgba(203, 213, 225, 0.9);
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08);
+  position: relative;
+  transform: rotate(-1deg);
+  border-radius: 16px;
+}
+
+html.dark .torn-paper-badge {
+  background: #162231 !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5) !important;
+  color: #F5F7FA !important;
+}
+
+.washi-tape-green {
+  background: rgba(52, 211, 153, 0.65);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(2px);
+  position: absolute;
+  height: 20px;
+  width: 75px;
+  clip-path: polygon(
+    0% 0%, 4% 40%, 0% 100%,
+    100% 100%, 96% 60%, 100% 0%
+  );
+  z-index: 20;
+}
+
+.washi-tape-green-lg {
+  background: rgba(52, 211, 153, 0.7);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(3px);
+  position: absolute;
+  height: 24px;
+  width: 90px;
+  clip-path: polygon(
+    0% 0%, 5% 45%, 0% 100%,
+    100% 100%, 95% 55%, 100% 0%
+  );
+  z-index: 25;
+}
+
+.washi-tape-purple {
+  background: rgba(192, 132, 252, 0.65);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(2px);
+  position: absolute;
+  height: 20px;
+  width: 75px;
+  clip-path: polygon(
+    0% 0%, 4% 40%, 0% 100%,
+    100% 100%, 96% 60%, 100% 0%
+  );
+  z-index: 20;
+}
+
+.hand-underline-green {
+  position: relative;
+  display: inline-block;
+}
+.hand-underline-green::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: #10B981;
+  border-radius: 2px;
+  transform: rotate(-0.8deg);
+}
+
+.hand-underline-purple {
+  position: relative;
+  display: inline-block;
+}
+.hand-underline-purple::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: #A855F7;
+  border-radius: 2px;
+  transform: rotate(0.6deg);
+}
+
+/* =========================================================
+   VITTANAYA STARTUP OPENING ANIMATION KEYFRAMES (ENHANCED)
+   ========================================================= */
+
+@keyframes drawStroke {
+  from {
+    stroke-dashoffset: 800;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.anim-draw-leaf-left {
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  animation: drawStroke 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.anim-draw-leaf-right {
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  animation: drawStroke 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.anim-draw-leaf-inner-left {
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: drawStroke 1.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+}
+
+.anim-draw-leaf-inner-right {
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: drawStroke 1.9s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+}
+
+.anim-draw-stem {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: drawStroke 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+}
+
+.anim-draw-chart-path {
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: drawStroke 2.0s cubic-bezier(0.22, 1, 0.36, 1) 0.5s forwards;
+}
+
+.anim-draw-chart-secondary {
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: drawStroke 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.8s forwards;
+}
+
+.anim-draw-branch {
+  stroke-dasharray: 300;
+  stroke-dashoffset: 300;
+  animation: drawStroke 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.anim-draw-circuit {
+  stroke-dasharray: 250;
+  stroke-dashoffset: 250;
+  animation: drawStroke 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 36s linear infinite;
+}
+
+.animate-spin-reverse-slow {
+  animation: spinSlow 48s linear infinite reverse;
+}
+
+@keyframes pulseGlowSoft {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+.anim-pulse-soft {
+  animation: pulseGlowSoft 3s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------
+   VITTANAYA BRAND LETTER REVEAL & LIGHT SWEEP KEYFRAMES
+   --------------------------------------------------------- */
+
+@keyframes letterRiseReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+    filter: blur(3px);
+  }
+  55% {
+    opacity: 1;
+    filter: blur(0px) drop-shadow(0 0 10px rgba(52, 211, 153, 0.7));
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 3px rgba(52, 211, 153, 0.25));
+  }
+}
+
+.anim-letter {
+  opacity: 0;
+  display: inline-block;
+  animation: letterRiseReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes brandLightSweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.brand-light-sweep {
+  background: linear-gradient(
+    90deg,
+    #FFFFFF 0%,
+    #FFFFFF 38%,
+    #A7F3D0 50%,
+    #FFFFFF 62%,
+    #FFFFFF 100%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: brandLightSweep 1.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes taglineReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-tagline {
+  animation: taglineReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes energyPathPulse {
+  0% {
+    filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(52, 211, 153, 0.95));
+  }
+  100% {
+    filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.4));
+  }
+}
+
+.anim-energy-pulse {
+  animation: energyPathPulse 1.4s ease-in-out forwards;
+}
+
+/* ---------------------------------------------------------
+   VITTANAYA SIGNATURE FINANCIAL TELEMETRY & RADAR KEYFRAMES
+   --------------------------------------------------------- */
+
+@keyframes signalPulseRing {
+  0% {
+    r: 4;
+    opacity: 0.9;
+    stroke-width: 2;
+  }
+  100% {
+    r: 52;
+    opacity: 0;
+    stroke-width: 0.5;
+  }
+}
+
+.anim-signal-ring {
+  animation: signalPulseRing 1.8s cubic-bezier(0.2, 0.8, 0.4, 1) infinite;
+}
+
+@keyframes flowInflow {
+  0% {
+    stroke-dashoffset: 240;
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.95;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.4;
+  }
+}
+
+.anim-stream-inflow {
+  stroke-dasharray: 240;
+  animation: flowInflow 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes flowOutflow {
+  0% {
+    stroke-dashoffset: 240;
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.95;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.4;
+  }
+}
+
+.anim-stream-outflow {
+  stroke-dasharray: 240;
+  animation: flowOutflow 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes cashCurveDraw {
+  from {
+    stroke-dashoffset: 800;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.anim-cash-curve {
+  stroke-dasharray: 800;
+  stroke-dashoffset: 800;
+  animation: cashCurveDraw 2.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes microChipReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.anim-micro-chip {
+  animation: microChipReveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ---------------------------------------------------------
+   NEXT-GEN BOOT SEQUENCE: FORECAST, SIGNATURE LINE & PULSE
+   --------------------------------------------------------- */
+
+@keyframes forecastLineDraw {
+  from {
+    stroke-dashoffset: 400;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.anim-forecast-line {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: forecastLineDraw 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes signatureLineDraw {
+  0% {
+    stroke-dashoffset: 320;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.anim-sig-line {
+  stroke-dasharray: 320;
+  stroke-dashoffset: 320;
+  animation: signatureLineDraw 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes leafAccentBloom {
+  0% {
+    transform: scale(0) rotate(-30deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.25) rotate(5deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 8px #34D399);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 4px #10B981);
+  }
+}
+
+.anim-leaf-accent {
+  transform-origin: center;
+  animation: leafAccentBloom 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes singleCenterPulse {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4));
+  }
+  40% {
+    transform: scale(1.04);
+    filter: drop-shadow(0 0 22px rgba(52, 211, 153, 1));
+  }
+  80% {
+    transform: scale(0.99);
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.7));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.4));
+  }
+}
+
+.anim-single-pulse {
+  animation: singleCenterPulse 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
