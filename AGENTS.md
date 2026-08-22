@@ -1,7 +1,7 @@
 # AGENTS.md — Team & AI Governance Protocol
 
 ## Project Context
-**Vittanaya** is an MSME financial decision-support system designed to provide cash-flow forecasting, liquidity risk assessment, scenario simulation, and action comparison. This repository is developed by a six-member team. All contributors (human engineers and AI assistants) MUST strictly follow the governance rules below.
+**Vittanaya** is an AI-driven hyper-local business advisory and financial structuring assistant designed for rural micro-entrepreneurs under Smart India Hackathon Problem **SIH26091** (Ministry of Social Justice and Empowerment - MoSJE). It provides cash-flow forecasting, liquidity risk assessment, working-capital structuring, and business advisory foundations. This repository is developed by a six-member team. All contributors (human engineers and AI assistants) MUST strictly follow the governance rules below.
 
 ---
 

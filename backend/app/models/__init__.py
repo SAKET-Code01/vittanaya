@@ -1,0 +1,19 @@
+"""Export all database models for SQLAlchemy metadata registration."""
+
+from backend.app.models.business import Business
+from backend.app.models.expense import Expense
+from backend.app.models.goal import BusinessGoal
+from backend.app.models.payable import Payable
+from backend.app.models.receivable import Receivable
+from backend.app.models.transaction import Transaction
+from backend.app.models.user import User
+
+__all__ = [
+    "User",
+    "Business",
+    "Transaction",
+    "Receivable",
+    "Payable",
+    "Expense",
+    "BusinessGoal",
+]
