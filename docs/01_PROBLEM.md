@@ -1,41 +1,19 @@
-# 01. Problem Statement — Vittanaya
+# 01. Problem Statement — SIH26091
 
-## The MSME Cash-Flow & Liquidity Crisis
+## Rural Micro-Enterprise Vulnerabilities
 
-### Background & Context
-Micro, Small, and Medium Enterprises (MSMEs) operate under severe cash-flow constraints. While an enterprise may show paper profitability on an accrual accounting basis, a single delayed payment from a major customer can trigger a cascading liquidity crisis, making it impossible to meet payroll, tax liabilities, or vendor commitments.
+Rural micro-entrepreneurs (potters, weavers, local food processors, rural service providers) face systemic financial friction:
 
----
-
-## Core Pain Points
-
-### 1. Inability to Predict Cash-Flow Troughs
-- MSME accounting records (spreadsheets or simple billing software) track past transactions but fail to project short-term daily and weekly cash inflows/outflows accurately.
-- Business owners cannot easily see their expected cash position 15, 30, or 60 days into the future.
-
-### 2. Opaque Liquidity Risk & Short Runway Warnings
-- Calculating **Days of Cash Reserve** or **Liquidity Buffer** manually is error-prone.
-- MSMEs frequently discover impending shortfalls only days before payroll is due, forcing them into expensive panic borrowing or high-interest short-term credit.
-
-### 3. Blind Financial Decision-Making
-- When faced with a working capital shortfall, MSME owners must choose between several options:
-  - *Option A*: Offer a 3% early payment discount to speed up customer collections.
-  - *Option B*: Negotiate a 15-day payment deferral with key suppliers.
-  - *Option C*: Draw on a short-term credit facility with interest costs.
-- Currently, owners lack tools to model these options side-by-side to evaluate the net cash impact over time.
+1. **Informal & Volatile Cash Cycles**: Irregular seasonal income, delayed payments from distant distributors, and strict local supplier obligations create sudden liquidity crunches.
+2. **Lack of Working Capital Visibility**: Rural entrepreneurs struggle to compute operational runway (days of cash remaining) or recognize impending deficits before payroll and raw material commitments fail.
+3. **Absence of Structured Financial Planning**: Lack of access to formalized business advisory prevents entrepreneurs from identifying funding gaps, organizing receivables, and preparing for credit schemes.
+4. **Hyper-Local Context Barrier**: Generic accounting tools fail to capture rural cluster realities, local trade cycles, and affirmative enterprise development opportunities supported by MoSJE.
 
 ---
 
-## Target Audience & Personas
-
-1. **MSME Business Owner / Founder**: Needs a high-level executive dashboard showing cash runway, warning indicators, and scenario outcomes.
-2. **Finance Manager / Accountant**: Requires granular cash-in/cash-out tracking, receivable due date management, payable scheduling, and scenario configuration.
-
----
-
-## Solution Vision — Vittanaya
-Vittanaya empowers MSMEs by providing:
-- **Daily / Weekly Cash-Flow Projections**: Visualizing projected cash balances based on receivables and payables schedules.
-- **Automated Liquidity Risk Metrics**: Calculating runway days, warning thresholds, and liquidity deficit flags.
-- **Interactive Scenario Simulation Engine**: Enabling "what-if" testing of revenue changes, delayed receivables, and unexpected operational expenses.
-- **Side-by-Side Action Comparison**: Comparing financial choices to identify the path that safest preserves liquidity.
+## Solution Vision
+Vittanaya delivers:
+- **Daily/Weekly Cash Position Tracking**: Inflows, outflows, and net cashflow.
+- **Automated Liquidity Risk Metrics**: Runway days and safety buffer indicators.
+- **Financial Structuring & Gap Analysis**: Determining working capital shortfalls against business growth goals.
+- **Future Hyper-Local Advisory (Phase 2+)**: Scheme matching and actionable recommendations.

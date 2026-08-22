@@ -1,39 +1,25 @@
-# 00. Project Context — Vittanaya
+# 00. Project Context — Vittanaya (SIH26091)
 
 ## Executive Summary
-**Vittanaya** is an MSME (Micro, Small, and Medium Enterprises) financial decision-support system designed to address cash-flow volatility, liquidity risks, scenario simulations, and financial decision comparisons. 
+**Vittanaya** is an AI-driven hyper-local business advisory and financial structuring assistant built specifically for **rural micro-entrepreneurs**, aligned with **Smart India Hackathon 2026 Problem SIH26091** under the **Ministry of Social Justice and Empowerment (MoSJE)**.
 
-Developed by a **six-member engineering team**, Vittanaya provides business owners and financial managers with actionable clarity over cash reserves, short-term liquidity, and the net impact of strategic decisions before commitments are made.
+The system empowers rural artisans, nano-enterprises, village craft collectives, and micro-business owners by translating complex financial transactions into clear working-capital runways, liquidity risk assessments, and targeted financial structuring roadmaps.
 
----
-
-## Background & Problem Alignment (S42)
-MSMEs represent the backbone of the economy but suffer disproportionately from working capital mismatches. Small business owners frequently struggle with:
-1. **Uncertain Cash Flow**: Irregular customer payment timelines combined with rigid operational expenses (payroll, rent, supplier invoices).
-2. **Liquidity Blind Spots**: Difficulty calculating actual available runway and impending cash crunches.
-3. **Unchecked Decisions**: Lack of simple, interactive simulation tools to compare options (e.g., taking short-term loan vs negotiating supplier extension vs offering early payment discounts).
-
-Vittanaya bridges this gap with a lightweight, reliable decision-support platform.
+> [!NOTE]
+> **Historical Origin**: Vittanaya originally began as an MSME cash-flow decision support prototype for SOA IDEATHON Problem S42. The project has been formally pivoted to address SIH26091, with the core financial engine serving as the foundation for hyper-local rural business intelligence. S42 documentation is archived under `docs/archive/s42/`.
 
 ---
 
-## Engineering Philosophy & Principles
-1. **Safe & Incremental Development**: Development proceeds phase-by-phase without premature complexity.
-2. **Deterministic & Transparent Math**: Financial formulas, cash runway metrics, and scenario simulations use transparent, auditable calculations powered by Pandas/NumPy.
-3. **Beginner-Friendly 6-Member Team Structure**: Codebase components are cleanly separated between `frontend/` (React + Vite + Recharts) and `backend/` (FastAPI + SQLite), allowing all 6 team members to collaborate without merge friction.
-4. **Strict Safety Protocol**: Direct commits to `main` are strictly prohibited. All changes require feature branches, automated testing (`pytest`), and code review.
+## SIH26091 Alignment Overview
+- **Problem ID**: SIH26091
+- **Title**: AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs
+- **Organization**: Ministry of Social Justice and Empowerment (MoSJE)
+- **Target Beneficiaries**: Rural artisans, handloom weavers, pottery workers, small agri-processors, village retail nano-units, and SHG-led micro-enterprises.
 
 ---
 
-## Approved Project Tech Stack
-
-| Layer | Selected Tech | Rationale |
-|---|---|---|
-| **Backend API** | Python + FastAPI | High performance, automatic OpenAPI documentation, clean async support |
-| **Frontend UI** | React + Vite | Fast build cycles, component-driven UI architecture |
-| **Styling** | Tailwind CSS | Utility-first, responsive financial dashboard styling |
-| **Data Viz** | Recharts | Composable React chart components for financial graphs |
-| **Data Processing** | Pandas + NumPy | Fast tabular operations, timeseries aggregations |
-| **Testing** | Pytest | Industry standard Python unit & integration testing |
-| **Formatting / Linting**| Ruff | Lightning fast Python code linting |
-| **Database** | SQLite (Phase 1) $\rightarrow$ PostgreSQL (Future) | Zero setup overhead for MVP, clear migration path |
+## Architectural Principles
+1. **Preserve Prototype Strengths**: The rich React+Tailwind visual shell is preserved and integrated via a robust service boundary.
+2. **Deterministic Financial Math**: Financial metrics (cashflow, liquidity runway, funding gaps) use strict Decimal arithmetic in backend Python engines.
+3. **Local-First & Scalable**: SQLite database and local FastAPI service for Phase 1 with zero external cloud dependencies for demo reliability.
+4. **Structured API Boundaries**: Clean RESTful architecture connecting React frontend to FastAPI backend.

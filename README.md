@@ -1,41 +1,46 @@
 # Vittanaya
 
-MSME financial decision-support system for cash-flow forecasting, liquidity risk analysis, scenario simulation, and action comparison.
+**AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs**  
+**Smart India Hackathon (SIH 2026) Problem SIH26091** — Ministry of Social Justice and Empowerment (MoSJE)
 
-## What it does
+## Overview
+Vittanaya provides rural micro-entrepreneurs, artisans, and nano-enterprises with automated cash-flow forecasting, liquidity risk assessments, working-capital structuring, and business advisory foundations.
 
-Vittanaya is organized as a multi-part application for exploring MSME financial decisions using forecasting, liquidity analysis, machine-learning components, and scenario comparison.
+## Core Capabilities
+- **Cash-Flow Ledger & Timeseries Calculations**: Inflow/outflow tracking with deterministic Decimal calculations.
+- **Operational Runway & Liquidity Risk**: Accurate calculation of operational days remaining and risk categorization.
+- **Financial Structuring & Gap Analysis**: Determining working-capital shortfalls against enterprise targets.
+- **Enterprise Profile & Hyper-Local Context**: Village and district-level operational parameters.
 
-## Core capabilities
-
-- Cash-flow forecasting
-- Liquidity risk analysis
-- Financial scenario simulation
-- Comparison of possible financial actions
-- Data-driven decision support
-
-## Repository structure
-
+## Repository Structure
 ```text
 vittanaya/
-├── frontend/       # Web interface
-├── backend/        # Application API and services
-├── ml/             # Machine-learning components
-├── data/           # Project data
-├── docs/           # Documentation
-└── tests/          # Automated tests
+├── frontend/       # React 18 + Vite Single Page Application
+├── backend/        # Python + FastAPI REST API v1 (SQLAlchemy + SQLite)
+├── data/           # Raw, processed, synthetic, and reference data
+├── docs/           # System specifications & SIH26091 architecture
+├── scripts/        # Seeding and utility scripts
+└── tests/          # Pytest automated test suite
 ```
 
-## Development
+## Running the Project
+### Backend API
+```bash
+# Install dependencies
+pip install -r backend/requirements.txt
 
-The repository separates the web interface, backend/application services, machine-learning work, project data, documentation, and tests.
+# Run database seed
+python scripts/seed_demo_data.py
 
-Python tooling is configured through `pyproject.toml`, including pytest and Ruff settings. Environment-specific configuration should be supplied through local `.env` files based on the repository's environment examples.
+# Start FastAPI server
+uvicorn backend.main:app --reload --port 8000
+```
+API Documentation will be accessible at `http://localhost:8000/docs`.
 
-## Status
-
-**Working project / development repository.**
-
-## Notes
-
-This repository is currently presented as a development project. Additional setup commands, deployment details, screenshots, and contribution-specific information should be added only after they are verified against the current implementation.
+### Frontend Application
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Web application accessible at `http://localhost:3000/`.

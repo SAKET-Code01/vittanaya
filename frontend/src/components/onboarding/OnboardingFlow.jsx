@@ -21,11 +21,13 @@ export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreD
   // Form State - Starts completely empty by default
   const [formData, setFormData] = useState({
     businessName: '',
-    ownerName: '',
+    businessDescription: '',
     phone: '',
     email: '',
-    location: '',
-    gstin: '',
+    village: '',
+    district: '',
+    state: '',
+    pin: '',
   });
 
   // Step 3 & 4 State - Starts unselected
@@ -48,13 +50,16 @@ export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreD
   const handleCompleteWorkspace = () => {
     const workspace = buildAdaptiveWorkspace({
       businessName: formData.businessName || 'My MSME Business',
-      ownerName: formData.ownerName || 'Business Owner',
       phone: formData.phone || '',
       email: formData.email || '',
+      description: formData.businessDescription || '',
+      village: formData.village || '',
+      district: formData.district || '',
+      state: formData.state || '',
+      pin: formData.pin || '',
       businessType: businessType || 'manufacturing',
       selectedOps: selectedOps.length > 0 ? selectedOps : ['sales', 'purchases'],
-      location: formData.location || 'India',
-      gstin: formData.gstin || '',
+      location: [formData.village, formData.district, formData.state].filter(Boolean).join(', ') || 'India',
     });
     onComplete(workspace);
     onClose();

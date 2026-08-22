@@ -8,7 +8,7 @@ import React, { useState } from 'react';
  * - Top-left VITTANAYA logo with "Financial Intelligence"
  * - Top 4-stage progress tracker (Step 1 Welcome completed ✓, Step 2 Business Information active, Step 3 & 4 inactive)
  * - Two-column main container:
- *    - Left Panel: Clean form (Business Name, Owner Name, Phone & Email side-by-side, Location, optional GSTIN) + Back & Next buttons
+ *    - Left Panel: Clean form for business identity, description, contact and location + Back & Next buttons
  *    - Right Panel: Business Profile card illustration (floating shield, mini chart, potted plant) + 4 benefit bullet points
  * - Bottom security guarantee with lock icon
  * - Form validation with clean inline states
@@ -20,8 +20,6 @@ export default function BusinessInfoScreen({
   onNext,
 }) {
   const [errors, setErrors] = useState({});
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-  const [locationNotice, setLocationNotice] = useState(null);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -30,126 +28,40 @@ export default function BusinessInfoScreen({
     }
   };
 
-  // Dynamic Browser Geolocation & Reverse Geocoding
-  const handleDetectLocation = () => {
-    setLocationNotice(null);
-    if (!navigator.geolocation) {
-      setLocationNotice('Location access unavailable. You can enter it manually.');
-      return;
-    }
-
-    setIsDetectingLocation(true);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        let detectedLocation = null;
-
-        // 1. Primary reverse geocoding via OpenStreetMap Nominatim
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=12&addressdetails=1`,
-            {
-              headers: { 'Accept-Language': 'en' },
-              signal: controller.signal,
-            }
-          );
-          clearTimeout(timeoutId);
-
-          if (res.ok) {
-            const data = await res.json();
-            const addr = data.address || {};
-            const city =
-              addr.city ||
-              addr.town ||
-              addr.village ||
-              addr.suburb ||
-              addr.county ||
-              addr.state_district ||
-              addr.municipality ||
-              '';
-            const state = addr.state || '';
-            const country = addr.country || '';
-            const parts = [city, state, country].filter(Boolean);
-            if (parts.length > 0) {
-              detectedLocation = parts.join(', ');
-            }
-          }
-        } catch (err) {
-          // Nominatim fetch failed or timed out, attempt secondary fallback
-        }
-
-        // 2. Fallback reverse geocoding via BigDataCloud client API
-        if (!detectedLocation) {
-          try {
-            const controller2 = new AbortController();
-            const timeoutId2 = setTimeout(() => controller2.abort(), 5000);
-
-            const res2 = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
-              { signal: controller2.signal }
-            );
-            clearTimeout(timeoutId2);
-
-            if (res2.ok) {
-              const data2 = await res2.json();
-              const city = data2.city || data2.locality || '';
-              const state = data2.principalSubdivision || '';
-              const country = data2.countryName || '';
-              const parts = Array.from(new Set([city, state, country].filter(Boolean)));
-              if (parts.length > 0) {
-                detectedLocation = parts.join(', ');
-              }
-            }
-          } catch (err2) {
-            // Secondary fallback failed
-          }
-        }
-
-        setIsDetectingLocation(false);
-
-        if (detectedLocation) {
-          handleChange('location', detectedLocation);
-          setLocationNotice(null);
-        } else {
-          // In case reverse lookup failed to produce human-readable city
-          setLocationNotice('Location access unavailable. You can enter it manually.');
-        }
-      },
-      (error) => {
-        setIsDetectingLocation(false);
-        // Error code 1 = PERMISSION_DENIED, 2 = POSITION_UNAVAILABLE, 3 = TIMEOUT
-        setLocationNotice('Location access unavailable. You can enter it manually.');
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 8000,
-        maximumAge: 60000,
-      }
-    );
-  };
-
   const handleNext = (e) => {
     e.preventDefault();
     const newErrors = {};
+    const requiredFields = [
+      ['businessName', 'Business name', 2, 150],
+      ['businessDescription', 'Business description', 10, 500],
+      ['phone', 'Phone number', 10, 20],
+      ['email', 'Email address', 5, 120],
+      ['village', 'Village / Town', 2, 100],
+      ['district', 'District', 2, 100],
+      ['state', 'State', 2, 100],
+      ['pin', 'PIN Code', 6, 6],
+    ];
 
-    if (!formData.businessName || !formData.businessName.trim()) {
-      newErrors.businessName = 'Please enter your business name';
+    requiredFields.forEach(([field, label, minLength, maxLength]) => {
+      const value = formData[field]?.trim() || '';
+      if (!value) {
+        newErrors[field] = `Please enter ${label.toLowerCase()}`;
+      } else if (value.length < minLength || value.length > maxLength) {
+        newErrors[field] = `${label} must be ${minLength === maxLength ? `${minLength} digits` : `${minLength}-${maxLength} characters`}`;
+      }
+    });
+
+    const phoneDigits = formData.phone?.replace(/\D/g, '') || '';
+    if (formData.phone?.trim() && (phoneDigits.length < 10 || phoneDigits.length > 15 || !/^\+?[\d\s()-]+$/.test(formData.phone.trim()))) {
+      newErrors.phone = 'Please enter a valid phone number';
     }
-    if (!formData.ownerName || !formData.ownerName.trim()) {
-      newErrors.ownerName = 'Please enter owner or contact name';
+
+    if (formData.email?.trim() && !/^\S+@\S+\.\S+$/.test(formData.email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
     }
-    if (!formData.phone || !formData.phone.trim()) {
-      newErrors.phone = 'Please enter phone number';
-    }
-    if (!formData.email || !formData.email.trim()) {
-      newErrors.email = 'Please enter email address';
-    }
-    if (!formData.location || !formData.location.trim()) {
-      newErrors.location = 'Please enter business location';
+
+    if (formData.pin?.trim() && !/^\d{6}$/.test(formData.pin.trim())) {
+      newErrors.pin = 'PIN Code must be exactly 6 digits';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -252,8 +164,7 @@ export default function BusinessInfoScreen({
                 Tell us about<br />your business
               </h2>
               <p className="text-xs sm:text-sm text-[#64748B] font-normal leading-relaxed">
-                Basic information to personalize your<br />
-                VITTANAYA workspace.
+                Tell us what your business does so we can tailor VITTANAYA to your situation.
               </p>
             </div>
 
@@ -288,37 +199,30 @@ export default function BusinessInfoScreen({
                 )}
               </div>
 
-              {/* Field 2: Owner / Contact Name */}
-              <div className="space-y-1">
+              {/* Business Details */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-wide text-slate-500">Business Details</h3>
                 <label className="block text-xs font-bold text-slate-800">
-                  Owner / Contact Name <span className="text-rose-500">*</span>
+                  What does your business do? <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    value={formData.ownerName || ''}
-                    onChange={(e) => handleChange('ownerName', e.target.value)}
-                    placeholder="Enter owner / contact name"
-                    className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all ${
-                      errors.ownerName
-                        ? 'border-rose-400 ring-1 ring-rose-400'
-                        : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'
-                    }`}
-                  />
-                </div>
-                {errors.ownerName && (
-                  <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.ownerName}</p>
+                <textarea
+                  value={formData.businessDescription || ''}
+                  onChange={(e) => handleChange('businessDescription', e.target.value)}
+                  placeholder="Describe your products or services"
+                  rows="2"
+                  className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all resize-none ${
+                    errors.businessDescription
+                      ? 'border-rose-400 ring-1 ring-rose-400'
+                      : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'
+                  }`}
+                />
+                {errors.businessDescription && (
+                  <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.businessDescription}</p>
                 )}
               </div>
 
               {/* Fields 3 & 4: Phone & Email side by side */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* Phone */}
                 <div className="space-y-1">
                   <label className="block text-xs font-bold text-slate-800">
                     Phone Number <span className="text-rose-500">*</span>
@@ -330,182 +234,60 @@ export default function BusinessInfoScreen({
                       </svg>
                     </span>
                     <input
-                      type="text"
+                      type="tel"
                       value={formData.phone || ''}
                       onChange={(e) => handleChange('phone', e.target.value)}
                       placeholder="Enter phone number"
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all ${
-                        errors.phone
-                          ? 'border-rose-400 ring-1 ring-rose-400'
-                          : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'
-                      }`}
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all ${errors.phone ? 'border-rose-400 ring-1 ring-rose-400' : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'}`}
                     />
                   </div>
-                  {errors.phone && (
-                    <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.phone}</p>
-                  )}
+                  {errors.phone && <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.phone}</p>}
                 </div>
-
-                {/* Email */}
                 <div className="space-y-1">
                   <label className="block text-xs font-bold text-slate-800">
                     Email Address <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    </span>
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">@</span>
                     <input
-                      type="email"
+                      type="text"
+                      inputMode="email"
                       value={formData.email || ''}
                       onChange={(e) => handleChange('email', e.target.value)}
                       placeholder="Enter email address"
-                      className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all ${
-                        errors.email
-                          ? 'border-rose-400 ring-1 ring-rose-400'
-                          : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'
-                      }`}
+                      className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all ${errors.email ? 'border-rose-400 ring-1 ring-rose-400' : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'}`}
                     />
                   </div>
-                  {errors.email && (
-                    <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.email}</p>
-                  )}
+                  {errors.email && <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.email}</p>}
                 </div>
               </div>
 
-              {/* Field 5: Business Location */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-800">
-                    Business Location <span className="text-rose-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleDetectLocation}
-                    disabled={isDetectingLocation}
-                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 disabled:text-slate-400 flex items-center space-x-1 cursor-pointer transition-colors"
-                  >
-                    {isDetectingLocation ? (
-                      <>
-                        <span className="w-2.5 h-2.5 rounded-full border-2 border-blue-600 border-t-transparent animate-spin inline-block" />
-                        <span>Detecting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>📍</span>
-                        <span>Auto-detect</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="relative">
-                  {/* Left Pin Indicator */}
-                  <button
-                    type="button"
-                    onClick={handleDetectLocation}
-                    disabled={isDetectingLocation}
-                    title="Click to detect location"
-                    className={`absolute inset-y-0 left-0 pl-3.5 flex items-center cursor-pointer transition-colors ${
-                      isDetectingLocation
-                        ? 'text-blue-600'
-                        : formData.location
-                        ? 'text-emerald-600 hover:text-blue-600'
-                        : 'text-slate-400 hover:text-blue-600'
-                    }`}
-                  >
-                    {isDetectingLocation ? (
-                      <span className="relative flex h-4 w-4 items-center justify-center">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                        <svg className="w-4 h-4 text-blue-600 relative" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </span>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    )}
-                  </button>
-
-                  <input
-                    type="text"
-                    value={formData.location || ''}
-                    onChange={(e) => {
-                      handleChange('location', e.target.value);
-                      if (locationNotice) setLocationNotice(null);
-                    }}
-                    placeholder={isDetectingLocation ? 'Detecting your location...' : 'Enter business location'}
-                    disabled={isDetectingLocation}
-                    className={`w-full pl-10 pr-10 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all ${
-                      errors.location
-                        ? 'border-rose-400 ring-1 ring-rose-400'
-                        : isDetectingLocation
-                        ? 'border-blue-400 ring-1 ring-blue-400/30 bg-blue-50/20'
-                        : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'
-                    }`}
-                  />
-
-                  {/* Right Action: Detect trigger icon or checkmark */}
-                  <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center">
-                    {isDetectingLocation ? (
-                      <span className="text-xs text-blue-600 font-medium animate-pulse">Detecting...</span>
-                    ) : formData.location ? (
-                      <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-[10px] font-bold" title="Location set">
-                        ✓
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleDetectLocation}
-                        title="Auto-detect current location"
-                        className="text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <circle cx="12" cy="12" r="7" strokeWidth="2" />
-                          <circle cx="12" cy="12" r="2" fill="currentColor" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v3m0 14v3M2 12h3m14 0h3" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Validation Error */}
-                {errors.location && (
-                  <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.location}</p>
-                )}
-
-                {/* Subtle, non-intrusive notification if permission denied or lookup unavailable */}
-                {locationNotice && (
-                  <p className="text-[11px] font-medium text-slate-500 flex items-center space-x-1.5 mt-1 bg-slate-50 border border-slate-200/80 rounded-lg px-2.5 py-1.5">
-                    <span className="text-amber-500 font-bold">ℹ</span>
-                    <span>{locationNotice}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Field 6: GST Number (Optional) */}
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-800">
-                  GST Number (Optional)
-                </label>
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </span>
-                  <input
-                    type="text"
-                    value={formData.gstin || ''}
-                    onChange={(e) => handleChange('gstin', e.target.value)}
-                    placeholder="Enter GST number (optional)"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all uppercase font-mono"
-                  />
+              {/* Business Location */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-black uppercase tracking-wide text-slate-500">Business Location</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {[
+                    ['village', 'Village / Town', 'Enter village or town'],
+                    ['district', 'District', 'Enter district'],
+                    ['state', 'State', 'Enter state'],
+                    ['pin', 'PIN Code', 'Enter 6-digit PIN'],
+                  ].map(([field, label, placeholder]) => (
+                    <div key={field} className="space-y-1">
+                      <label className="block text-xs font-bold text-slate-800">
+                        {label} <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        inputMode={field === 'pin' ? 'numeric' : 'text'}
+                        maxLength={field === 'pin' ? 6 : undefined}
+                        value={formData[field] || ''}
+                        onChange={(e) => handleChange(field, e.target.value)}
+                        placeholder={placeholder}
+                        className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all ${errors[field] ? 'border-rose-400 ring-1 ring-rose-400' : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'}`}
+                      />
+                      {errors[field] && <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors[field]}</p>}
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -621,8 +403,7 @@ export default function BusinessInfoScreen({
             {/* Bottom Benefits Message */}
             <div className="space-y-4 pt-1">
               <h3 className="text-base font-bold text-[#0F172A] leading-snug">
-                We’ll set up your personalized<br />
-                financial workspace
+                We’ll tailor your workspace to your business.
               </h3>
 
               <div className="space-y-2.5 text-xs text-[#475569]">
@@ -632,7 +413,7 @@ export default function BusinessInfoScreen({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
                   </div>
-                  <span>Get real-time insights about your business</span>
+                  <span>Understand your business and current situation</span>
                 </div>
 
                 <div className="flex items-center space-x-2.5">
@@ -641,7 +422,7 @@ export default function BusinessInfoScreen({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <span>Track cash flow, invoices & expenses</span>
+                  <span>See your financial position clearly</span>
                 </div>
 
                 <div className="flex items-center space-x-2.5">
@@ -650,7 +431,7 @@ export default function BusinessInfoScreen({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                   </div>
-                  <span>Make smarter, data-driven decisions</span>
+                  <span>Get guidance relevant to your business</span>
                 </div>
 
                 <div className="flex items-center space-x-2.5">
@@ -659,7 +440,7 @@ export default function BusinessInfoScreen({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
-                  <span>All in one secure platform</span>
+                  <span>Keep your information under your control</span>
                 </div>
               </div>
             </div>
