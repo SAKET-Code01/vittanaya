@@ -362,24 +362,30 @@ export function WorkspaceProvider({ children }) {
   // Action: Complete Onboarding and set source of truth
   const completeOnboarding = ({
     businessName,
-    ownerName,
+    description,
     phone,
     email,
+    village,
+    district,
+    state,
+    pin,
     businessType,
     selectedOps,
     location,
-    gstin,
   }) => {
     const formattedNow = getFormattedNow();
     const newWorkspace = buildAdaptiveWorkspace({
       businessName: businessName || 'My MSME Business',
-      ownerName: ownerName || 'Business Owner',
-      phone: phone || '+91 98765 43210',
-      email: email || 'contact@business.com',
+      description: description || '',
+      phone: phone || '',
+      email: email || '',
+      village: village || '',
+      district: district || '',
+      state: state || '',
+      pin: pin || '',
       businessType: businessType || 'manufacturing',
       selectedOps: selectedOps && selectedOps.length > 0 ? selectedOps : ['sales', 'purchases'],
-      location: location || 'India',
-      gstin: gstin || '',
+      location: location || [village, district, state].filter(Boolean).join(', ') || 'India',
       onboardingCompletedAt: formattedNow,
       lastUpdatedAt: formattedNow,
     });

@@ -427,7 +427,7 @@ export default function WorkspacePreparationScreen({
                     {formData.businessName || 'My Business'}
                   </h4>
                   <p className="text-[11px] text-slate-500">
-                    {formData.ownerName ? `Lead: ${formData.ownerName}` : 'Owner Workspace'}
+                    {formData.village ? `${formData.village}${formData.district ? `, ${formData.district}` : ''}` : 'Business Workspace'}
                   </p>
                 </div>
                 <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-200">
