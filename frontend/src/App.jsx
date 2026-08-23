@@ -52,9 +52,9 @@ function AppContent() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  /** Called by LoginPage when authentication succeeds (TODO: wire to real auth) */
+  /** Called by LoginPage after credential authentication succeeds. */
   const handleLoginSuccess = () => {
-    setAppScreen('workspace');
+    handleGuestContinue();
   };
 
   /**

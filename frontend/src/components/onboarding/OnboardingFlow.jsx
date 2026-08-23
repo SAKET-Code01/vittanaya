@@ -62,7 +62,6 @@ export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreD
       location: [formData.village, formData.district, formData.state].filter(Boolean).join(', ') || 'India',
     });
     onComplete(workspace);
-    onClose();
     setStep(1); // reset to welcome for future modal triggers
   };
 
