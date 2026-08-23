@@ -8,6 +8,7 @@ from backend.app.api.v1.endpoints.business import router as business_router
 from backend.app.api.v1.endpoints.dashboard import router as dashboard_router
 from backend.app.api.v1.endpoints.finance import router as finance_router
 from backend.app.api.v1.endpoints.health import router as health_router
+from backend.app.api.v1.endpoints.insights import router as insights_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
@@ -17,3 +18,4 @@ api_v1_router.include_router(business_router)
 api_v1_router.include_router(dashboard_router)
 api_v1_router.include_router(finance_router)
 api_v1_router.include_router(advisory_router)
+api_v1_router.include_router(insights_router)

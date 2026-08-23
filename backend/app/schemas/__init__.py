@@ -10,6 +10,25 @@ from backend.app.schemas.business import (
 from backend.app.schemas.dashboard import DashboardSummaryResponse
 from backend.app.schemas.expense import ExpenseBase, ExpenseCreate, ExpenseResponse
 from backend.app.schemas.goal import GoalBase, GoalCreate, GoalResponse
+from backend.app.schemas.insights import (
+    AdvisorRequest,
+    AdvisorResponse,
+    FeasibilityRequest,
+    FeasibilityResponse,
+    FinancialAnalysisRequest,
+    FinancialAnalysisResponse,
+    ProjectCostRequest,
+    ProjectCostResponse,
+    RiskAnalysisRequest,
+    RiskAnalysisResponse,
+    SchemeMatchRequest,
+    SchemeMatchResponse,
+    SimulationRequest,
+    SimulationResponse,
+    TraceabilityMetadata,
+    UnifiedInsightsRequest,
+    UnifiedInsightsResponse,
+)
 from backend.app.schemas.payable import PayableBase, PayableCreate, PayableResponse
 from backend.app.schemas.receivable import ReceivableBase, ReceivableCreate, ReceivableResponse
 from backend.app.schemas.transaction import TransactionBase, TransactionCreate, TransactionResponse
@@ -39,4 +58,21 @@ __all__ = [
     "GoalCreate",
     "GoalResponse",
     "DashboardSummaryResponse",
+    "ProjectCostRequest",
+    "ProjectCostResponse",
+    "FinancialAnalysisRequest",
+    "FinancialAnalysisResponse",
+    "SchemeMatchRequest",
+    "SchemeMatchResponse",
+    "FeasibilityRequest",
+    "FeasibilityResponse",
+    "RiskAnalysisRequest",
+    "RiskAnalysisResponse",
+    "SimulationRequest",
+    "SimulationResponse",
+    "AdvisorRequest",
+    "AdvisorResponse",
+    "UnifiedInsightsRequest",
+    "UnifiedInsightsResponse",
+    "TraceabilityMetadata",
 ]
