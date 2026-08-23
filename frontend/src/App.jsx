@@ -10,11 +10,21 @@ import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import StartupOpeningAnimation from './components/common/StartupOpeningAnimation';
 import IndustrySwitcherModal from './components/common/IndustrySwitcherModal';
 import ExplanationModal from './components/common/ExplanationModal';
+import LoginPage from './pages/Login';
 import { MOCK_EXPLANATIONS } from './mocks/dashboardMockData';
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext';
+import { LocaleProvider } from './locale/LocaleContext';
 
 /**
  * AppContent Component — Single Source of Truth Workspace Integration
+ *
+ * appScreen state machine:
+ *   'login'      — Default screen after startup animation.
+ *   'onboarding' — OnboardingFlow (new user OR unauthenticated guest path).
+ *   'workspace'  — Authenticated workspace (AppLayout + dashboard).
+ *
+ * Auth actions are isolated in LoginPage handlers.
+ * Guest path goes to 'onboarding' (unauthenticated) — NOT to workspace.
  */
 function AppContent() {
   const {
@@ -26,8 +36,13 @@ function AppContent() {
     enterDemoMode,
     exitDemoMode,
   } = useWorkspace();
+
+  // ── App-level screen state ────────────────────────────────────────────────
   const [hasPlayedStartup, setHasPlayedStartup] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(true);
+  // 'login' | 'onboarding' | 'workspace'
+  const [appScreen, setAppScreen] = useState('login');
+
+  // ── Secondary UI state (unchanged) ───────────────────────────────────────
   const [isIndustrySwitcherOpen, setIsIndustrySwitcherOpen] = useState(false);
   const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
   const [hiddenCards, setHiddenCards] = useState([]);
@@ -35,37 +50,80 @@ function AppContent() {
 
   const activeExplanation = activeExplanationKey ? MOCK_EXPLANATIONS[activeExplanationKey] : null;
 
-  // Handle entering isolated Demo Dashboard
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  /** Called by LoginPage when authentication succeeds (TODO: wire to real auth) */
+  const handleLoginSuccess = () => {
+    setAppScreen('workspace');
+  };
+
+  /**
+   * Called by LoginPage "Continue as Guest".
+   * Guest enters the OnboardingFlow (Assessment path) without authentication.
+   * Guest is NOT considered logged in.
+   */
+  const handleGuestContinue = () => {
+    setAppScreen('onboarding');
+  };
+
+  /**
+   * Called by LoginPage "Register here".
+   * TODO: Navigate to a dedicated registration screen once built.
+   * For now, enters onboarding as an unauthenticated new-user path.
+   */
+  const handleRegister = () => {
+    // TODO: Replace with appScreen = 'register' when RegisterPage is created.
+    setAppScreen('onboarding');
+  };
+
+  /** OnboardingFlow completion — activates workspace with the new profile */
+  const handleOnboardingComplete = (newProfile) => {
+    setCurrentProfile(newProfile);
+    setAppScreen('workspace');
+  };
+
+  /** Demo mode entry (from WelcomeScreen "Explore Demo") */
   const handleExploreDemo = () => {
     enterDemoMode();
-    setIsOnboardingOpen(false);
+    setAppScreen('workspace');
   };
 
-  // Handle exiting Demo Dashboard back to Onboarding
+  /** Exit demo — return to Login */
   const handleExitDemo = () => {
     exitDemoMode();
-    setIsOnboardingOpen(true);
+    setAppScreen('login');
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* 1. Signature Startup Opening Animation */}
+      {/* 1. Signature Startup Opening Animation — plays once on first load */}
       {!hasPlayedStartup && (
         <StartupOpeningAnimation onComplete={() => setHasPlayedStartup(true)} />
       )}
 
-      {isOnboardingOpen && !isDemoMode ? (
+      {/* 2. Login Screen — shown after startup animation, before onboarding/workspace */}
+      {hasPlayedStartup && appScreen === 'login' && (
+        <LoginPage
+          onLoginSuccess={handleLoginSuccess}
+          onGuestContinue={handleGuestContinue}
+          onRegister={handleRegister}
+        />
+      )}
+
+      {/* 3. Onboarding Flow — new users and unauthenticated guests */}
+      {hasPlayedStartup && appScreen === 'onboarding' && (
         <OnboardingFlow
-          isOpen={isOnboardingOpen}
-          onClose={() => setIsOnboardingOpen(false)}
+          isOpen={true}
+          onClose={() => setAppScreen('login')}
           currentProfile={currentProfile}
           onExploreDemo={handleExploreDemo}
-          onComplete={(newProfile) => {
-            setCurrentProfile(newProfile);
-            setIsOnboardingOpen(false);
-          }}
+          onComplete={handleOnboardingComplete}
         />
-      ) : (
+      )}
+
+      {/* 4. Authenticated Workspace — AppLayout + pages */}
+      {hasPlayedStartup && appScreen === 'workspace' && (
         <AppLayout
           currentProfile={currentProfile}
           onOpenRegister={() => setActiveNavId('profile')}
@@ -128,8 +186,10 @@ function AppContent() {
  */
 export default function App() {
   return (
-    <WorkspaceProvider>
-      <AppContent />
-    </WorkspaceProvider>
+    <LocaleProvider>
+      <WorkspaceProvider>
+        <AppContent />
+      </WorkspaceProvider>
+    </LocaleProvider>
   );
 }

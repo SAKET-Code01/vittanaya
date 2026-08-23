@@ -4,6 +4,7 @@
  */
 
 import { ENV } from '../config/env';
+import { getLocale } from '../locale/LocaleContext';
 
 class ApiClient {
   constructor(baseUrl = `${ENV.API_URL}${ENV.API_PREFIX}`) {
@@ -15,6 +16,7 @@ class ApiClient {
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
+      'Accept-Language': getLocale(),
       ...options.headers,
     };
 
