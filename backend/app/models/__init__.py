@@ -3,6 +3,7 @@
 from backend.app.models.business import Business
 from backend.app.models.expense import Expense
 from backend.app.models.goal import BusinessGoal
+from backend.app.models.insights import ProjectCostReference, SchemeRule
 from backend.app.models.payable import Payable
 from backend.app.models.receivable import Receivable
 from backend.app.models.transaction import Transaction
@@ -16,4 +17,6 @@ __all__ = [
     "Payable",
     "Expense",
     "BusinessGoal",
+    "ProjectCostReference",
+    "SchemeRule",
 ]
