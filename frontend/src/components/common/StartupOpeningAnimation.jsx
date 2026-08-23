@@ -31,7 +31,8 @@ import React, { useState, useEffect, useRef } from 'react';
  * Total Duration: approx 10.0–10.8 seconds
  */
 export default function StartupOpeningAnimation({ onComplete }) {
-  const [phase, setPhase] = useState(1);
+  // Start directly at Phase 8 (Signature Form Convergence: Emerald Contour, Venation Spine, Financial Momentum Polyline & Photons)
+  const [phase, setPhase] = useState(8);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const animationCompleteRef = useRef(false);
@@ -56,38 +57,24 @@ export default function StartupOpeningAnimation({ onComplete }) {
       return () => clearTimeout(quickTimer);
     }
 
-    // Master narrative timeline sequence
-    const t2 = setTimeout(() => setPhase(2), 800);    // Phase 2: Financial Signals (₹, +, -, %, ↗, ↘)
-    const t3 = setTimeout(() => setPhase(3), 2000);   // Phase 3: Transaction Network (Revenue -> Cash -> Payables)
-    const t4 = setTimeout(() => setPhase(4), 3500);   // Phase 4: Cash Flow Graph (Past -> Now -> Future)
-    const t5 = setTimeout(() => setPhase(5), 4700);   // Phase 5: Financial Analysis & Radar Core
-    const t6 = setTimeout(() => setPhase(6), 5800);   // Phase 6: Risk + Liquidity Scan Results
-    const t7 = setTimeout(() => setPhase(7), 6500);   // Phase 7: Prediction Forecast Corridor
-    const t8 = setTimeout(() => setPhase(8), 7200);   // Phase 8 & 9: Convergence into VITTANAYA Signature Form
-    const t9 = setTimeout(() => setPhase(10), 7800);  // Phase 10: The Single Pulse
-    const t10 = setTimeout(() => setPhase(11), 8300); // Phase 11: Particles assemble VITTANAYA letters
-    const t11 = setTimeout(() => setPhase(12), 9000); // Phase 12: Brand Light Sweep
-    const t12 = setTimeout(() => setPhase(13), 9500); // Phase 13 & 14: Tagline & Financial Signature Line
-    const t13 = setTimeout(() => setPhase(15), 10200); // Phase 15: Final Brand Hold
-    const t14 = setTimeout(() => finishAnimation(), 11000); // Phase 16: Smooth Transition into App
+    // Master narrative timeline sequence starting directly at Signature Form Convergence
+    const t9 = setTimeout(() => setPhase(10), 800);   // Phase 10: The Single Pulse
+    const t10 = setTimeout(() => setPhase(11), 1300); // Phase 11: Particles assemble VITTANAYA letters
+    const t11 = setTimeout(() => setPhase(12), 2000); // Phase 12: Brand Light Sweep
+    const t12 = setTimeout(() => setPhase(13), 2500); // Phase 13 & 14: Tagline & Financial Signature Line
+    const t13 = setTimeout(() => setPhase(15), 3200); // Phase 15: Final Brand Hold
+    const t14 = setTimeout(() => finishAnimation(), 4000); // Phase 16: Smooth Transition into App
 
-    // Absolute hard safety fallback timer (max 12s)
+    // Absolute hard safety fallback timer (max 5.0s)
     const safetyFallback = setTimeout(() => {
       finishAnimation();
-    }, 12000);
+    }, 5000);
 
     // Skip immediately on click or keyboard press
     const handleKeyDown = () => finishAnimation();
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-      clearTimeout(t5);
-      clearTimeout(t6);
-      clearTimeout(t7);
-      clearTimeout(t8);
       clearTimeout(t9);
       clearTimeout(t10);
       clearTimeout(t11);
