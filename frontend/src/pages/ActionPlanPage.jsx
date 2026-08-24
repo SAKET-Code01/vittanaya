@@ -1,0 +1,3 @@
+import React from 'react';
+import { useWorkspace } from '../context/WorkspaceContext';
+export default function ActionPlanPage() { const { currentProfile, financialSummary } = useWorkspace(); return <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Action Plan</p><h1 className="mt-2 text-2xl font-black text-slate-900">Next actions</h1><p className="mt-3 text-sm text-slate-600">Action planning for {currentProfile?.name || 'your business'} will use approved advisory outputs when available.</p><p className="mt-5 rounded-lg bg-slate-50 p-4 text-sm text-slate-700">Current liquidity gap: ₹{Number(financialSummary?.liquidity_gap || 0).toLocaleString('en-IN')}</p></section>; }

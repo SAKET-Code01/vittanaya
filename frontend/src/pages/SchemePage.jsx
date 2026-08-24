@@ -1,0 +1,3 @@
+import React from 'react';
+import { useWorkspace } from '../context/WorkspaceContext';
+export default function SchemePage() { const { currentProfile } = useWorkspace(); return <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"><p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Scheme</p><h1 className="mt-2 text-2xl font-black text-slate-900">Scheme workspace</h1><p className="mt-3 text-sm text-slate-600">Scheme eligibility is not asserted here. The active business context is {currentProfile?.location || 'available'} for future, approved matching logic.</p></section>; }
