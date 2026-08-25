@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import vittanayaLogo from "../assets/vittanaya-logo.png";
 import "./SplashScreen.css";
 
 /**
@@ -196,7 +197,11 @@ export default function SplashScreen({ onFinish }) {
 
         {/* STEP 4: Brand Reveal */}
         <div className={`splash-brand-reveal ${step >= 4 ? "visible" : ""}`}>
-          <h1 className="splash-brand-title">VITTANAYA</h1>
+          <img
+            src={vittanayaLogo}
+            alt="VITTANAYA"
+            className="splash-official-logo"
+          />
           <p className="splash-brand-subtitle">Financial Intelligence for Rural Entrepreneurs</p>
         </div>
 

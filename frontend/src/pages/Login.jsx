@@ -26,6 +26,7 @@ export default function Login({
   onLoginSuccess,
   onGuestContinue,
   onRegister,
+  onHome,
   mode = "login",
   onToggleMode,
 }) {
@@ -235,9 +236,15 @@ export default function Login({
           <img
             src={vittanayaLogo}
             alt="VITTANAYA"
-            className="login-brand-logo"
+            className={`login-brand-logo ${onHome ? 'cursor-pointer hover:opacity-90 active:scale-95 transition-all' : ''}`}
+            onClick={onHome}
+            role={onHome ? "button" : undefined}
+            tabIndex={onHome ? 0 : undefined}
+            onKeyDown={onHome ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onHome(); } } : undefined}
+            aria-label={onHome ? "Go to VITTANAYA Home" : undefined}
           />
         </div>
+
 
         <div className="login-header-right">
           {/* Language Selector Dropdown */}

@@ -62,17 +62,25 @@ export function WorkspaceProvider({ children }) {
   // 0. Demo Mode State (Isolated experience with zero persistence to real data)
   const [isDemoMode, setIsDemoMode] = useState(false);
 
-  // 1. Dynamic Profile State (Initialized from LocalStorage if available, or default workspace)
+  // 1. Dynamic Profile State (Initialized from LocalStorage if available)
+  // NOTE: Returns null for brand-new users who haven't completed onboarding.
+  // buildAdaptiveWorkspace({}) is ONLY called after the user completes onboarding,
+  // NOT as a default fallback, to prevent demo/sample data pre-filling the form.
   const [currentProfile, setCurrentProfile] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PROFILE);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Only restore a profile that was produced by a real onboarding completion
+        if (parsed && (parsed.onboardingCompletedAt || parsed.name)) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.warn('Could not read saved profile from localStorage', e);
     }
-    return buildAdaptiveWorkspace({});
+    // Fresh session: no pre-filled demo data
+    return null;
   });
 
   // 2. Dynamic Financial Starting Position (Editable)
@@ -650,9 +658,15 @@ export function WorkspaceProvider({ children }) {
     setIsDemoMode(false);
     try {
       const savedProfile = localStorage.getItem(STORAGE_KEYS.PROFILE);
-      setCurrentProfile(savedProfile ? JSON.parse(savedProfile) : buildAdaptiveWorkspace({}));
+      if (savedProfile) {
+        const parsed = JSON.parse(savedProfile);
+        // Only restore a real onboarded profile, not demo/placeholder data
+        setCurrentProfile((parsed && (parsed.onboardingCompletedAt || parsed.name)) ? parsed : null);
+      } else {
+        setCurrentProfile(null);
+      }
     } catch (e) {
-      setCurrentProfile(buildAdaptiveWorkspace({}));
+      setCurrentProfile(null);
     }
     try {
       const savedFin = localStorage.getItem(STORAGE_KEYS.FINANCIAL);

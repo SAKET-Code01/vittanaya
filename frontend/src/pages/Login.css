@@ -39,9 +39,9 @@
 }
 
 .login-page-centered .login-brand-logo {
-  height: 2.75rem; /* 44px on mobile */
+  height: 3.25rem; /* 52px on mobile */
   width: auto;
-  max-width: 220px;
+  max-width: 240px;
   object-fit: contain;
   mix-blend-mode: multiply;
   filter: contrast(1.04);
@@ -51,17 +51,18 @@
 
 @media (min-width: 640px) {
   .login-page-centered .login-brand-logo {
-    height: 3.25rem; /* 52px on tablet */
-    max-width: 270px;
+    height: 3.75rem; /* 60px on tablet */
+    max-width: 300px;
   }
 }
 
 @media (min-width: 1024px) {
   .login-page-centered .login-brand-logo {
-    height: 3.75rem; /* 60px on desktop */
-    max-width: 310px;
+    height: 4.5rem; /* 72px on desktop */
+    max-width: 360px;
   }
 }
+
 
 .login-page-centered .login-header-right {
   display: flex;

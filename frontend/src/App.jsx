@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from './components/layout/AppLayout';
 import DashboardPage from './pages/DashboardPage';
 import BusinessProfilePage from './pages/BusinessProfilePage';
@@ -27,43 +27,164 @@ function AppContent() {
     clearNavigationHistory,
   } = useWorkspace();
 
+  // Fresh load / refresh ALWAYS begins with Splash -> Welcome -> Login
   const [showSplash, setShowSplash] = useState(true);
+  const [appScreen, setAppScreen] = useState('welcome'); // 'welcome' | 'login' | 'steps' | 'workspace'
+  const [selectedStage, setSelectedStage] = useState(''); // '' | 'new_idea' | 'startup' | 'established'
+  const [establishedSubStep, setEstablishedSubStep] = useState(2); // 2: Info | 3: Type | 4: Ops | 5: Prepare
 
-  const [appScreen, setAppScreen] = useState('welcome');
+  // Centralized History & Screen Navigation Helper
+  const navigate = useCallback((screen, extra = {}, replace = false) => {
+    let hash = '#welcome';
+    if (screen === 'welcome') hash = '#welcome';
+    else if (screen === 'login') hash = '#login';
+    else if (screen === 'steps') {
+      const stg = extra.stage !== undefined ? extra.stage : selectedStage;
+      if (!stg) hash = '#stage-selection';
+      else if (stg === 'new_idea') hash = '#new-idea';
+      else if (stg === 'startup') hash = '#startup';
+      else if (stg === 'established') {
+        const sub = extra.subStep !== undefined ? extra.subStep : establishedSubStep;
+        hash = sub === 2 ? '#established-info' : sub === 3 ? '#established-type' : sub === 4 ? '#established-ops' : '#established';
+      }
+    } else if (screen === 'workspace') {
+      const nav = extra.navId || activeNavId || 'dashboard';
+      hash = `#${nav}`;
+    }
 
-  const changeAppScreen = (screen) => {
-    try {
-      localStorage.setItem('vittanaya_app_screen', screen);
-    } catch (e) {}
+    const stateObj = { screen, ...extra };
+    if (replace) {
+      window.history.replaceState(stateObj, '', hash);
+    } else {
+      const currentState = window.history.state;
+      if (!currentState || currentState.screen !== screen || JSON.stringify(currentState) !== JSON.stringify(stateObj)) {
+        window.history.pushState(stateObj, '', hash);
+      }
+    }
+
     setAppScreen(screen);
-  };
+    if (extra.stage !== undefined) setSelectedStage(extra.stage);
+    if (extra.subStep !== undefined) setEstablishedSubStep(extra.subStep);
+    if (extra.navId) setActiveNavId(extra.navId);
+  }, [selectedStage, establishedSubStep, activeNavId, setActiveNavId]);
+
+  // Native Browser Back / Forward History Listener
+  useEffect(() => {
+    // Fresh session always begins at #welcome
+    window.history.replaceState({ screen: 'welcome' }, '', '#welcome');
+
+    const handlePopState = (event) => {
+      const state = event.state;
+      if (!state || !state.screen) {
+        const hash = (window.location.hash || '').replace('#', '');
+        if (hash === 'login') {
+          setAppScreen('login');
+        } else if (hash === 'stage-selection') {
+          setAppScreen('steps');
+          setSelectedStage('');
+        } else if (hash === 'new-idea') {
+          setAppScreen('steps');
+          setSelectedStage('new_idea');
+        } else if (hash === 'startup') {
+          setAppScreen('steps');
+          setSelectedStage('startup');
+        } else if (hash === 'established-info') {
+          setAppScreen('steps');
+          setSelectedStage('established');
+          setEstablishedSubStep(2);
+        } else if (hash === 'established-type') {
+          setAppScreen('steps');
+          setSelectedStage('established');
+          setEstablishedSubStep(3);
+        } else if (hash === 'established-ops') {
+          setAppScreen('steps');
+          setSelectedStage('established');
+          setEstablishedSubStep(4);
+        } else if (hash && ['dashboard', 'business', 'feasibility', 'financial-plan', 'scheme', 'action-plan', 'settings', 'help'].includes(hash)) {
+          setAppScreen('workspace');
+          setActiveNavId(hash);
+        } else {
+          setAppScreen('welcome');
+        }
+        return;
+      }
+
+      setAppScreen(state.screen);
+      if (state.screen === 'steps') {
+        setSelectedStage(state.stage || '');
+        if (state.subStep) setEstablishedSubStep(state.subStep);
+      } else if (state.screen === 'workspace') {
+        if (state.navId) setActiveNavId(state.navId);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [setActiveNavId]);
 
   const handleSplashFinish = () => {
     setShowSplash(false);
   };
 
-  const handleGetStarted = () => changeAppScreen('login');
+  // Welcome -> Login
+  const handleGetStarted = () => {
+    navigate('login');
+  };
 
-  const handleGuestContinue = () => changeAppScreen('steps');
+  // Login as Guest or Register -> Stage Selection
+  const handleGuestContinue = () => {
+    navigate('steps', { stage: '' });
+  };
 
+  // Explicit Login action
   const handleLoginSuccess = () => {
+    let hasCompletedProfile = false;
     try {
       const savedProfile = localStorage.getItem('vittanaya_profile_v2');
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
-        if (parsed && (parsed.onboardingCompletedAt || parsed.stage || parsed.name)) {
-          changeAppScreen('workspace');
-          return;
+        if (parsed && (parsed.onboardingCompletedAt || parsed.name)) {
+          hasCompletedProfile = true;
         }
       }
     } catch (e) {}
-    if (currentProfile && (currentProfile.onboardingCompletedAt || currentProfile.stage || currentProfile.name)) {
-      changeAppScreen('workspace');
-      return;
+    if (currentProfile && (currentProfile.onboardingCompletedAt || currentProfile.name)) {
+      hasCompletedProfile = true;
     }
-    changeAppScreen('steps');
+
+    if (hasCompletedProfile) {
+      navigate('workspace', { navId: 'dashboard' });
+    } else {
+      navigate('steps', { stage: '' });
+    }
   };
 
+  // Stage Selection -> Stage Intake
+  const handleSelectStage = (stg) => {
+    navigate('steps', { stage: stg, subStep: 2 });
+  };
+
+  // Back from Stage Selection -> Login
+  const handleBackFromStageSelect = () => {
+    navigate('login');
+  };
+
+  // Back to Stage Selection from an intake form
+  const handleBackToStageSelect = () => {
+    navigate('steps', { stage: '' });
+  };
+
+  // Established SubStep Change
+  const handleEstablishedSubStepChange = (sub) => {
+    navigate('steps', { stage: 'established', subStep: sub });
+  };
+
+  // Logo / Home Navigation
+  const handleNavigateHome = () => {
+    navigate('welcome');
+  };
+
+  // Onboarding Complete (after Workspace Preparation)
   const handleOnboardingComplete = (newProfile) => {
     setCurrentProfile(newProfile);
     if (newProfile?.ownCapital) {
@@ -73,48 +194,52 @@ function AppContent() {
       });
     }
     if (clearNavigationHistory) clearNavigationHistory();
-    setActiveNavId('dashboard');
-    changeAppScreen('workspace');
+    navigate('workspace', { navId: 'dashboard' });
   };
 
+  // Explore Demo Workspace
   const handleExploreDemo = () => {
     enterDemoMode();
     if (clearNavigationHistory) clearNavigationHistory();
-    setActiveNavId('dashboard');
-    changeAppScreen('workspace');
+    navigate('workspace', { navId: 'dashboard' });
   };
 
+  // Exit Demo Workspace -> Login
   const handleExitDemo = () => {
     exitDemoMode();
     if (clearNavigationHistory) clearNavigationHistory();
-    setActiveNavId('dashboard');
-    changeAppScreen('login');
+    navigate('login');
   };
 
+  // Logout -> Login
   const handleLogout = () => {
     if (isDemoMode) exitDemoMode();
     if (clearNavigationHistory) clearNavigationHistory();
-    setActiveNavId('dashboard');
-    changeAppScreen('login');
+    navigate('login');
+  };
+
+  // Primary workspace tab selection
+  const handleSelectNav = (navId) => {
+    navigate('workspace', { navId });
   };
 
   const workspacePage =
     activeNavId === 'business' || activeNavId === 'profile' ? (
-      <BusinessProfilePage currentProfile={currentProfile} onNavigateHome={() => setActiveNavId('dashboard')} />
+      <BusinessProfilePage currentProfile={currentProfile} onNavigateHome={() => handleSelectNav('dashboard')} />
     ) : activeNavId === 'feasibility' ? (
-      <FeasibilityPage currentProfile={currentProfile} onNavigateHome={() => setActiveNavId('dashboard')} />
+      <FeasibilityPage currentProfile={currentProfile} onNavigateHome={() => handleSelectNav('dashboard')} />
     ) : activeNavId === 'financial-plan' ? (
-      <FinancialPlanPage currentProfile={currentProfile} onNavigateHome={() => setActiveNavId('dashboard')} />
+      <FinancialPlanPage currentProfile={currentProfile} onNavigateHome={() => handleSelectNav('dashboard')} />
     ) : activeNavId === 'scheme' ? (
-      <SchemePage currentProfile={currentProfile} onNavigateHome={() => setActiveNavId('dashboard')} />
+      <SchemePage currentProfile={currentProfile} onNavigateHome={() => handleSelectNav('dashboard')} />
     ) : activeNavId === 'action-plan' ? (
-      <ActionPlanPage currentProfile={currentProfile} onNavigateHome={() => setActiveNavId('dashboard')} />
+      <ActionPlanPage currentProfile={currentProfile} onNavigateHome={() => handleSelectNav('dashboard')} />
     ) : activeNavId === 'settings' ? (
-      <SettingsPage currentProfile={currentProfile} onNavigateHome={() => setActiveNavId('dashboard')} />
+      <SettingsPage currentProfile={currentProfile} onNavigateHome={() => handleSelectNav('dashboard')} />
     ) : activeNavId === 'help' ? (
-      <HelpSupportPage currentProfile={currentProfile} onNavigateHome={() => setActiveNavId('dashboard')} />
+      <HelpSupportPage currentProfile={currentProfile} onNavigateHome={() => handleSelectNav('dashboard')} />
     ) : (
-      <DashboardPage currentProfile={currentProfile} onNavigate={setActiveNavId} />
+      <DashboardPage currentProfile={currentProfile} onNavigate={handleSelectNav} />
     );
 
   return (
@@ -123,10 +248,12 @@ function AppContent() {
       {!showSplash && appScreen === 'welcome' && (
         <OnboardingFlow
           isOpen
-          onClose={() => changeAppScreen('login')}
+          initialStep={1}
+          onClose={handleGetStarted}
           currentProfile={currentProfile}
           onExploreDemo={handleExploreDemo}
           onIntroComplete={handleGetStarted}
+          onHome={handleNavigateHome}
           onComplete={handleOnboardingComplete}
         />
       )}
@@ -135,13 +262,20 @@ function AppContent() {
           onLoginSuccess={handleLoginSuccess}
           onGuestContinue={handleGuestContinue}
           onRegister={handleGuestContinue}
+          onHome={handleNavigateHome}
         />
       )}
       {!showSplash && appScreen === 'steps' && (
         <OnboardingFlow
           isOpen
           initialStep={2}
-          onClose={() => changeAppScreen('login')}
+          selectedStage={selectedStage}
+          onSelectStage={handleSelectStage}
+          establishedSubStep={establishedSubStep}
+          onEstablishedSubStepChange={handleEstablishedSubStepChange}
+          onBackToStageSelect={handleBackToStageSelect}
+          onClose={handleBackFromStageSelect}
+          onHome={handleNavigateHome}
           currentProfile={currentProfile}
           onExploreDemo={handleExploreDemo}
           onComplete={handleOnboardingComplete}
@@ -151,7 +285,7 @@ function AppContent() {
         <AppLayout
           currentProfile={currentProfile}
           activeNavId={activeNavId}
-          onSelectNav={setActiveNavId}
+          onSelectNav={handleSelectNav}
           isDemoMode={isDemoMode}
           onExitDemo={handleExitDemo}
           onLogout={handleLogout}
@@ -162,6 +296,7 @@ function AppContent() {
     </>
   );
 }
+
 
 export default function App() {
   return (
