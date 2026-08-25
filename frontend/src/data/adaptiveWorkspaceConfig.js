@@ -323,18 +323,29 @@ export function getDynamicForecastData(baseForecast = [], financialData = {}) {
 // ==========================================
 
 export function buildAdaptiveWorkspace({
+  stage = 'established', // 'new_idea' | 'startup' | 'established'
   businessName = 'MSME Financial Solutions',
   ownerName = 'Amiya Nayak',
   userRole = 'Business Owner',
   phone = '+91 82606 58692',
   email = 'amiya.nayak@msme.com',
   village = '',
+  block = '',
   district = '',
   state = '',
   pin = '',
   businessType = 'manufacturing',
+  category = '',
+  industry = '',
   selectedOps = ['sales', 'purchases', 'inventory', 'production', 'employees', 'assets', 'banking', 'loans'],
   location = 'Rourkela, Odisha, India',
+  locationData = null,
+  ownCapital = 0,
+  available_margin_capital = 0,
+  existingInvestment = 0,
+  socialCategory = 'General',
+  areaType = 'Rural',
+  startupDetails = null,
   gstin = '21ABCDE1234F1Z5',
   pan = 'ABCDE1234F',
   regNo = 'UDYAM-OD-21-0001234',
@@ -351,8 +362,8 @@ export function buildAdaptiveWorkspace({
 }) {
   const typeConfig = BUSINESS_TYPES.find((b) => b.id === businessType) || {
     id: businessType || 'manufacturing',
-    label: businessType ? businessType.charAt(0).toUpperCase() + businessType.slice(1) : 'Manufacturing',
-    desc: 'Manufacturing of industrial components and precision parts for B2B clients.',
+    label: category || (businessType ? businessType.charAt(0).toUpperCase() + businessType.slice(1) : 'Manufacturing'),
+    desc: industry || 'Manufacturing of industrial components and precision parts for B2B clients.',
     terminology: { holding: 'Holding', operations: 'Operations' },
   };
 
@@ -379,8 +390,11 @@ export function buildAdaptiveWorkspace({
     );
   }
 
+  const effectiveOwnCapital = Number(ownCapital || available_margin_capital || 0);
+
   return {
     id: businessType,
+    stage,
     businessType,
     name: businessName,
     user_name: ownerName,
@@ -388,12 +402,33 @@ export function buildAdaptiveWorkspace({
     phone,
     email,
     village,
+    block,
     district,
     state,
     pin,
-    category: typeConfig.label,
-    industry: typeConfig.desc,
-    location,
+    category: category || typeConfig.label,
+    industry: industry || typeConfig.desc,
+    location: typeof location === 'string' && location ? location : ([village, block, district, state].filter(Boolean).join(', ') || 'India'),
+    locationData: locationData || {
+      village: village || '',
+      block: block || '',
+      district: district || '',
+      state: state || '',
+      pin: pin || '',
+      state_code: null,
+      district_code: null,
+      block_code: null,
+      village_code: null,
+      gram_panchayat_code: null,
+      latitude: null,
+      longitude: null,
+    },
+    ownCapital: effectiveOwnCapital,
+    available_margin_capital: effectiveOwnCapital,
+    existingInvestment: Number(existingInvestment || 0),
+    socialCategory,
+    areaType,
+    startupDetails,
     gstin,
     pan: derivedPan || 'ABCDE1234F',
     regNo: regNo || (gstin ? `UDYAM-${gstin.substring(0, 2)}-${gstin.substring(2, 4)}-0001234` : 'UDYAM-OD-21-0001234'),
