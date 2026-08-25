@@ -1,0 +1,161 @@
+/* =========================================================================
+   VITTANAYA WELCOME SCREEN SCOPED VISUAL STYLES
+   Scoped exclusively to WelcomeScreen component
+   ========================================================================= */
+
+/* Top-Left Primary Brand Logo */
+.vittanaya-brand-logo {
+  height: 2.75rem; /* 44px */
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  filter: contrast(1.04);
+  transition: transform 0.2s ease;
+  display: block;
+}
+
+@media (min-width: 640px) {
+  .vittanaya-brand-logo {
+    height: 3.25rem; /* 52px */
+    max-width: 270px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .vittanaya-brand-logo {
+    height: 3.75rem; /* 60px */
+    max-width: 310px;
+  }
+}
+
+/* Hyper-Local Business Advisory Animated Pill */
+.hyperlocal-advisory-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(243, 248, 255, 0.92));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 10px -2px rgba(37, 99, 235, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  user-select: none;
+  animation: hyperlocalBorderGlow 3.2s ease-in-out infinite;
+}
+
+/* Subtle Shimmer Moving Highlight Across Pill */
+.hyperlocal-advisory-pill::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  left: -120%;
+  width: 60%;
+  height: 220%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0) 20%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(191, 219, 254, 0.45) 65%,
+    transparent 100%
+  );
+  transform: rotate(25deg);
+  animation: hyperlocalShimmerSweep 3.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes hyperlocalShimmerSweep {
+  0% {
+    left: -120%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    left: 150%;
+    opacity: 0.85;
+  }
+  100% {
+    left: 150%;
+    opacity: 0;
+  }
+}
+
+/* Glowing Indicator Dot */
+.hyperlocal-advisory-dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #2563EB;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.7);
+  flex-shrink: 0;
+}
+
+.hyperlocal-advisory-dot::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.4);
+  animation: hyperlocalDotPing 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes hyperlocalDotPing {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+/* Typography Inside Advisory Pill */
+.hyperlocal-advisory-text {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  background: linear-gradient(135deg, #1E40AF 0%, #2563EB 60%, #3B82F6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+@media (min-width: 640px) {
+  .hyperlocal-advisory-text {
+    font-size: 11px;
+  }
+}
+
+/* Subtle Glow Border Transition */
+@keyframes hyperlocalBorderGlow {
+  0%, 100% {
+    border-color: rgba(59, 130, 246, 0.26);
+    box-shadow: 0 2px 10px -2px rgba(37, 99, 235, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  }
+  50% {
+    border-color: rgba(37, 99, 235, 0.48);
+    box-shadow: 0 4px 16px -2px rgba(37, 99, 235, 0.16), 0 0 8px rgba(96, 165, 250, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hyperlocal-advisory-pill::after,
+  .hyperlocal-advisory-dot::before,
+  .hyperlocal-advisory-pill {
+    animation: none !important;
+  }
+}

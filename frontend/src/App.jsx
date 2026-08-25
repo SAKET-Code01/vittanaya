@@ -9,7 +9,7 @@ import ActionPlanPage from './pages/ActionPlanPage';
 import SettingsPage from './pages/SettingsPage';
 import HelpSupportPage from './pages/HelpSupportPage';
 import OnboardingFlow from './components/onboarding/OnboardingFlow';
-import StartupOpeningAnimation from './components/common/StartupOpeningAnimation';
+import SplashScreen from './components/SplashScreen';
 import LoginPage from './pages/Login';
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext';
 import { LocaleProvider } from './locale/LocaleContext';
@@ -27,30 +27,9 @@ function AppContent() {
     clearNavigationHistory,
   } = useWorkspace();
 
-  const [hasPlayedStartup, setHasPlayedStartup] = useState(() => {
-    try {
-      return sessionStorage.getItem('vittanaya_startup_played') === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
+  const [showSplash, setShowSplash] = useState(true);
 
-  const [appScreen, setAppScreen] = useState(() => {
-    try {
-      const savedScreen = localStorage.getItem('vittanaya_app_screen');
-      if (savedScreen && ['login', 'onboarding', 'steps', 'workspace'].includes(savedScreen)) {
-        return savedScreen;
-      }
-      const savedProfile = localStorage.getItem('vittanaya_profile_v2');
-      if (savedProfile) {
-        const parsed = JSON.parse(savedProfile);
-        if (parsed && (parsed.onboardingCompletedAt || parsed.stage || parsed.name)) {
-          return 'workspace';
-        }
-      }
-    } catch (e) {}
-    return 'onboarding';
-  });
+  const [appScreen, setAppScreen] = useState('welcome');
 
   const changeAppScreen = (screen) => {
     try {
@@ -59,14 +38,31 @@ function AppContent() {
     setAppScreen(screen);
   };
 
-  const handleStartupComplete = () => {
-    try {
-      sessionStorage.setItem('vittanaya_startup_played', 'true');
-    } catch (e) {}
-    setHasPlayedStartup(true);
+  const handleSplashFinish = () => {
+    setShowSplash(false);
   };
 
+  const handleGetStarted = () => changeAppScreen('login');
+
   const handleGuestContinue = () => changeAppScreen('steps');
+
+  const handleLoginSuccess = () => {
+    try {
+      const savedProfile = localStorage.getItem('vittanaya_profile_v2');
+      if (savedProfile) {
+        const parsed = JSON.parse(savedProfile);
+        if (parsed && (parsed.onboardingCompletedAt || parsed.stage || parsed.name)) {
+          changeAppScreen('workspace');
+          return;
+        }
+      }
+    } catch (e) {}
+    if (currentProfile && (currentProfile.onboardingCompletedAt || currentProfile.stage || currentProfile.name)) {
+      changeAppScreen('workspace');
+      return;
+    }
+    changeAppScreen('steps');
+  };
 
   const handleOnboardingComplete = (newProfile) => {
     setCurrentProfile(newProfile);
@@ -123,25 +119,25 @@ function AppContent() {
 
   return (
     <>
-      {!hasPlayedStartup && <StartupOpeningAnimation onComplete={handleStartupComplete} />}
-      {hasPlayedStartup && appScreen === 'login' && (
-        <LoginPage
-          onLoginSuccess={handleGuestContinue}
-          onGuestContinue={handleGuestContinue}
-          onRegister={handleGuestContinue}
-        />
-      )}
-      {hasPlayedStartup && appScreen === 'onboarding' && (
+      {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+      {!showSplash && appScreen === 'welcome' && (
         <OnboardingFlow
           isOpen
           onClose={() => changeAppScreen('login')}
           currentProfile={currentProfile}
           onExploreDemo={handleExploreDemo}
-          onIntroComplete={() => changeAppScreen('login')}
+          onIntroComplete={handleGetStarted}
           onComplete={handleOnboardingComplete}
         />
       )}
-      {hasPlayedStartup && appScreen === 'steps' && (
+      {!showSplash && appScreen === 'login' && (
+        <LoginPage
+          onLoginSuccess={handleLoginSuccess}
+          onGuestContinue={handleGuestContinue}
+          onRegister={handleGuestContinue}
+        />
+      )}
+      {!showSplash && appScreen === 'steps' && (
         <OnboardingFlow
           isOpen
           initialStep={2}
@@ -151,7 +147,7 @@ function AppContent() {
           onComplete={handleOnboardingComplete}
         />
       )}
-      {hasPlayedStartup && appScreen === 'workspace' && (
+      {!showSplash && appScreen === 'workspace' && (
         <AppLayout
           currentProfile={currentProfile}
           activeNavId={activeNavId}

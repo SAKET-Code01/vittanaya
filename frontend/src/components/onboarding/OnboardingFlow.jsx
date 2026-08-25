@@ -45,6 +45,9 @@ export default function OnboardingFlow({
   // Forward history slot for onboarding
   const [forwardStage, setForwardStage] = useState('');
 
+  // Pending workspace object during Workspace Preparation loading transition
+  const [pendingPreparedWorkspace, setPendingPreparedWorkspace] = useState(null);
+
   // Persistent Draft State for New Business Idea Path
   // Starts 100% empty for fresh new entrepreneurs
   const [newIdeaDraft, setNewIdeaDraft] = useState(() => ({
@@ -117,6 +120,7 @@ export default function OnboardingFlow({
   const handleStageSelect = (stg) => {
     setSelectedStage(stg);
     setForwardStage('');
+    setPendingPreparedWorkspace(null);
     if (stg === 'established') {
       setEstablishedSubStep(2);
     }
@@ -125,16 +129,19 @@ export default function OnboardingFlow({
   const handleBackToStageSelect = () => {
     setForwardStage(selectedStage);
     setSelectedStage('');
+    setPendingPreparedWorkspace(null);
   };
 
   const handleForwardToStage = () => {
     if (forwardStage) {
       setSelectedStage(forwardStage);
       setForwardStage('');
+      setPendingPreparedWorkspace(null);
     }
   };
 
   const handleOnboardingHome = () => {
+    setPendingPreparedWorkspace(null);
     if (selectedStage) {
       setForwardStage(selectedStage);
       setSelectedStage('');
@@ -168,9 +175,7 @@ export default function OnboardingFlow({
       description: newIdeaData.description,
       ownerName: 'Entrepreneur',
     });
-    onComplete(workspace);
-    setSelectedStage('');
-    setStep(1);
+    setPendingPreparedWorkspace(workspace);
   };
 
   // Completion handler for Startup intake
@@ -198,9 +203,7 @@ export default function OnboardingFlow({
       description: startupData.description,
       ownerName: 'Startup Founder',
     });
-    onComplete(workspace);
-    setSelectedStage('');
-    setStep(1);
+    setPendingPreparedWorkspace(workspace);
   };
 
   // Completion handler for Established Business path
@@ -281,6 +284,28 @@ export default function OnboardingFlow({
 
     // 2.A New Business Idea Intake Screen (Controlled draft data + Back/Forward/Home)
     if (selectedStage === 'new_idea') {
+      if (pendingPreparedWorkspace) {
+        return (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F8FAFC] animate-fadeIn">
+            <WorkspacePreparationScreen
+              formData={{
+                businessName: pendingPreparedWorkspace.businessName || pendingPreparedWorkspace.name,
+                ownerName: pendingPreparedWorkspace.ownerName || 'Entrepreneur',
+              }}
+              businessType={pendingPreparedWorkspace.businessType || 'manufacturing'}
+              selectedOps={pendingPreparedWorkspace.selectedOperations || ['sales', 'purchases']}
+              onComplete={() => {
+                const ws = pendingPreparedWorkspace;
+                setPendingPreparedWorkspace(null);
+                setSelectedStage('');
+                setStep(1);
+                onComplete(ws);
+              }}
+            />
+          </div>
+        );
+      }
+
       return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F8FAFC] animate-fadeIn">
           <NewIdeaIntakeScreen
@@ -296,6 +321,28 @@ export default function OnboardingFlow({
 
     // 2.B Startup Phase Intake Screen (Controlled draft data + Back/Forward/Home)
     if (selectedStage === 'startup') {
+      if (pendingPreparedWorkspace) {
+        return (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F8FAFC] animate-fadeIn">
+            <WorkspacePreparationScreen
+              formData={{
+                businessName: pendingPreparedWorkspace.businessName || pendingPreparedWorkspace.name,
+                ownerName: pendingPreparedWorkspace.ownerName || 'Startup Founder',
+              }}
+              businessType={pendingPreparedWorkspace.businessType || 'manufacturing'}
+              selectedOps={pendingPreparedWorkspace.selectedOperations || ['sales', 'purchases', 'inventory', 'assets']}
+              onComplete={() => {
+                const ws = pendingPreparedWorkspace;
+                setPendingPreparedWorkspace(null);
+                setSelectedStage('');
+                setStep(1);
+                onComplete(ws);
+              }}
+            />
+          </div>
+        );
+      }
+
       return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F8FAFC] animate-fadeIn">
           <StartupIntakeScreen
