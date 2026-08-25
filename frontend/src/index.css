@@ -6,6 +6,25 @@
   color-scheme: light;
 }
 
+/* =========================================================
+   VITTANAYA LIGHT-ONLY MODE
+   Dark mode is intentionally disabled for this version.
+   ========================================================= */
+html,
+html.light {
+  color-scheme: light !important;
+  background-color: #F8FAFC;
+}
+
+html.dark {
+  color-scheme: light !important;
+}
+
+html.dark body {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
 body {
   margin: 0;
   background-color: #F8FAFC;
@@ -127,408 +146,6 @@ html.dark {
 
 html.dark body {
   background-color: #070D14;
-  color: #F5F7FA;
-}
-
-/* Dark mode for main application layout & background */
-html.dark .bg-\[\#F8FAFC\] {
-  background-color: #070D14 !important;
-}
-
-html.dark .bg-\[\#F8FAFC\]\/90 {
-  background-color: rgba(7, 13, 20, 0.94) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom-color: rgba(255, 255, 255, 0.10) !important;
-}
-
-/* Dark mode cards & primary surfaces */
-html.dark .dash-card {
-  background: #111C28;
-  border-color: rgba(255, 255, 255, 0.10);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
-}
-
-html.dark .dash-card-hover:hover {
-  transform: translateY(-2px);
-  background: #162231;
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 12px 30px -4px rgba(0, 0, 0, 0.7), 0 0 15px rgba(16, 185, 129, 0.08);
-}
-
-/* High-Contrast Dark Mode Typography */
-html.dark .text-slate-900 {
-  color: #F5F7FA !important;
-}
-
-html.dark .text-slate-800 {
-  color: #F5F7FA !important;
-}
-
-html.dark .text-slate-700 {
-  color: #C3CCD7 !important;
-}
-
-html.dark .text-slate-600 {
-  color: #C3CCD7 !important;
-}
-
-html.dark .text-slate-500 {
-  color: #95A2B2 !important;
-}
-
-html.dark .text-slate-400 {
-  color: #95A2B2 !important;
-}
-
-html.dark .text-slate-300 {
-  color: #C3CCD7 !important;
-}
-
-html.dark .text-slate-200 {
-  color: #F5F7FA !important;
-}
-
-/* Dark Mode Subtle Borders & Dividers */
-html.dark .border-slate-100,
-html.dark .border-slate-200,
-html.dark .border-slate-200\/80,
-html.dark .border-slate-200\/90 {
-  border-color: rgba(255, 255, 255, 0.10) !important;
-}
-
-html.dark .border-slate-300,
-html.dark .border-slate-300\/60 {
-  border-color: rgba(255, 255, 255, 0.16) !important;
-}
-
-html.dark .border-slate-400 {
-  border-color: rgba(255, 255, 255, 0.22) !important;
-}
-
-html.dark hr,
-html.dark .divide-slate-100 > * + *,
-html.dark .divide-slate-200 > * + * {
-  border-color: rgba(255, 255, 255, 0.10) !important;
-}
-
-/* Dark Mode Card Backgrounds & Containers */
-html.dark .bg-white {
-  background-color: #111C28 !important;
-  color: #F5F7FA !important;
-}
-
-html.dark .bg-slate-50,
-html.dark .bg-slate-50\/80,
-html.dark .bg-slate-50\/90,
-html.dark .bg-slate-100 {
-  background-color: #0D151F !important;
-}
-
-html.dark .bg-slate-200,
-html.dark .bg-slate-200\/60,
-html.dark .bg-slate-200\/80 {
-  background-color: #162231 !important;
-}
-
-html.dark .bg-slate-900 {
-  background-color: #162231 !important;
-  color: #F5F7FA !important;
-}
-
-html.dark .bg-slate-800 {
-  background-color: #1A2C42 !important;
-}
-
-/* Dark Mode Inputs, Selects, Dropdowns & Controls */
-html.dark input,
-html.dark select,
-html.dark textarea {
-  background-color: #0B141E !important;
-  color: #F5F7FA !important;
-  border-color: rgba(255, 255, 255, 0.14) !important;
-}
-
-html.dark input::placeholder,
-html.dark textarea::placeholder {
-  color: #7F8B9A !important;
-}
-
-html.dark input:focus,
-html.dark select:focus,
-html.dark textarea:focus {
-  border-color: #10B981 !important;
-  box-shadow: 0 0 14px rgba(16, 185, 129, 0.25) !important;
-}
-
-html.dark select option {
-  background-color: #0D151F !important;
-  color: #F5F7FA !important;
-}
-
-html.dark kbd {
-  background-color: #162231 !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  color: #95A2B2 !important;
-}
-
-/* Dark Mode Modals Backdrops & Dialogs */
-html.dark .bg-slate-900\/60,
-html.dark .bg-slate-900\/40 {
-  background-color: rgba(4, 8, 14, 0.85) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-}
-
-/* Dark Mode Semantic Badges & Category Accents */
-/* Emerald / Green (Healthy, Positive, Active) */
-html.dark .bg-emerald-50,
-html.dark .bg-emerald-50\/50,
-html.dark .bg-emerald-50\/60,
-html.dark .bg-emerald-100 {
-  background-color: rgba(16, 185, 129, 0.18) !important;
-}
-
-html.dark .text-emerald-700,
-html.dark .text-emerald-800,
-html.dark .text-emerald-900 {
-  color: #34D399 !important;
-}
-
-html.dark .text-emerald-600 {
-  color: #10B981 !important;
-}
-
-html.dark .border-emerald-100,
-html.dark .border-emerald-200,
-html.dark .border-emerald-300,
-html.dark .border-emerald-500\/40 {
-  border-color: rgba(16, 185, 129, 0.38) !important;
-}
-
-/* Amber / Orange (Warning, Attention, Medium) */
-html.dark .bg-amber-50,
-html.dark .bg-amber-50\/50,
-html.dark .bg-amber-100,
-html.dark .bg-orange-50 {
-  background-color: rgba(245, 158, 11, 0.18) !important;
-}
-
-html.dark .text-amber-700,
-html.dark .text-amber-800,
-html.dark .text-amber-900,
-html.dark .text-orange-700,
-html.dark .text-orange-800 {
-  color: #FBBF24 !important;
-}
-
-html.dark .text-amber-600,
-html.dark .text-orange-600 {
-  color: #F59E0B !important;
-}
-
-html.dark .border-amber-100,
-html.dark .border-amber-200,
-html.dark .border-amber-300,
-html.dark .border-orange-200 {
-  border-color: rgba(245, 158, 11, 0.38) !important;
-}
-
-/* Rose / Red (Danger, Low, Outflow, Needs Attention) */
-html.dark .bg-rose-50,
-html.dark .bg-rose-50\/40,
-html.dark .bg-rose-50\/50,
-html.dark .bg-rose-100,
-html.dark .bg-red-50,
-html.dark .bg-red-100 {
-  background-color: rgba(244, 63, 94, 0.18) !important;
-}
-
-html.dark .text-rose-700,
-html.dark .text-rose-800,
-html.dark .text-rose-900,
-html.dark .text-red-700,
-html.dark .text-red-800 {
-  color: #FB7185 !important;
-}
-
-html.dark .text-rose-600,
-html.dark .text-red-600 {
-  color: #F43F5E !important;
-}
-
-html.dark .border-rose-100,
-html.dark .border-rose-200,
-html.dark .border-rose-300,
-html.dark .border-red-100,
-html.dark .border-red-200 {
-  border-color: rgba(244, 63, 94, 0.38) !important;
-}
-
-/* Blue (Bank, Working Capital, Inflow, Info) */
-html.dark .bg-blue-50,
-html.dark .bg-blue-50\/50,
-html.dark .bg-blue-100,
-html.dark .bg-sky-50 {
-  background-color: rgba(59, 130, 246, 0.18) !important;
-}
-
-html.dark .text-blue-700,
-html.dark .text-blue-800,
-html.dark .text-blue-900 {
-  color: #60A5FA !important;
-}
-
-html.dark .text-blue-600 {
-  color: #3B82F6 !important;
-}
-
-html.dark .border-blue-100,
-html.dark .border-blue-200,
-html.dark .border-blue-300 {
-  border-color: rgba(59, 130, 246, 0.38) !important;
-}
-
-/* Purple (Forecast, Intelligence, User Guide) */
-html.dark .bg-purple-50,
-html.dark .bg-purple-50\/50,
-html.dark .bg-purple-100,
-html.dark .bg-indigo-50 {
-  background-color: rgba(168, 85, 247, 0.18) !important;
-}
-
-html.dark .text-purple-700,
-html.dark .text-purple-800,
-html.dark .text-purple-900,
-html.dark .text-indigo-700,
-html.dark .text-indigo-800 {
-  color: #C084FC !important;
-}
-
-html.dark .text-purple-600,
-html.dark .text-indigo-600 {
-  color: #A855F7 !important;
-}
-
-html.dark .border-purple-100,
-html.dark .border-purple-200,
-html.dark .border-purple-300 {
-  border-color: rgba(168, 85, 247, 0.38) !important;
-}
-
-/* Cyan / Teal (Cash on Hand) */
-html.dark .bg-cyan-50,
-html.dark .bg-cyan-50\/50,
-html.dark .bg-teal-50 {
-  background-color: rgba(6, 182, 212, 0.18) !important;
-}
-
-html.dark .text-cyan-700,
-html.dark .text-cyan-800,
-html.dark .text-teal-700,
-html.dark .text-teal-800 {
-  color: #22D3EE !important;
-}
-
-html.dark .text-cyan-600,
-html.dark .text-teal-600 {
-  color: #06B6D4 !important;
-}
-
-html.dark .border-cyan-100,
-html.dark .border-cyan-200,
-html.dark .border-teal-100,
-html.dark .border-teal-200 {
-  border-color: rgba(6, 182, 212, 0.38) !important;
-}
-
-/* Dark Mode Charts & Analytics */
-html.dark .recharts-cartesian-grid line {
-  stroke: rgba(255, 255, 255, 0.07) !important;
-}
-
-html.dark .recharts-cartesian-axis-line {
-  stroke: rgba(255, 255, 255, 0.12) !important;
-}
-
-html.dark .recharts-cartesian-axis-tick-line {
-  stroke: rgba(255, 255, 255, 0.08) !important;
-}
-
-html.dark .recharts-text,
-html.dark .recharts-cartesian-axis-tick-value {
-  fill: #95A2B2 !important;
-  font-size: 11px !important;
-}
-
-html.dark .recharts-legend-item-text {
-  color: #C3CCD7 !important;
-}
-
-html.dark .recharts-default-tooltip {
-  background-color: #111C28 !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
-  color: #F5F7FA !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7) !important;
-  border-radius: 12px !important;
-}
-
-html.dark .recharts-reference-area-rect {
-  fill: rgba(168, 85, 247, 0.10) !important;
-}
-
-html.dark .recharts-reference-line line {
-  stroke: #C084FC !important;
-}
-
-/* SVG Track & Gauge Color Inversions for Dark Mode */
-html.dark svg circle[stroke="#E2E8F0"],
-html.dark svg path[stroke="#E2E8F0"] {
-  stroke: rgba(255, 255, 255, 0.12) !important;
-}
-
-html.dark svg circle[stroke="#CBD5E1"],
-html.dark svg path[stroke="#CBD5E1"] {
-  stroke: rgba(255, 255, 255, 0.16) !important;
-}
-
-/* Dark Mode Tables */
-html.dark table th,
-html.dark table thead {
-  background-color: #0D151F !important;
-  color: #C3CCD7 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
-}
-
-html.dark table td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-}
-
-html.dark table tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.035) !important;
-}
-
-/* Dark Mode Scrollbars */
-html.dark ::-webkit-scrollbar-track {
-  background: #070D14;
-}
-
-html.dark ::-webkit-scrollbar-thumb {
-  background: #162231;
-  border-radius: 4px;
-}
-
-html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #23344B;
-}
-
-/* =========================================================
-   VITTANAYA COMPACT MODE SYSTEM
-   ========================================================= */
-
-html.compact-mode .dash-card {
-  padding: 1rem !important;
-  border-radius: 14px !important;
 }
 
 html.compact-mode main {
@@ -560,12 +177,6 @@ html.compact-mode .gap-6 {
   border-radius: 24px;
 }
 
-html.dark .torn-paper {
-  background: #111C28 !important;
-  border-color: rgba(255, 255, 255, 0.10) !important;
-  box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.6) !important;
-  color: #F5F7FA !important;
-}
 
 .torn-paper-hero {
   background: #FFFFFF;
@@ -575,12 +186,6 @@ html.dark .torn-paper {
   border-radius: 28px;
 }
 
-html.dark .torn-paper-hero {
-  background: #111C28 !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.65) !important;
-  color: #F5F7FA !important;
-}
 
 .torn-paper-badge {
   background: #FFFFFF;
@@ -591,12 +196,6 @@ html.dark .torn-paper-hero {
   border-radius: 16px;
 }
 
-html.dark .torn-paper-badge {
-  background: #162231 !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5) !important;
-  color: #F5F7FA !important;
-}
 
 .washi-tape-green {
   background: rgba(52, 211, 153, 0.65);
