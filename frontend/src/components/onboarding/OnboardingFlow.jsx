@@ -15,8 +15,8 @@ import { buildAdaptiveWorkspace } from '../../data/adaptiveWorkspaceConfig';
  * STEP 4: Operations Screen (Approved Reference Design)
  * STEP 5: Workspace Preparation & Transition Screen (Approved Reference Design)
  */
-export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreDemo, currentProfile }) {
-  const [step, setStep] = useState(1); // 1: Welcome | 2: Info | 3: Type | 4: Ops | 5: Prepare
+export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreDemo, currentProfile, initialStep = 1, onIntroComplete }) {
+  const [step, setStep] = useState(initialStep); // 1: Welcome | 2: Info | 3: Type | 4: Ops | 5: Prepare
 
   // Form State - Starts completely empty by default
   const [formData, setFormData] = useState({
@@ -74,7 +74,7 @@ export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreD
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F9FBFE] animate-fadeIn">
         <WelcomeScreen
-          onGetStarted={() => setStep(2)}
+          onGetStarted={onIntroComplete || (() => setStep(2))}
           onExploreDemo={onExploreDemo}
         />
       </div>

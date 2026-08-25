@@ -1,194 +1,146 @@
 import React, { useState } from 'react';
-import { MOCK_DASHBOARD_SUMMARY } from '../mocks/dashboardMockData';
-import FinancialSnapshot from '../components/dashboard/FinancialSnapshot';
-import CashFlowChart from '../components/dashboard/CashFlowChart';
-import FinancialHealthPanel from '../components/dashboard/FinancialHealthPanel';
-import AttentionFeed from '../components/dashboard/AttentionFeed';
-import FinancialSummaryBar from '../components/dashboard/FinancialSummaryBar';
-import ExpandedForecastModal from '../components/dashboard/ExpandedForecastModal';
-import ExplainScoreModal from '../components/dashboard/ExplainScoreModal';
-import CustomizeDashboardModal from '../components/dashboard/CustomizeDashboardModal';
-import DetailModal from '../components/dashboard/DetailModal';
+import SelectedBusinessHeader from '../components/dashboard/SelectedBusinessHeader';
+import TopThreeMetricCards from '../components/dashboard/TopThreeMetricCards';
+import MarketInsightSection from '../components/dashboard/MarketInsightSection';
+import VittanayaInsightsCard from '../components/dashboard/VittanayaInsightsCard';
+import FinancialOutlookCard from '../components/dashboard/FinancialOutlookCard';
+import PaymentFinancialTrackCard from '../components/dashboard/PaymentFinancialTrackCard';
+import FloatingAiButton from '../components/dashboard/FloatingAiButton';
+import DashboardFooter from '../components/dashboard/DashboardFooter';
+import AskVittanayaModal from '../components/dashboard/AskVittanayaModal';
+import BusinessChangeModal from '../components/common/BusinessChangeModal';
 import { useWorkspace } from '../context/WorkspaceContext';
 
 /**
- * Universal & Adaptive Executive Dashboard Page — STRICT REFERENCE 2 IMPLEMENTATION
- * 
- * Strict Structure:
- * 1. Top Section: 4 Primary KPI Cards (Cash Available, Receivables, Payables, Cash Runway)
- * 2. Middle Section:
- *    - Left (8 cols): Hero Cash Flow Forecast (30D/60D/90D, Closing Balance, Inflow, Outflow, Safety Buffer, Lowest point pin)
- *    - Right (4 cols):
- *        - Top: Financial Health (Circular Gauge 84/100, Stable, Delayed Payments, Cash Buffer, Expense Pressure)
- *        - Bottom: Needs Attention (3 Alert items: Receivables delay, Lowest point Day 18, Payment concentration)
- * 3. Bottom Section: Financial Snapshot (5 columns: Inflow, Outflow, Liquidity Gap, Net Cash Flow, Lowest Cash)
- * 4. Modals & Overlays: Expand Forecast, Explain Score, Customize Dashboard, Modular Detail Views
+ * DashboardPage Component — SIH26091 Decision-Support Dashboard
  */
 export default function DashboardPage({
   currentProfile,
+  onNavigate,
   onOpenWhy,
-  onOpenRegister,
-  onOpenIndustrySwitcher,
-  isCustomizeOpen,
-  setIsCustomizeOpen,
-  hiddenCards = [],
-  setHiddenCards,
 }) {
-  const { financialSummary, financialData } = useWorkspace();
-  const summary = financialSummary || MOCK_DASHBOARD_SUMMARY;
+  const { financialSummary, financialData, updateProfile } = useWorkspace();
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isChangeBusinessOpen, setIsChangeBusinessOpen] = useState(false);
 
-  // Single active three-dot menu state
-  const [activeMenuId, setActiveMenuId] = useState(null);
-
-  // Shared forecast horizon state (30D / 60D / 90D)
-  const [forecastHorizon, setForecastHorizon] = useState('30D');
-
-  // Modal states
-  const [isExpandedForecastOpen, setIsExpandedForecastOpen] = useState(false);
-  const [isExplainScoreOpen, setIsExplainScoreOpen] = useState(false);
-  const [detailModalState, setDetailModalState] = useState({
-    isOpen: false,
-    type: 'cash-overview',
-    data: null,
-  });
-
-  // Card Hide & Restore Handlers
-  const handleHideCard = (cardId) => {
-    setHiddenCards((prev) => (prev.includes(cardId) ? prev : [...prev, cardId]));
+  // Dynamic Profile and Metric Defaults
+  const profile = {
+    ...currentProfile,
+    name: currentProfile?.name || 'Transport & Logistics',
+    category: currentProfile?.category || 'Transport & Logistics',
+    location: currentProfile?.location || 'Indore, Madhya Pradesh',
+    investmentRange: currentProfile?.investmentRange || '₹8L – ₹45L',
+    assessmentDate: currentProfile?.assessmentDate || '17 May 2025',
   };
 
-  const handleToggleCardVisibility = (cardId) => {
-    setHiddenCards((prev) =>
-      prev.includes(cardId) ? prev.filter((id) => id !== cardId) : [...prev, cardId]
-    );
+  const topMetrics = {
+    score: 78,
+    feasibilityStatus: 'Good Feasibility',
+    opportunityLevel: 'High',
+    opportunitySummary: 'Strong demand in local market',
+    riskLevel: 'Low',
+    riskSummary: 'Stable environment',
   };
 
-  const handleResetAllCards = () => {
-    setHiddenCards([]);
+  const financialOutlookData = {
+    projectCost: '₹ 14.50 L',
+    ownCapital: '₹ 2.20 L',
+    ownCapitalPct: '(15%)',
+    loanAmount: '₹ 12.30 L',
+    outstandingLoan: '₹ 11.85 L',
+    outstandingLoanPct: '(96% of loan)',
+    emiMonthly: '₹ 24,500',
+    interestRate: '9.25% p.a.',
   };
 
-  const handleOpenDetail = (type, data = null) => {
-    setDetailModalState({
-      isOpen: true,
-      type,
-      data,
-    });
+  const paymentTrackData = {
+    moneyIn: '₹ 1,85,000',
+    moneyOut: '₹ 1,22,750',
+    upcomingDue: '₹ 48,750',
   };
-
-  // Section visibility flags
-  const showForecast = !hiddenCards.includes('chart-forecast');
-  const showHealth = !hiddenCards.includes('panel-health');
-  const showAttentionFeed = !hiddenCards.includes('feed-attention');
-  const showSummaryBar = !hiddenCards.includes('sec-summary');
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-6">
+    <div className="w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-5 animate-fadeIn pb-6">
       
-      {/* 1. Top Section: 4 Primary KPI Cards (Reference 2) */}
-      <FinancialSnapshot
-        summary={summary}
-        onOpenDetail={handleOpenDetail}
-        hiddenCards={hiddenCards}
-        onHideCard={handleHideCard}
-        activeMenuId={activeMenuId}
-        setActiveMenuId={setActiveMenuId}
+      {/* 1. Selected Business Header */}
+      <SelectedBusinessHeader
+        currentProfile={profile}
+        onOpenChangeBusiness={() => setIsChangeBusinessOpen(true)}
       />
 
-      {/* 2. Middle Section: Cash Flow Forecast (Left) + Financial Health & Needs Attention (Right) */}
-      {(showForecast || showHealth || showAttentionFeed) && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          
-          {/* Left: Cash Flow Forecast Hero Card (8 cols) */}
-          {showForecast && (
-            <div className={showHealth || showAttentionFeed ? 'lg:col-span-8 flex flex-col' : 'lg:col-span-12 flex flex-col'}>
-              <CashFlowChart
-                currentProfile={currentProfile}
-                horizon={forecastHorizon}
-                setHorizon={setForecastHorizon}
-                onExpandForecast={() => setIsExpandedForecastOpen(true)}
-                onOpenDetail={handleOpenDetail}
-                onHideCard={handleHideCard}
-                activeMenuId={activeMenuId}
-                setActiveMenuId={setActiveMenuId}
-              />
-            </div>
-          )}
+      {/* 2. Top 3 Metric Cards Row */}
+      <TopThreeMetricCards
+        metricsData={topMetrics}
+        onOpenDetails={onNavigate}
+      />
 
-          {/* Right Column: Financial Health + Needs Attention (4 cols) */}
-          {(showHealth || showAttentionFeed) && (
-            <div className={showForecast ? 'lg:col-span-4 flex flex-col space-y-5' : 'lg:col-span-12 flex flex-col space-y-5'}>
-              {/* Financial Health */}
-              {showHealth && (
-                <div className="flex-1">
-                  <FinancialHealthPanel
-                    currentProfile={currentProfile}
-                    summary={summary}
-                    onExplainScore={() => setIsExplainScoreOpen(true)}
-                    onOpenDetail={handleOpenDetail}
-                    onHideCard={handleHideCard}
-                    activeMenuId={activeMenuId}
-                    setActiveMenuId={setActiveMenuId}
-                  />
-                </div>
-              )}
-
-              {/* Needs Attention */}
-              {showAttentionFeed && (
-                <div className="flex-1">
-                  <AttentionFeed
-                    onOpenDetail={handleOpenDetail}
-                    onHideCard={handleHideCard}
-                    activeMenuId={activeMenuId}
-                    setActiveMenuId={setActiveMenuId}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
+      {/* 3. Middle Row: Market Insight (Left ~65%) & Vittanaya Insights (Right ~35%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
+        
+        {/* Left: Market Insight (Interactive 3D Map + Why This Opportunity) */}
+        <div className="lg:col-span-8 flex flex-col">
+          <MarketInsightSection
+            currentProfile={profile}
+            onNavigate={onNavigate}
+            className="flex-1"
+          />
         </div>
-      )}
 
-      {/* 3. Bottom Section: Financial Snapshot 5-Column Summary (Reference 2) */}
-      {showSummaryBar && (
-        <FinancialSummaryBar summary={summary} onOpenDetail={handleOpenDetail} />
-      )}
+        {/* Right: Vittanaya Insights (4 Actionable Insight Rows) */}
+        <div className="lg:col-span-4 flex flex-col">
+          <VittanayaInsightsCard
+            currentProfile={profile}
+            onNavigate={onNavigate}
+            className="flex-1"
+          />
+        </div>
 
-      {/* ========================================================================= */}
-      {/* MODAL OVERLAYS */}
-      {/* ========================================================================= */}
+      </div>
 
-      {/* A. Expanded Cash Flow Forecast Modal */}
-      <ExpandedForecastModal
-        isOpen={isExpandedForecastOpen}
-        onClose={() => setIsExpandedForecastOpen(false)}
-        horizon={forecastHorizon}
-        setHorizon={setForecastHorizon}
-        currentProfile={currentProfile}
-        onOpenWhy={onOpenWhy}
+      {/* 4. Bottom Row: Financial Outlook & Payment & Financial Track */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
+        
+        {/* Left Card: A. Financial Outlook (Loan & Bank) */}
+        <div className="lg:col-span-6 flex flex-col">
+          <FinancialOutlookCard
+            financialData={financialOutlookData}
+            onNavigate={onNavigate}
+            className="flex-1"
+          />
+        </div>
+
+        {/* Right Card: Payment & Financial Track (All Money Flow) */}
+        <div className="lg:col-span-6 flex flex-col">
+          <PaymentFinancialTrackCard
+            paymentData={paymentTrackData}
+            onNavigate={onNavigate}
+            className="flex-1"
+          />
+        </div>
+
+      </div>
+
+      {/* 5. Footer */}
+      <DashboardFooter lastUpdated="17 May 2025 10:30 AM" />
+
+      {/* 6. Floating AI Chatbot Button (~50px up from bottom-right) */}
+      <FloatingAiButton onClick={() => setIsAiModalOpen(true)} />
+
+      {/* 7. Interactive Modals */}
+      <AskVittanayaModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        currentProfile={profile}
+        financialSummary={financialSummary}
       />
 
-      {/* B. Financial Health Score Explanation ("Why is your score 84?") */}
-      <ExplainScoreModal
-        isOpen={isExplainScoreOpen}
-        onClose={() => setIsExplainScoreOpen(false)}
-      />
-
-      {/* C. Customize Dashboard Modal (Hide & Restore Cards) */}
-      <CustomizeDashboardModal
-        isOpen={isCustomizeOpen}
-        onClose={() => setIsCustomizeOpen(false)}
-        hiddenCards={hiddenCards}
-        onToggleCardVisibility={handleToggleCardVisibility}
-        onResetAll={handleResetAllCards}
-      />
-
-      {/* D. Modular Detail Viewer (Cash Overview, Receivables, Payables, Runway, Compare, Export, Settings, Alerts) */}
-      <DetailModal
-        isOpen={detailModalState.isOpen}
-        onClose={() => setDetailModalState((prev) => ({ ...prev, isOpen: false }))}
-        type={detailModalState.type}
-        currentProfile={currentProfile}
+      <BusinessChangeModal
+        isOpen={isChangeBusinessOpen}
+        onClose={() => setIsChangeBusinessOpen(false)}
+        currentProfile={profile}
+        onSelectBusiness={(newProfile) => {
+          if (updateProfile) updateProfile(newProfile);
+        }}
       />
 
     </div>
