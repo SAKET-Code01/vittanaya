@@ -53,7 +53,7 @@ export default function WelcomeScreen({ onGetStarted, onExploreDemo }) {
   const isChartActive = noMotion || previewActive;
 
   return (
-    <div className="min-h-screen bg-[#F9FBFE] text-slate-900 relative overflow-hidden flex flex-col justify-between py-6 px-4 sm:px-8 select-none">
+    <div className="min-h-screen bg-[#F9FBFE] text-slate-900 relative overflow-x-hidden flex flex-col justify-between py-6 px-4 sm:px-8 select-none">
       
       {/* Background Decorative Orbit Lines & Cyan/Blue Nodes (Completely Static) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
