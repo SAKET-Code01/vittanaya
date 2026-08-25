@@ -22,19 +22,28 @@ class BusinessRepository:
 
     def create(self, data: BusinessCreate) -> Business:
         business = Business(
-            owner_id=data.owner_id,
+            owner_id=data.owner_id or 1,
             name=data.name,
-            type=data.type,
-            industry=data.industry,
+            type=data.type or "Retail",
+            industry=data.industry or "General",
+            stage=data.stage or "established",
+            category=data.category,
             location_village=data.location_village,
+            location_block=data.location_block,
             location_district=data.location_district,
             location_state=data.location_state,
             location_pin=data.location_pin,
             phone=data.phone,
             email=data.email,
             description=data.description,
-            monthly_revenue_estimate=data.monthly_revenue_estimate,
-            monthly_expense_estimate=data.monthly_expense_estimate,
+            own_capital=data.own_capital or 0.00,
+            existing_investment=data.existing_investment or 0.00,
+            social_category=data.social_category,
+            area_type=data.area_type,
+            selected_operations=data.selected_operations,
+            status=data.status or "active",
+            monthly_revenue_estimate=data.monthly_revenue_estimate or 0.00,
+            monthly_expense_estimate=data.monthly_expense_estimate or 0.00,
         )
         self.db.add(business)
         self.db.commit()

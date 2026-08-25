@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
+import VittanayaLogo from '../components/common/VittanayaLogo';
 
 /**
  * SettingsPage Component — 100% STRICT APPROVED REFERENCE REDESIGN
@@ -766,12 +767,7 @@ export default function SettingsPage({ onNavigateHome }) {
               {/* Right VITTANAYA Version Card Widget */}
               <div className="sm:col-span-6 p-4 rounded-2xl bg-slate-50/90 border border-slate-200/80 space-y-2.5 relative">
                 <div className="flex items-center space-x-2">
-                  <div className="w-5 h-5 rounded-md bg-emerald-500 flex items-center justify-center text-white text-[10px] font-black">
-                    🍃
-                  </div>
-                  <span className="font-extrabold text-slate-900 text-xs tracking-tight">
-                    VITTANAYA
-                  </span>
+                  <VittanayaLogo size="xs" onHome={onNavigateHome} className="h-6 sm:h-7" />
                 </div>
 
                 <div className="space-y-1">

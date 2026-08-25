@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import VittanayaLogo from '../common/VittanayaLogo';
 
 /**
- * StageSelectionScreen Component (SIH26091 Phase A)
+ * StageSelectionScreen Component (SIH26091 Phase A & Browser Navigation)
  * 
  * Initial stage selection screen after login:
  * 1. New Business Idea (Idea / Concept)
@@ -11,6 +12,9 @@ import React, { useState } from 'react';
 export default function StageSelectionScreen({
   onSelectStage,
   onBack,
+  onForward,
+  canGoForward = false,
+  onHome,
   onExploreDemo,
 }) {
   const [selected, setSelected] = useState('new_idea');
@@ -69,20 +73,10 @@ export default function StageSelectionScreen({
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 relative overflow-x-hidden flex flex-col justify-between py-6 px-4 sm:px-8 select-none">
       
-      {/* Top Header: Brand & Demo Action */}
-      <header className="max-w-5xl w-full mx-auto flex items-center justify-between pb-4 border-b border-slate-200/80">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00C6FF] via-[#0072FF] to-[#7A00FF] flex items-center justify-center shadow-md shadow-blue-500/20 text-white font-black text-xl tracking-tight">
-            V
-          </div>
-          <div>
-            <h1 className="font-black text-xl tracking-tight text-[#0F172A] leading-none">
-              VITTANAYA
-            </h1>
-            <p className="text-xs font-medium text-[#64748B] tracking-normal mt-0.5">
-              SIH26091 • Hyper-Local Business Advisory
-            </p>
-          </div>
+      {/* Top Header: Brand */}
+      <header className="max-w-5xl w-full mx-auto flex items-center justify-between pb-4 border-b border-slate-200/80 gap-3">
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          <VittanayaLogo size="header" onHome={onHome || onBack} className="shrink-0" />
         </div>
 
         {onExploreDemo && (
@@ -176,7 +170,7 @@ export default function StageSelectionScreen({
           <button
             type="button"
             onClick={onBack}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors cursor-pointer"
           >
             ← Back
           </button>
@@ -184,7 +178,7 @@ export default function StageSelectionScreen({
           <button
             type="button"
             onClick={() => onSelectStage(selected)}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 cursor-pointer"
           >
             <span>Continue to Assessment</span>
             <span>→</span>

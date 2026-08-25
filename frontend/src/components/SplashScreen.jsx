@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import VittanayaLogo from './common/VittanayaLogo';
 import './SplashScreen.css';
 
 /**
@@ -129,41 +130,11 @@ export default function SplashScreen({ onComplete, duration = 1800 }) {
 
       {/* Main Center Content */}
       <main className="splash-main-content">
-        {/* Approved VITTANAYA Logo */}
-        <div className="splash-logo-wrapper">
-          <div className="splash-logo-badge">
-            <svg
-              className="splash-logo-inner-icon"
-              viewBox="0 0 48 48"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-label="VITTANAYA Logo"
-            >
-              {/* Distinctive V Brand Form */}
-              <path
-                d="M10 12 L24 38 L38 12"
-                stroke="#FFFFFF"
-                strokeWidth="5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {/* Ascending Financial Growth Leaf Accent */}
-              <path
-                d="M24 26 C 27 20, 34 16, 37 14"
-                stroke="#A7F3D0"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-            <div className="splash-logo-sheen" />
+        {/* Official VITTANAYA Logo */}
+        <div className="flex flex-col items-center justify-center mb-4">
+          <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-xl border border-slate-100 flex items-center justify-center">
+            <VittanayaLogo size="lg" className="h-12 sm:h-14" />
           </div>
-        </div>
-
-        {/* Brand Hierarchy */}
-        <div className="splash-text-section">
-          <h1 className="splash-title">VITTANAYA</h1>
-          <p className="splash-tagline-primary">Hyper-Local Business Advisory</p>
-          <p className="splash-tagline-secondary">Understand. Plan. Grow.</p>
         </div>
       </main>
 

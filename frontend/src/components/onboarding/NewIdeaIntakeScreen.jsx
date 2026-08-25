@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import VittanayaLogo from '../common/VittanayaLogo';
 
 const POPULAR_CATEGORIES = [
   { id: 'poultry', label: 'Poultry Farming', icon: '🐔', defaultActivity: 'Commercial Broiler Farming (1000 birds)' },
@@ -29,63 +30,104 @@ const CAPITAL_CHIPS = [
  * - Normalized location (Village, Block, District, State)
  * - Available own capital / margin capital
  * - Social category & Area type for subsidy rules
+ * 
+ * Persists all state in parent draft store to ensure zero data loss on navigation.
  */
 export default function NewIdeaIntakeScreen({
+  draft = {},
+  setDraft,
   onComplete,
   onBack,
+  onForward,
+  canGoForward = false,
+  onHome,
 }) {
-  const [category, setCategory] = useState('poultry');
-  const [specificActivity, setSpecificActivity] = useState('Commercial Broiler Farming (1000 birds)');
-  const [village, setVillage] = useState('Lathikata');
-  const [block, setBlock] = useState('Lathikata Block');
-  const [district, setDistrict] = useState('Sundargarh');
-  const [state, setState] = useState('Odisha');
-  const [pin, setPin] = useState('770037');
-  const [ownCapital, setOwnCapital] = useState(65000);
-  const [socialCategory, setSocialCategory] = useState('General');
-  const [areaType, setAreaType] = useState('Rural');
+  const category = draft.category || '';
+  const specificActivity = draft.specificActivity || '';
+  const village = draft.village || '';
+  const block = draft.block || '';
+  const district = draft.district || '';
+  const state = draft.state || '';
+  const pin = draft.pin || '';
+  const ownCapital = draft.ownCapital ?? '';
+  const socialCategory = draft.socialCategory || '';
+  const areaType = draft.areaType || '';
+
   const [errors, setErrors] = useState({});
 
-  const handleCategorySelect = (item) => {
-    setCategory(item.id);
-    setSpecificActivity(item.defaultActivity);
+  const updateField = (field, value) => {
+    if (setDraft) {
+      setDraft((prev) => ({ ...prev, [field]: value }));
+    }
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: null }));
+    }
   };
+
+  const handleCategorySelect = (item) => {
+    if (setDraft) {
+      setDraft((prev) => ({
+        ...prev,
+        category: item.id,
+      }));
+    }
+    if (errors.category) {
+      setErrors((prev) => ({ ...prev, category: null }));
+    }
+  };
+
+  const selectedCatObj = POPULAR_CATEGORIES.find((c) => c.id === category);
+  const activityPlaceholder = selectedCatObj
+    ? `e.g. ${selectedCatObj.defaultActivity}`
+    : 'Enter the business activity or product';
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const newErrors = {};
 
-    if (!village.trim()) newErrors.village = 'Village / Town is required';
-    if (!district.trim()) newErrors.district = 'District is required';
-    if (!state.trim()) newErrors.state = 'State is required';
-    if (!ownCapital || Number(ownCapital) <= 0) newErrors.ownCapital = 'Enter valid available margin capital';
+    if (!category) newErrors.category = 'Please select a business category';
+    if (!village.toString().trim()) newErrors.village = 'Village / Area name is required';
+    if (!district.toString().trim()) newErrors.district = 'District name is required';
+    if (!state.toString().trim()) newErrors.state = 'State is required';
+    if (!pin.toString().trim() || !/^\d{6}$/.test(pin.toString().trim())) {
+      newErrors.pin = 'Valid 6-digit PIN code required';
+    }
+    if (!ownCapital || Number(ownCapital) < 10000) {
+      newErrors.ownCapital = 'Minimum own capital amount is ₹ 10,000';
+    }
+    if (!socialCategory) {
+      newErrors.socialCategory = 'Please select a beneficiary category';
+    }
+    if (!areaType) {
+      newErrors.areaType = 'Please select an area classification';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    const matchedCat = POPULAR_CATEGORIES.find((c) => c.id === category) || { label: 'Micro Enterprise' };
-    const locationString = [village, block, district, state].filter(Boolean).join(', ') || 'India';
+    const matchedCat = selectedCatObj || { label: 'Micro Enterprise' };
+    const locationString = [village, block, district, state, pin].filter(Boolean).join(', ');
 
     onComplete({
       stage: 'new_idea',
-      businessName: `${specificActivity || matchedCat.label} Project`,
+      businessName: `${village || 'Rural'} ${matchedCat.label} Venture`,
       category: matchedCat.label,
-      industry: specificActivity || matchedCat.label,
-      businessType: category === 'poultry' || category === 'dairy' || category === 'agro_processing' ? 'manufacturing' : category,
-      village,
-      block,
-      district,
-      state,
-      pin,
+      industry: specificActivity.trim() || matchedCat.defaultActivity || matchedCat.label,
+      businessType: category === 'transport' || category === 'services' ? 'services' : category === 'retail' ? 'retail' : 'manufacturing',
+      village: village.trim(),
+      block: block.trim(),
+      district: district.trim(),
+      state: state.trim(),
+      pin: pin.trim(),
       location: locationString,
       locationData: {
-        village,
-        block,
-        district,
-        state,
-        pin,
+        village: village.trim(),
+        block: block.trim(),
+        district: district.trim(),
+        state: state.trim(),
+        pin: pin.trim(),
         state_code: null,
         district_code: null,
         block_code: null,
@@ -108,19 +150,9 @@ export default function NewIdeaIntakeScreen({
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 relative overflow-x-hidden flex flex-col justify-between py-6 px-4 sm:px-8 select-none">
       
       {/* Header */}
-      <header className="max-w-4xl w-full mx-auto flex items-center justify-between pb-3 border-b border-slate-200/80">
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00C6FF] to-[#0072FF] flex items-center justify-center text-white font-black text-lg">
-            V
-          </div>
-          <div>
-            <h1 className="font-black text-lg text-slate-900 leading-none">
-              VITTANAYA
-            </h1>
-            <p className="text-[11px] font-medium text-slate-500 mt-0.5">
-              New Business Idea Intake • Hyper-Local Feasibility
-            </p>
-          </div>
+      <header className="max-w-4xl w-full mx-auto flex items-center justify-between pb-3 border-b border-slate-200/80 gap-3">
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          <VittanayaLogo size="header" onHome={onHome || onBack} className="shrink-0" />
         </div>
 
         <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -137,7 +169,7 @@ export default function NewIdeaIntakeScreen({
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-900 tracking-tight flex items-center space-x-1.5">
                 <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black flex items-center justify-center">1</span>
-                <span>Select Proposed Business Category</span>
+                <span>Select Proposed Business Category *</span>
               </label>
               <span className="text-[11px] text-slate-400 font-medium">Click a category below</span>
             </div>
@@ -152,7 +184,7 @@ export default function NewIdeaIntakeScreen({
                     onClick={() => handleCategorySelect(item)}
                     className={`p-3 rounded-2xl border text-left flex items-center space-x-2.5 transition-all text-xs font-bold cursor-pointer ${
                       isSelected
-                        ? 'border-emerald-600 bg-emerald-50/50 text-emerald-900 shadow-2xs'
+                        ? 'border-emerald-600 bg-emerald-50/50 text-emerald-900 shadow-2xs ring-1 ring-emerald-500'
                         : 'border-slate-200 hover:border-slate-300 text-slate-700 bg-slate-50/40'
                     }`}
                   >
@@ -162,6 +194,7 @@ export default function NewIdeaIntakeScreen({
                 );
               })}
             </div>
+            {errors.category && <p className="text-[10px] font-bold text-rose-500 mt-1">{errors.category}</p>}
 
             <div className="pt-2">
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
@@ -170,8 +203,8 @@ export default function NewIdeaIntakeScreen({
               <input
                 type="text"
                 value={specificActivity}
-                onChange={(e) => setSpecificActivity(e.target.value)}
-                placeholder="e.g. Commercial Broiler Farming (1000 birds), Mini Rice Mill..."
+                onChange={(e) => updateField('specificActivity', e.target.value)}
+                placeholder={activityPlaceholder}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
               />
             </div>
@@ -192,11 +225,8 @@ export default function NewIdeaIntakeScreen({
                 <input
                   type="text"
                   value={village}
-                  onChange={(e) => {
-                    setVillage(e.target.value);
-                    if (errors.village) setErrors((prev) => ({ ...prev, village: null }));
-                  }}
-                  placeholder="e.g. Lathikata"
+                  onChange={(e) => updateField('village', e.target.value)}
+                  placeholder="Enter village or town"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-500"
                 />
                 {errors.village && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.village}</p>}
@@ -207,7 +237,7 @@ export default function NewIdeaIntakeScreen({
                 <input
                   type="text"
                   value={block}
-                  onChange={(e) => setBlock(e.target.value)}
+                  onChange={(e) => updateField('block', e.target.value)}
                   placeholder="e.g. Lathikata Block"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-500"
                 />
@@ -218,11 +248,8 @@ export default function NewIdeaIntakeScreen({
                 <input
                   type="text"
                   value={district}
-                  onChange={(e) => {
-                    setDistrict(e.target.value);
-                    if (errors.district) setErrors((prev) => ({ ...prev, district: null }));
-                  }}
-                  placeholder="e.g. Sundargarh"
+                  onChange={(e) => updateField('district', e.target.value)}
+                  placeholder="Enter district"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-500"
                 />
                 {errors.district && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.district}</p>}
@@ -233,11 +260,8 @@ export default function NewIdeaIntakeScreen({
                 <input
                   type="text"
                   value={state}
-                  onChange={(e) => {
-                    setState(e.target.value);
-                    if (errors.state) setErrors((prev) => ({ ...prev, state: null }));
-                  }}
-                  placeholder="e.g. Odisha"
+                  onChange={(e) => updateField('state', e.target.value)}
+                  placeholder="Enter state"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-500"
                 />
                 {errors.state && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.state}</p>}
@@ -252,7 +276,7 @@ export default function NewIdeaIntakeScreen({
             <div className="flex items-center justify-between">
               <label className="text-xs font-extrabold text-slate-900 tracking-tight flex items-center space-x-1.5">
                 <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-black flex items-center justify-center">3</span>
-                <span>Available Margin Capital (Your Own Investment)</span>
+                <span>Available Margin Capital (Your Own Investment) *</span>
               </label>
               <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
                 Min 10% Baseline
@@ -265,13 +289,10 @@ export default function NewIdeaIntakeScreen({
                 <input
                   type="number"
                   value={ownCapital}
-                  onChange={(e) => {
-                    setOwnCapital(e.target.value);
-                    if (errors.ownCapital) setErrors((prev) => ({ ...prev, ownCapital: null }));
-                  }}
+                  onChange={(e) => updateField('ownCapital', e.target.value)}
                   min="0"
                   step="5000"
-                  placeholder="e.g. 65000"
+                  placeholder="Enter amount"
                   className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-black text-slate-900 focus:outline-none focus:border-emerald-500"
                 />
               </div>
@@ -285,7 +306,7 @@ export default function NewIdeaIntakeScreen({
                 <button
                   key={chip.value}
                   type="button"
-                  onClick={() => setOwnCapital(chip.value)}
+                  onClick={() => updateField('ownCapital', chip.value)}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors ${
                     Number(ownCapital) === chip.value
                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
@@ -304,33 +325,41 @@ export default function NewIdeaIntakeScreen({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             <div>
               <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                Beneficiary Category (For MoSJE Subsidy Rules)
+                Beneficiary Category (For MoSJE Subsidy Rules) *
               </label>
               <select
                 value={socialCategory}
-                onChange={(e) => setSocialCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-emerald-500"
+                onChange={(e) => updateField('socialCategory', e.target.value)}
+                className={`w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-emerald-500 ${
+                  !socialCategory ? 'text-slate-400 font-normal' : 'text-slate-800 font-bold'
+                }`}
               >
+                <option value="">Select beneficiary category</option>
                 <option value="General">General Category</option>
                 <option value="SC">Scheduled Caste (SC) • 35% Subsidy / Special Concession</option>
                 <option value="ST">Scheduled Tribe (ST) • 35% Subsidy / Special Concession</option>
                 <option value="OBC">Other Backward Class (OBC) • NBCFDC Concession</option>
                 <option value="Women">Women Entrepreneur • 5% Margin Money</option>
               </select>
+              {errors.socialCategory && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.socialCategory}</p>}
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                Area Classification
+                Area Classification *
               </label>
               <select
                 value={areaType}
-                onChange={(e) => setAreaType(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-emerald-500"
+                onChange={(e) => updateField('areaType', e.target.value)}
+                className={`w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-emerald-500 ${
+                  !areaType ? 'text-slate-400 font-normal' : 'text-slate-800 font-bold'
+                }`}
               >
+                <option value="">Select area classification</option>
                 <option value="Rural">Rural Gram Panchayat (Higher Subsidy Benefit)</option>
                 <option value="Urban">Urban / Semi-Urban Municipal Ward</option>
               </select>
+              {errors.areaType && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.areaType}</p>}
             </div>
           </div>
 
@@ -339,14 +368,14 @@ export default function NewIdeaIntakeScreen({
             <button
               type="button"
               onClick={onBack}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer"
             >
               ← Back to Stage Selection
             </button>
 
             <button
               type="submit"
-              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 cursor-pointer"
             >
               <span>Analyze My Idea</span>
               <span>→</span>

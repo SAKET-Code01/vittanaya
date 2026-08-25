@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocale } from "../locale/LocaleContext";
 import { authService } from "../services/authService";
+import VittanayaLogo from "../components/common/VittanayaLogo";
 import "./Login.css";
 
 /**
@@ -187,36 +188,9 @@ export default function Login({ onLoginSuccess, onGuestContinue, onRegister }) {
 
         <div className="login-card">
 
-          {/* Lock icon */}
-          <div className="login-lock">
-            <svg
-              viewBox="0 0 64 64"
-              aria-hidden="true"
-              className="lock-svg"
-            >
-              <circle cx="32" cy="32" r="30" fill="#eaf2ff" />
-
-              <rect
-                x="22"
-                y="29"
-                width="20"
-                height="16"
-                rx="2"
-                fill="none"
-                stroke="#0c64e8"
-                strokeWidth="2.5"
-              />
-
-              <path
-                d="M26 29v-6c0-3.3 2.7-6 6-6s6 2.7 6 6v6"
-                fill="none"
-                stroke="#0c64e8"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-
-              <circle cx="32" cy="37" r="2" fill="#0c64e8" />
-            </svg>
+          {/* Official VITTANAYA Logo */}
+          <div className="flex justify-center mb-4">
+            <VittanayaLogo size="md" className="h-10 sm:h-11" />
           </div>
 
           <h1>{t("auth.welcomeBack")}</h1>

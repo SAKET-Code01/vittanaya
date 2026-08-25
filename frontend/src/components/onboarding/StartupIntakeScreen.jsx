@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import VittanayaLogo from '../common/VittanayaLogo';
 
 const STARTUP_CATEGORIES = [
   { id: 'manufacturing', label: 'Manufacturing & Fabrication', icon: '⚙️' },
@@ -21,54 +22,83 @@ const STAGES = [
 /**
  * StartupIntakeScreen Component (SIH26091 Phase A)
  * 
- * 2-Screen / Structured intake for emerging startups:
+ * 2-minute structured intake for emerging startups:
  * - Business / Idea name
  * - Category & Stage
  * - Location (Village, Block, District, State)
  * - Own Capital & Already Invested
  * - Optional readiness indicators (Premises, Machinery, Existing Sales)
+ * 
+ * Persists all state in parent draft store to ensure zero data loss on navigation.
  */
 export default function StartupIntakeScreen({
+  draft = {},
+  setDraft,
   onComplete,
   onBack,
+  onForward,
+  canGoForward = false,
+  onHome,
 }) {
-  const [businessName, setBusinessName] = useState('Utkal Micro-Agri Solutions');
-  const [category, setCategory] = useState('agro_processing');
-  const [specificActivity, setSpecificActivity] = useState('Solar Cold Storage & Spice Processing');
-  const [stage, setStage] = useState('setup');
-  
+  const businessName = draft.businessName || '';
+  const category = draft.category || '';
+  const specificActivity = draft.specificActivity || '';
+  const stage = draft.stage || 'setup';
+
   // Location
-  const [village, setVillage] = useState('Kuarmunda');
-  const [block, setBlock] = useState('Kuarmunda Block');
-  const [district, setDistrict] = useState('Sundargarh');
-  const [state, setState] = useState('Odisha');
-  const [pin, setPin] = useState('770039');
+  const village = draft.village || '';
+  const block = draft.block || '';
+  const district = draft.district || '';
+  const state = draft.state || '';
+  const pin = draft.pin || '';
 
   // Capital
-  const [ownCapital, setOwnCapital] = useState(150000);
-  const [alreadyInvested, setAlreadyInvested] = useState(50000);
+  const ownCapital = draft.ownCapital ?? '';
+  const alreadyInvested = draft.alreadyInvested ?? '';
 
   // Optional Readiness
   const [showOptional, setShowOptional] = useState(false);
-  const [hasPremises, setHasPremises] = useState('yes');
-  const [hasEquipment, setHasEquipment] = useState('partial');
-  const [existingMonthlySales, setExistingMonthlySales] = useState('0');
-  const [customerCount, setCustomerCount] = useState('0');
+  const hasPremises = draft.hasPremises || 'yes';
+  const hasEquipment = draft.hasEquipment || 'partial';
+  const existingMonthlySales = draft.existingMonthlySales ?? 0;
+  const customerCount = draft.customerCount ?? 0;
 
   // Beneficiary
-  const [socialCategory, setSocialCategory] = useState('General');
-  const [areaType, setAreaType] = useState('Rural');
+  const socialCategory = draft.socialCategory || '';
+  const areaType = draft.areaType || '';
+
   const [errors, setErrors] = useState({});
+
+  const updateField = (field, value) => {
+    if (setDraft) {
+      setDraft((prev) => ({ ...prev, [field]: value }));
+    }
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: null }));
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const newErrors = {};
 
-    if (!businessName.trim()) newErrors.businessName = 'Business / Idea name is required';
-    if (!village.trim()) newErrors.village = 'Village is required';
-    if (!district.trim()) newErrors.district = 'District is required';
-    if (!state.trim()) newErrors.state = 'State is required';
-    if (!ownCapital || Number(ownCapital) <= 0) newErrors.ownCapital = 'Enter valid available own capital';
+    if (!businessName.toString().trim()) newErrors.businessName = 'Venture name is required';
+    if (!category) newErrors.category = 'Primary sector / category is required';
+    if (!village.toString().trim()) newErrors.village = 'Village / Area is required';
+    if (!district.toString().trim()) newErrors.district = 'District is required';
+    if (!state.toString().trim()) newErrors.state = 'State is required';
+    if (!pin.toString().trim() || !/^\d{6}$/.test(pin.toString().trim())) {
+      newErrors.pin = 'Valid 6-digit PIN code required';
+    }
+    if (!ownCapital || Number(ownCapital) < 10000) {
+      newErrors.ownCapital = 'Minimum own capital amount is ₹ 10,000';
+    }
+    if (!socialCategory) {
+      newErrors.socialCategory = 'Please select a beneficiary category';
+    }
+    if (!areaType) {
+      newErrors.areaType = 'Please select an area classification';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -76,26 +106,26 @@ export default function StartupIntakeScreen({
     }
 
     const matchedCat = STARTUP_CATEGORIES.find((c) => c.id === category) || { label: 'Startup Enterprise' };
-    const locationString = [village, block, district, state].filter(Boolean).join(', ') || 'India';
+    const locationString = [village, block, district, state, pin].filter(Boolean).join(', ');
 
     onComplete({
       stage: 'startup',
-      businessName,
+      businessName: businessName.toString().trim(),
       category: matchedCat.label,
       industry: specificActivity || matchedCat.label,
-      businessType: category === 'poultry_dairy' || category === 'agro_processing' ? 'manufacturing' : category,
-      village,
-      block,
-      district,
-      state,
-      pin,
+      businessType: category === 'services' || category === 'tech_services' ? 'services' : category === 'retail' ? 'retail' : 'manufacturing',
+      village: village.trim(),
+      block: block.trim(),
+      district: district.trim(),
+      state: state.trim(),
+      pin: pin.trim(),
       location: locationString,
       locationData: {
-        village,
-        block,
-        district,
-        state,
-        pin,
+        village: village.trim(),
+        block: block.trim(),
+        district: district.trim(),
+        state: state.trim(),
+        pin: pin.trim(),
         state_code: null,
         district_code: null,
         block_code: null,
@@ -106,18 +136,18 @@ export default function StartupIntakeScreen({
       },
       ownCapital: Number(ownCapital),
       available_margin_capital: Number(ownCapital),
-      existingInvestment: Number(alreadyInvested) || 0,
+      existingInvestment: Number(alreadyInvested || 0),
       socialCategory,
       areaType,
       startupDetails: {
         startupStage: stage,
         hasPremises,
         hasEquipment,
-        existingMonthlySales: Number(existingMonthlySales) || 0,
-        customerCount: Number(customerCount) || 0,
+        existingMonthlySales: Number(existingMonthlySales || 0),
+        customerCount: Number(customerCount || 0),
       },
-      selectedOps: ['sales', 'purchases', 'inventory', 'assets'],
-      description: `Early-stage startup '${businessName}' in ${locationString}. Stage: ${stage}. Own Capital: ₹${Number(ownCapital).toLocaleString('en-IN')}, Already Invested: ₹${Number(alreadyInvested).toLocaleString('en-IN')}.`,
+      selectedOps: stage === 'early_traction' ? ['sales', 'purchases', 'inventory', 'banking'] : ['sales', 'purchases', 'banking'],
+      description: `${businessName.trim()} — ${stage === 'early_traction' ? 'Operating early-stage' : 'Pre-launch startup'} in ${matchedCat.label}, ${locationString}. Margin capital: ₹${Number(ownCapital).toLocaleString('en-IN')}.`,
     });
   };
 
@@ -125,19 +155,9 @@ export default function StartupIntakeScreen({
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 relative overflow-x-hidden flex flex-col justify-between py-6 px-4 sm:px-8 select-none">
       
       {/* Header */}
-      <header className="max-w-4xl w-full mx-auto flex items-center justify-between pb-3 border-b border-slate-200/80">
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#00C6FF] to-[#0072FF] flex items-center justify-center text-white font-black text-lg">
-            V
-          </div>
-          <div>
-            <h1 className="font-black text-lg text-slate-900 leading-none">
-              VITTANAYA
-            </h1>
-            <p className="text-[11px] font-medium text-slate-500 mt-0.5">
-              Startup Phase Setup • Working Capital & Capex Structuring
-            </p>
-          </div>
+      <header className="max-w-4xl w-full mx-auto flex items-center justify-between pb-3 border-b border-slate-200/80 gap-3">
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          <VittanayaLogo size="header" onHome={onHome || onBack} className="shrink-0" />
         </div>
 
         <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
@@ -162,10 +182,7 @@ export default function StartupIntakeScreen({
                 <input
                   type="text"
                   value={businessName}
-                  onChange={(e) => {
-                    setBusinessName(e.target.value);
-                    if (errors.businessName) setErrors((prev) => ({ ...prev, businessName: null }));
-                  }}
+                  onChange={(e) => updateField('businessName', e.target.value)}
                   placeholder="e.g. Utkal Micro-Agri Solutions"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
                 />
@@ -173,18 +190,22 @@ export default function StartupIntakeScreen({
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">Primary Sector / Category</label>
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">Primary Sector / Category *</label>
                 <select
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 bg-white focus:outline-none focus:border-blue-500"
+                  onChange={(e) => updateField('category', e.target.value)}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-blue-500 ${
+                    !category ? 'text-slate-400 font-normal' : 'text-slate-900 font-semibold'
+                  }`}
                 >
+                  <option value="">Select primary sector / category</option>
                   {STARTUP_CATEGORIES.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.icon} {c.label}
                     </option>
                   ))}
                 </select>
+                {errors.category && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.category}</p>}
               </div>
             </div>
 
@@ -193,7 +214,7 @@ export default function StartupIntakeScreen({
               <input
                 type="text"
                 value={specificActivity}
-                onChange={(e) => setSpecificActivity(e.target.value)}
+                onChange={(e) => updateField('specificActivity', e.target.value)}
                 placeholder="e.g. Solar Cold Storage & Spice Processing"
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
               />
@@ -215,7 +236,7 @@ export default function StartupIntakeScreen({
                 return (
                   <div
                     key={stg.id}
-                    onClick={() => setStage(stg.id)}
+                    onClick={() => updateField('stage', stg.id)}
                     className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
                       isSelected
                         ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-500 shadow-2xs'
@@ -250,11 +271,8 @@ export default function StartupIntakeScreen({
                 <input
                   type="text"
                   value={village}
-                  onChange={(e) => {
-                    setVillage(e.target.value);
-                    if (errors.village) setErrors((prev) => ({ ...prev, village: null }));
-                  }}
-                  placeholder="e.g. Kuarmunda"
+                  onChange={(e) => updateField('village', e.target.value)}
+                  placeholder="Enter village or town"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
                 />
                 {errors.village && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.village}</p>}
@@ -265,7 +283,7 @@ export default function StartupIntakeScreen({
                 <input
                   type="text"
                   value={block}
-                  onChange={(e) => setBlock(e.target.value)}
+                  onChange={(e) => updateField('block', e.target.value)}
                   placeholder="e.g. Kuarmunda Block"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
                 />
@@ -276,11 +294,8 @@ export default function StartupIntakeScreen({
                 <input
                   type="text"
                   value={district}
-                  onChange={(e) => {
-                    setDistrict(e.target.value);
-                    if (errors.district) setErrors((prev) => ({ ...prev, district: null }));
-                  }}
-                  placeholder="e.g. Sundargarh"
+                  onChange={(e) => updateField('district', e.target.value)}
+                  placeholder="Enter district"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
                 />
                 {errors.district && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.district}</p>}
@@ -291,11 +306,8 @@ export default function StartupIntakeScreen({
                 <input
                   type="text"
                   value={state}
-                  onChange={(e) => {
-                    setState(e.target.value);
-                    if (errors.state) setErrors((prev) => ({ ...prev, state: null }));
-                  }}
-                  placeholder="e.g. Odisha"
+                  onChange={(e) => updateField('state', e.target.value)}
+                  placeholder="Enter state"
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
                 />
                 {errors.state && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.state}</p>}
@@ -322,13 +334,10 @@ export default function StartupIntakeScreen({
                   <input
                     type="number"
                     value={ownCapital}
-                    onChange={(e) => {
-                      setOwnCapital(e.target.value);
-                      if (errors.ownCapital) setErrors((prev) => ({ ...prev, ownCapital: null }));
-                    }}
+                    onChange={(e) => updateField('ownCapital', e.target.value)}
                     min="0"
                     step="5000"
-                    placeholder="e.g. 150000"
+                    placeholder="Enter amount (e.g. 150000)"
                     className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-500"
                   />
                 </div>
@@ -344,7 +353,7 @@ export default function StartupIntakeScreen({
                   <input
                     type="number"
                     value={alreadyInvested}
-                    onChange={(e) => setAlreadyInvested(e.target.value)}
+                    onChange={(e) => updateField('alreadyInvested', e.target.value)}
                     min="0"
                     step="5000"
                     placeholder="e.g. 50000"
@@ -361,7 +370,7 @@ export default function StartupIntakeScreen({
             <button
               type="button"
               onClick={() => setShowOptional(!showOptional)}
-              className="w-full flex items-center justify-between text-xs font-extrabold text-slate-800"
+              className="w-full flex items-center justify-between text-xs font-extrabold text-slate-800 cursor-pointer"
             >
               <span>{showOptional ? '▲ Hide Optional Readiness Details' : '▼ Add Optional Readiness Details (Premises, Machinery, Sales)'}</span>
               <span className="text-[11px] font-semibold text-blue-600">{showOptional ? 'Collapse' : 'Expand'}</span>
@@ -373,7 +382,7 @@ export default function StartupIntakeScreen({
                   <label className="text-[11px] font-bold text-slate-600 block mb-1">Premises Available?</label>
                   <select
                     value={hasPremises}
-                    onChange={(e) => setHasPremises(e.target.value)}
+                    onChange={(e) => updateField('hasPremises', e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
                   >
                     <option value="yes">Yes • Owned or Leased Site Ready</option>
@@ -386,7 +395,7 @@ export default function StartupIntakeScreen({
                   <label className="text-[11px] font-bold text-slate-600 block mb-1">Machinery / Equipment Acquired?</label>
                   <select
                     value={hasEquipment}
-                    onChange={(e) => setHasEquipment(e.target.value)}
+                    onChange={(e) => updateField('hasEquipment', e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-800 bg-white"
                   >
                     <option value="partial">Partially Acquired (50%)</option>
@@ -400,7 +409,7 @@ export default function StartupIntakeScreen({
                   <input
                     type="number"
                     value={existingMonthlySales}
-                    onChange={(e) => setExistingMonthlySales(e.target.value)}
+                    onChange={(e) => updateField('existingMonthlySales', e.target.value)}
                     placeholder="0"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900"
                   />
@@ -411,7 +420,7 @@ export default function StartupIntakeScreen({
                   <input
                     type="number"
                     value={customerCount}
-                    onChange={(e) => setCustomerCount(e.target.value)}
+                    onChange={(e) => updateField('customerCount', e.target.value)}
                     placeholder="0"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900"
                   />
@@ -424,33 +433,41 @@ export default function StartupIntakeScreen({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             <div>
               <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                Beneficiary Category (For MoSJE Subsidy Rules)
+                Beneficiary Category (For MoSJE Subsidy Rules) *
               </label>
               <select
                 value={socialCategory}
-                onChange={(e) => setSocialCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-blue-500"
+                onChange={(e) => updateField('socialCategory', e.target.value)}
+                className={`w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-blue-500 ${
+                  !socialCategory ? 'text-slate-400 font-normal' : 'text-slate-800 font-bold'
+                }`}
               >
+                <option value="">Select beneficiary category</option>
                 <option value="General">General Category</option>
                 <option value="SC">Scheduled Caste (SC) • 35% Subsidy / Special Concession</option>
                 <option value="ST">Scheduled Tribe (ST) • 35% Subsidy / Special Concession</option>
                 <option value="OBC">Other Backward Class (OBC) • NBCFDC Concession</option>
                 <option value="Women">Women Entrepreneur • 5% Margin Money</option>
               </select>
+              {errors.socialCategory && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.socialCategory}</p>}
             </div>
 
             <div>
               <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                Area Classification
+                Area Classification *
               </label>
               <select
                 value={areaType}
-                onChange={(e) => setAreaType(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 bg-white focus:outline-none focus:border-blue-500"
+                onChange={(e) => updateField('areaType', e.target.value)}
+                className={`w-full px-3 py-2 rounded-xl border border-slate-200 text-xs bg-white focus:outline-none focus:border-blue-500 ${
+                  !areaType ? 'text-slate-400 font-normal' : 'text-slate-800 font-bold'
+                }`}
               >
+                <option value="">Select area classification</option>
                 <option value="Rural">Rural Gram Panchayat (Higher Subsidy Benefit)</option>
                 <option value="Urban">Urban / Semi-Urban Municipal Ward</option>
               </select>
+              {errors.areaType && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.areaType}</p>}
             </div>
           </div>
 
@@ -459,14 +476,14 @@ export default function StartupIntakeScreen({
             <button
               type="button"
               onClick={onBack}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-bold text-slate-700 cursor-pointer"
             >
               ← Back to Stage Selection
             </button>
 
             <button
               type="submit"
-              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black shadow-md shadow-blue-600/20 transition-all flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black shadow-md shadow-blue-600/20 transition-all flex items-center justify-center space-x-2 cursor-pointer"
             >
               <span>Analyze Startup Plan</span>
               <span>→</span>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BUSINESS_TYPES } from '../../data/adaptiveWorkspaceConfig';
 import { getOperationsForBusinessType } from './OperationsScreen';
+import VittanayaLogo from '../common/VittanayaLogo';
 
 /**
  * WorkspacePreparationScreen Component (Step 5 of Onboarding)
@@ -157,17 +158,7 @@ export default function WorkspacePreparationScreen({
       <header className="max-w-7xl w-full mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2">
         {/* Brand Logo */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00C6FF] via-[#0072FF] to-[#7A00FF] flex items-center justify-center shadow-md shadow-blue-500/20 text-white font-black text-xl tracking-tight">
-            V
-          </div>
-          <div>
-            <h1 className="font-black text-xl tracking-tight text-[#0F172A] leading-none">
-              VITTANAYA
-            </h1>
-            <p className="text-xs font-medium text-[#64748B] tracking-normal mt-0.5">
-              Financial Intelligence
-            </p>
-          </div>
+          <VittanayaLogo size="header" />
         </div>
 
         {/* 4-Step Progress Tracker */}
@@ -183,58 +174,52 @@ export default function WorkspacePreparationScreen({
             </div>
           </div>
 
-          {/* Line 1: Green */}
+          {/* Line 1 */}
           <div className="w-8 sm:w-14 h-[2px] bg-emerald-500 rounded-full" />
 
-          {/* Step 2: Business Information (Completed) */}
+          {/* Step 2: Info (Completed) */}
           <div className="flex items-center space-x-2">
             <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
               ✓
             </div>
             <div className="hidden sm:block text-left">
               <span className="text-[10px] font-semibold text-slate-400 block leading-tight">Step 2</span>
-              <span className="text-xs font-semibold text-emerald-600 block leading-tight whitespace-nowrap">Business Information</span>
+              <span className="text-xs font-semibold text-emerald-600 block leading-tight">Information</span>
             </div>
           </div>
 
-          {/* Line 2: Green */}
+          {/* Line 2 */}
           <div className="w-8 sm:w-14 h-[2px] bg-emerald-500 rounded-full" />
 
-          {/* Step 3: Business Type (Completed) */}
+          {/* Step 3: Type (Completed) */}
           <div className="flex items-center space-x-2">
             <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
               ✓
             </div>
             <div className="hidden sm:block text-left">
               <span className="text-[10px] font-semibold text-slate-400 block leading-tight">Step 3</span>
-              <span className="text-xs font-semibold text-emerald-600 block leading-tight whitespace-nowrap">Business Type</span>
+              <span className="text-xs font-semibold text-emerald-600 block leading-tight">Business Type</span>
             </div>
           </div>
 
-          {/* Line 3: Green */}
+          {/* Line 3 */}
           <div className="w-8 sm:w-14 h-[2px] bg-emerald-500 rounded-full" />
 
-          {/* Step 4: Complete Setup (Active / Completed) */}
+          {/* Step 4: Operations (Completed) */}
           <div className="flex items-center space-x-2">
-            <div className={`w-6 h-6 rounded-full text-white flex items-center justify-center text-xs font-bold shadow-md transition-all duration-300 ${
-              isReady ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-blue-600 shadow-blue-500/30'
-            }`}>
-              {isReady ? '✓' : '4'}
+            <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+              ✓
             </div>
-            <div className="text-left">
-              <span className={`text-[10px] font-bold block leading-tight ${isReady ? 'text-emerald-600' : 'text-blue-600'}`}>
-                Step 4
-              </span>
-              <span className="text-xs font-bold text-[#0F172A] block leading-tight whitespace-nowrap">
-                {isReady ? 'Workspace Ready' : 'Setting Up'}
-              </span>
+            <div className="hidden sm:block text-left">
+              <span className="text-[10px] font-semibold text-slate-400 block leading-tight">Step 4</span>
+              <span className="text-xs font-semibold text-emerald-600 block leading-tight">Operations</span>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Preparation / Ready Container */}
-      <main className="max-w-2xl w-full mx-auto my-auto py-4">
+      {/* Main Content Area */}
+      <main className="max-w-3xl w-full mx-auto my-auto py-6">
         
         {/* ========================================================================= */}
         {/* STATE A: WORKSPACE PREPARATION (ANIMATED 4-STAGE SEQUENTIAL FLOW) */}
@@ -242,13 +227,10 @@ export default function WorkspacePreparationScreen({
         {!isReady ? (
           <div className="bg-white rounded-3xl p-6 sm:p-9 border border-slate-200/80 shadow-[0_15px_40px_rgba(0,0,0,0.04)] flex flex-col space-y-6 animate-fadeIn">
             
-            {/* Top Heading & Pulse Emblem */}
-            <div className="text-center space-y-2.5">
-              <div className="relative inline-flex items-center justify-center mb-1">
-                <div className="absolute w-14 h-14 rounded-2xl bg-blue-500/15 animate-ping" />
-                <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-[#00C6FF] via-[#0072FF] to-[#7A00FF] flex items-center justify-center text-white font-black text-2xl shadow-lg shadow-blue-500/25">
-                  V
-                </div>
+            {/* Top Heading & Logo */}
+            <div className="text-center space-y-3 flex flex-col items-center">
+              <div className="flex justify-center mb-1">
+                <VittanayaLogo size="lg" className="h-12 sm:h-14" />
               </div>
 
               <h2 className="text-2xl sm:text-[28px] font-black text-[#0F172A] leading-tight tracking-tight">

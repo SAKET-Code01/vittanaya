@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from backend.app.core.config import settings
 from backend.app.core.logging import logger
 from backend.app.models.insights import ProjectCostReference, SchemeRule
+from backend.app.models.user import User
 
 DEFAULT_SCHEME_RULES = [
     {
@@ -247,7 +248,24 @@ def seed_scheme_rules(db: Session) -> int:
     return len(records)
 
 
+def seed_default_user_if_missing(db: Session) -> None:
+    """Ensure at least one default rural entrepreneur user exists for profile creation."""
+    existing_user = db.query(User).filter(User.id == 1).first()
+    if not existing_user:
+        user = User(
+            id=1,
+            name="Entrepreneur",
+            email="entrepreneur@vittanaya.in",
+            hashed_password="local-demo-password-hash",
+            phone="9876543210",
+        )
+        db.add(user)
+        db.commit()
+        logger.info("Default rural entrepreneur user seeded.")
+
+
 def seed_all_reference_data(db: Session) -> None:
     """Convenience function to seed all VITTANAYA reference datasets."""
+    seed_default_user_if_missing(db)
     seed_project_cost_references(db)
     seed_scheme_rules(db)
