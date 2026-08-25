@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import VittanayaLogo from '../common/VittanayaLogo';
 
 /**
  * WelcomeScreen Component (Step 1 of Onboarding)
@@ -82,21 +83,10 @@ export default function WelcomeScreen({ onGetStarted, onExploreDemo }) {
         <div className="absolute top-48 right-[14%] w-2 h-2 rounded-full bg-[#38BDF8]/50 shadow-sm" />
       </div>
 
-      {/* Top Header: VITTANAYA Brand (Static Logo) */}
+      {/* Top Header: VITTANAYA Brand Logo */}
       <header className="relative z-10 max-w-7xl w-full mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          {/* V Logo Gradient Mark */}
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00C6FF] via-[#0072FF] to-[#7A00FF] flex items-center justify-center shadow-md shadow-blue-500/20 text-white font-black text-xl tracking-tight">
-            V
-          </div>
-          <div>
-            <h1 className="font-black text-xl tracking-tight text-[#0F172A] leading-none">
-              VITTANAYA
-            </h1>
-            <p className="text-xs font-medium text-[#64748B] tracking-normal mt-0.5">
-              Financial Intelligence
-            </p>
-          </div>
+          <VittanayaLogo size="md" className="h-9 sm:h-10" />
         </div>
       </header>
 

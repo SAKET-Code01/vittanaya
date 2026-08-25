@@ -8,35 +8,53 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class BusinessBase(BaseModel):
-    name: str = Field(..., min_length=2, max_length=150)
-    type: str = Field(..., min_length=2, max_length=50)
-    industry: str = Field(..., min_length=2, max_length=50)
+    name: str = Field(..., min_length=1, max_length=150)
+    type: str = Field(default="Retail", max_length=50)
+    industry: str = Field(default="General", max_length=50)
+    stage: Optional[str] = Field(default="established", max_length=50)
+    category: Optional[str] = Field(None, max_length=100)
     location_village: Optional[str] = Field(None, max_length=100)
+    location_block: Optional[str] = Field(None, max_length=100)
     location_district: Optional[str] = Field(None, max_length=100)
     location_state: Optional[str] = Field(None, max_length=100)
     location_pin: Optional[str] = Field(None, max_length=10)
     phone: Optional[str] = Field(None, max_length=20)
     email: Optional[EmailStr] = None
     description: Optional[str] = None
+    own_capital: Optional[Decimal] = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
+    existing_investment: Optional[Decimal] = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
+    social_category: Optional[str] = Field(None, max_length=50)
+    area_type: Optional[str] = Field(None, max_length=50)
+    selected_operations: Optional[str] = None
+    status: Optional[str] = Field(default="active", max_length=50)
     monthly_revenue_estimate: Decimal = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
     monthly_expense_estimate: Decimal = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
 
 
 class BusinessCreate(BusinessBase):
-    owner_id: int
+    owner_id: Optional[int] = 1
 
 
 class BusinessUpdate(BaseModel):
-    name: Optional[str] = Field(None, min_length=2, max_length=150)
-    type: Optional[str] = Field(None, min_length=2, max_length=50)
-    industry: Optional[str] = Field(None, min_length=2, max_length=50)
+    name: Optional[str] = Field(None, min_length=1, max_length=150)
+    type: Optional[str] = Field(None, max_length=50)
+    industry: Optional[str] = Field(None, max_length=50)
+    stage: Optional[str] = Field(None, max_length=50)
+    category: Optional[str] = None
     location_village: Optional[str] = None
+    location_block: Optional[str] = None
     location_district: Optional[str] = None
     location_state: Optional[str] = None
     location_pin: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
     description: Optional[str] = None
+    own_capital: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
+    existing_investment: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
+    social_category: Optional[str] = None
+    area_type: Optional[str] = None
+    selected_operations: Optional[str] = None
+    status: Optional[str] = None
     monthly_revenue_estimate: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
     monthly_expense_estimate: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
 

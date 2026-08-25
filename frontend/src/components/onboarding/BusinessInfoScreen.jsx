@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import VittanayaLogo from '../common/VittanayaLogo';
 
 /**
  * BusinessInfoScreen Component (Step 2 of Onboarding)
@@ -79,17 +80,7 @@ export default function BusinessInfoScreen({
       <header className="max-w-7xl w-full mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2">
         {/* Brand */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00C6FF] via-[#0072FF] to-[#7A00FF] flex items-center justify-center shadow-md shadow-blue-500/20 text-white font-black text-xl tracking-tight">
-            V
-          </div>
-          <div>
-            <h1 className="font-black text-xl tracking-tight text-[#0F172A] leading-none">
-              VITTANAYA
-            </h1>
-            <p className="text-xs font-medium text-[#64748B] tracking-normal mt-0.5">
-              Financial Intelligence
-            </p>
-          </div>
+          <VittanayaLogo size="header" onHome={onBack} />
         </div>
 
         {/* 4-Step Progress Tracker */}

@@ -140,14 +140,66 @@ export function WorkspaceProvider({ children }) {
     return DEFAULT_PREFERENCES;
   });
 
-  // 7. Navigation State
-  const [activeNavId, setActiveNavId] = useState(() => {
+  // 7. Navigation State & History
+  const [activeNavId, setActiveNavIdState] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_NAV);
       if (saved) return saved;
     } catch (e) {}
     return 'dashboard';
   });
+
+  const [navHistory, setNavHistory] = useState(['dashboard']);
+  const [historyIndex, setHistoryIndex] = useState(0);
+
+  // Navigate to a new workspace section (pushes to history stack and clears forward history)
+  const navigateTo = (navId) => {
+    if (!navId) return;
+    setActiveNavIdState(navId);
+    setNavHistory((prev) => {
+      if (prev[historyIndex] === navId) return prev;
+      const truncated = prev.slice(0, historyIndex + 1);
+      const next = [...truncated, navId];
+      setHistoryIndex(next.length - 1);
+      return next;
+    });
+  };
+
+  // Back navigation
+  const canGoBack = historyIndex > 0;
+  const goBack = () => {
+    if (historyIndex > 0) {
+      const prevIndex = historyIndex - 1;
+      const targetNav = navHistory[prevIndex];
+      setHistoryIndex(prevIndex);
+      setActiveNavIdState(targetNav);
+    }
+  };
+
+  // Forward navigation
+  const canGoForward = historyIndex < navHistory.length - 1;
+  const goForward = () => {
+    if (historyIndex < navHistory.length - 1) {
+      const nextIndex = historyIndex + 1;
+      const targetNav = navHistory[nextIndex];
+      setHistoryIndex(nextIndex);
+      setActiveNavIdState(targetNav);
+    }
+  };
+
+  // Home navigation
+  const goHome = () => {
+    navigateTo('dashboard');
+  };
+
+  // Clear navigation history (on logout / new session)
+  const clearNavigationHistory = () => {
+    setNavHistory(['dashboard']);
+    setHistoryIndex(0);
+    setActiveNavIdState('dashboard');
+  };
+
+  const setActiveNavId = navigateTo;
 
   // Save changes to localStorage for persistent state across navigation & reloads ONLY when not in demo mode
   useEffect(() => {
@@ -631,6 +683,15 @@ export function WorkspaceProvider({ children }) {
     lastRefreshedTime,
     activeNavId,
     setActiveNavId,
+    navigateTo,
+    canGoBack,
+    canGoForward,
+    goBack,
+    goForward,
+    goHome,
+    clearNavigationHistory,
+    navHistory,
+    historyIndex,
     updateProfile,
     updateBusinessType,
     updateOperations,

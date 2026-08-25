@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import WelcomeScreen from './WelcomeScreen';
 import StageSelectionScreen from './StageSelectionScreen';
 import NewIdeaIntakeScreen from './NewIdeaIntakeScreen';
@@ -10,7 +10,7 @@ import WorkspacePreparationScreen from './WorkspacePreparationScreen';
 import { buildAdaptiveWorkspace } from '../../data/adaptiveWorkspaceConfig';
 
 /**
- * OnboardingFlow Component (SIH26091 Phase A)
+ * OnboardingFlow Component with Browser-Style Back / Forward / Home Navigation Stack
  * 
  * STEP 1: Welcome Screen (Let's Onboard Your Business)
  * STAGE SELECT: Stage Selection Screen (New Idea | Startup | Established)
@@ -26,27 +26,82 @@ import { buildAdaptiveWorkspace } from '../../data/adaptiveWorkspaceConfig';
  * - Step 3: Business Type Screen
  * - Step 4: Operations Screen
  * - Step 5: Workspace Preparation & Transition Screen
+ * 
+ * All drafts and inputs are retained across back/forward navigation without data loss.
  */
-export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreDemo, currentProfile, initialStep = 1, onIntroComplete }) {
+export default function OnboardingFlow({
+  isOpen,
+  onClose,
+  onComplete,
+  onExploreDemo,
+  currentProfile,
+  initialStep = 1,
+  onIntroComplete,
+}) {
   const [step, setStep] = useState(initialStep); // 1: Welcome | 2: Stage / Profile Flow
   const [selectedStage, setSelectedStage] = useState(''); // '' | 'new_idea' | 'startup' | 'established'
   const [establishedSubStep, setEstablishedSubStep] = useState(2); // 2: Info | 3: Type | 4: Ops | 5: Prepare
 
-  // Form State for Established Business Path
-  const [formData, setFormData] = useState({
-    businessName: '',
-    businessDescription: '',
-    phone: '',
-    email: '',
+  // Forward history slot for onboarding
+  const [forwardStage, setForwardStage] = useState('');
+
+  // Persistent Draft State for New Business Idea Path
+  // Starts 100% empty for fresh new entrepreneurs
+  const [newIdeaDraft, setNewIdeaDraft] = useState(() => ({
+    category: '',
+    specificActivity: '',
     village: '',
+    block: '',
     district: '',
     state: '',
     pin: '',
-  });
+    ownCapital: '',
+    socialCategory: '',
+    areaType: '',
+  }));
+
+  // Persistent Draft State for Startup Phase Path
+  // Starts 100% empty for fresh new entrepreneurs
+  const [startupDraft, setStartupDraft] = useState(() => ({
+    businessName: '',
+    category: '',
+    specificActivity: '',
+    stage: '',
+    village: '',
+    block: '',
+    district: '',
+    state: '',
+    pin: '',
+    ownCapital: '',
+    alreadyInvested: '',
+    hasPremises: '',
+    hasEquipment: '',
+    existingMonthlySales: '',
+    customerCount: '',
+    socialCategory: '',
+    areaType: '',
+  }));
+
+  // Persistent Draft State for Established Business Path
+  const [formData, setFormData] = useState(() => ({
+    businessName: currentProfile?.name || '',
+    businessDescription: currentProfile?.description || '',
+    phone: currentProfile?.phone || '',
+    email: currentProfile?.email || '',
+    village: currentProfile?.village || currentProfile?.locationData?.village || '',
+    district: currentProfile?.district || currentProfile?.locationData?.district || '',
+    state: currentProfile?.state || currentProfile?.locationData?.state || '',
+    pin: currentProfile?.pin || currentProfile?.locationData?.pin || '',
+  }));
 
   // Established Business Type & Operations
-  const [businessType, setBusinessType] = useState('');
-  const [selectedOps, setSelectedOps] = useState([]);
+  const [businessType, setBusinessType] = useState(() => currentProfile?.businessType || '');
+  const [selectedOps, setSelectedOps] = useState(() => currentProfile?.selectedOperations || []);
+
+  // Sync initialStep changes
+  useEffect(() => {
+    setStep(initialStep);
+  }, [initialStep]);
 
   const handleSelectBusinessType = (typeId) => {
     setBusinessType(typeId);
@@ -56,6 +111,37 @@ export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreD
     setSelectedOps((prev) =>
       prev.includes(opId) ? prev.filter((id) => id !== opId) : [...prev, opId]
     );
+  };
+
+  // Nav actions
+  const handleStageSelect = (stg) => {
+    setSelectedStage(stg);
+    setForwardStage('');
+    if (stg === 'established') {
+      setEstablishedSubStep(2);
+    }
+  };
+
+  const handleBackToStageSelect = () => {
+    setForwardStage(selectedStage);
+    setSelectedStage('');
+  };
+
+  const handleForwardToStage = () => {
+    if (forwardStage) {
+      setSelectedStage(forwardStage);
+      setForwardStage('');
+    }
+  };
+
+  const handleOnboardingHome = () => {
+    if (selectedStage) {
+      setForwardStage(selectedStage);
+      setSelectedStage('');
+    } else if (step === 2) {
+      if (onClose) onClose();
+      else setStep(1);
+    }
   };
 
   // Completion handler for New Idea intake
@@ -119,6 +205,7 @@ export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreD
 
   // Completion handler for Established Business path
   const handleCompleteEstablishedWorkspace = () => {
+    const locationString = [formData.village, formData.district, formData.state].filter(Boolean).join(', ') || 'India';
     const workspace = buildAdaptiveWorkspace({
       stage: 'established',
       businessName: formData.businessName || 'My MSME Business',
@@ -131,7 +218,7 @@ export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreD
       pin: formData.pin || '',
       businessType: businessType || 'manufacturing',
       selectedOps: selectedOps.length > 0 ? selectedOps : ['sales', 'purchases'],
-      location: [formData.village, formData.district, formData.state].filter(Boolean).join(', ') || 'India',
+      location: locationString,
       locationData: {
         village: formData.village || '',
         block: '',
@@ -176,49 +263,53 @@ export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreD
   // STEP 2: STAGE SELECTION & BRANCHED INTAKE
   // =========================================================================
   if (step === 2) {
-    // 2.0 Stage Selection
+    // 2.0 Stage Selection Screen
     if (!selectedStage) {
       return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F8FAFC] animate-fadeIn">
           <StageSelectionScreen
-            onSelectStage={(stg) => {
-              setSelectedStage(stg);
-              if (stg === 'established') {
-                setEstablishedSubStep(2);
-              }
-            }}
+            onSelectStage={handleStageSelect}
             onBack={onClose || (() => setStep(1))}
+            onForward={forwardStage ? handleForwardToStage : null}
+            canGoForward={Boolean(forwardStage)}
+            onHome={handleOnboardingHome}
             onExploreDemo={onExploreDemo}
           />
         </div>
       );
     }
 
-    // 2.A New Business Idea Intake
+    // 2.A New Business Idea Intake Screen (Controlled draft data + Back/Forward/Home)
     if (selectedStage === 'new_idea') {
       return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F8FAFC] animate-fadeIn">
           <NewIdeaIntakeScreen
+            draft={newIdeaDraft}
+            setDraft={setNewIdeaDraft}
             onComplete={handleCompleteNewIdea}
-            onBack={() => setSelectedStage('')}
+            onBack={handleBackToStageSelect}
+            onHome={handleOnboardingHome}
           />
         </div>
       );
     }
 
-    // 2.B Startup Phase Intake
+    // 2.B Startup Phase Intake Screen (Controlled draft data + Back/Forward/Home)
     if (selectedStage === 'startup') {
       return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-[#F8FAFC] animate-fadeIn">
           <StartupIntakeScreen
+            draft={startupDraft}
+            setDraft={setStartupDraft}
             onComplete={handleCompleteStartup}
-            onBack={() => setSelectedStage('')}
+            onBack={handleBackToStageSelect}
+            onHome={handleOnboardingHome}
           />
         </div>
       );
     }
 
-    // 2.C Established Business Flow (Preserves existing 4-step sequence)
+    // 2.C Established Business Flow (100% Preserves existing 4-step sequence & draft data)
     if (selectedStage === 'established') {
       if (establishedSubStep === 2) {
         return (
@@ -226,7 +317,7 @@ export default function OnboardingFlow({ isOpen, onClose, onComplete, onExploreD
             <BusinessInfoScreen
               formData={formData}
               setFormData={setFormData}
-              onBack={() => setSelectedStage('')}
+              onBack={handleBackToStageSelect}
               onNext={() => setEstablishedSubStep(3)}
             />
           </div>

@@ -5,9 +5,7 @@ import MarketInsightSection from '../components/dashboard/MarketInsightSection';
 import VittanayaInsightsCard from '../components/dashboard/VittanayaInsightsCard';
 import FinancialOutlookCard from '../components/dashboard/FinancialOutlookCard';
 import PaymentFinancialTrackCard from '../components/dashboard/PaymentFinancialTrackCard';
-import FloatingAiButton from '../components/dashboard/FloatingAiButton';
 import DashboardFooter from '../components/dashboard/DashboardFooter';
-import AskVittanayaModal from '../components/dashboard/AskVittanayaModal';
 import BusinessChangeModal from '../components/common/BusinessChangeModal';
 import { useWorkspace } from '../context/WorkspaceContext';
 
@@ -20,7 +18,6 @@ export default function DashboardPage({
   onOpenWhy,
 }) {
   const { financialSummary, financialData, updateProfile } = useWorkspace();
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isChangeBusinessOpen, setIsChangeBusinessOpen] = useState(false);
 
   // Dynamic Profile and Metric Defaults
@@ -123,17 +120,7 @@ export default function DashboardPage({
       {/* 5. Footer */}
       <DashboardFooter lastUpdated="17 May 2025 10:30 AM" />
 
-      {/* 6. Floating AI Chatbot Button (~50px up from bottom-right) */}
-      <FloatingAiButton onClick={() => setIsAiModalOpen(true)} />
-
-      {/* 7. Interactive Modals */}
-      <AskVittanayaModal
-        isOpen={isAiModalOpen}
-        onClose={() => setIsAiModalOpen(false)}
-        currentProfile={profile}
-        financialSummary={financialSummary}
-      />
-
+      {/* 6. Interactive Modals */}
       <BusinessChangeModal
         isOpen={isChangeBusinessOpen}
         onClose={() => setIsChangeBusinessOpen(false)}

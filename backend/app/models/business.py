@@ -22,11 +22,24 @@ class Business(Base):
     )  # e.g., 'Retail', 'Handicraft', 'Agri-Processing', 'Services'
     industry = Column(String(50), nullable=False)
 
+    # Onboarding Stage & Canonical Profile
+    stage = Column(String(50), default="established", nullable=False)  # 'new_idea', 'startup', 'established'
+    category = Column(String(100), nullable=True)  # Proposed or actual category
+    status = Column(String(50), default="active", nullable=False)
+
     # Location context (hyper-local rural fields)
     location_village = Column(String(100), nullable=True)
+    location_block = Column(String(100), nullable=True)
     location_district = Column(String(100), nullable=True)
     location_state = Column(String(100), nullable=True)
     location_pin = Column(String(10), nullable=True)
+
+    # Capital & Social Demographic Attributes
+    own_capital = Column(Numeric(12, 2), default=0.00, nullable=False)
+    existing_investment = Column(Numeric(12, 2), default=0.00, nullable=False)
+    social_category = Column(String(50), nullable=True)  # e.g., 'General Category', 'OBC', 'SC', 'ST'
+    area_type = Column(String(50), nullable=True)  # e.g., 'Rural Gram Panchayat', 'Semi-Urban / Peri-Urban'
+    selected_operations = Column(Text, nullable=True)  # Comma-separated or JSON string of active operations
 
     phone = Column(String(20), nullable=True)
     email = Column(String(120), nullable=True)
