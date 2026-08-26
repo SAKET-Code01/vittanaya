@@ -19,6 +19,7 @@ export default function BusinessInfoScreen({
   setFormData,
   onBack,
   onNext,
+  onHome,
 }) {
   const [errors, setErrors] = useState({});
 
@@ -80,8 +81,9 @@ export default function BusinessInfoScreen({
       <header className="max-w-7xl w-full mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-2">
         {/* Brand */}
         <div className="flex items-center space-x-3">
-          <VittanayaLogo size="header" onHome={onBack} />
+          <VittanayaLogo size="header" onHome={onHome || onBack} />
         </div>
+
 
         {/* 4-Step Progress Tracker */}
         <div className="flex items-center space-x-2 sm:space-x-4 self-center lg:self-auto overflow-x-auto py-1">

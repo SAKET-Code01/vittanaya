@@ -1,4 +1,5 @@
 import React from 'react';
+import vittanayaBrandLogo from '../../assets/vittanaya-logo.png';
 
 /**
  * VittanayaLogo Component — Official Brand Asset Component
@@ -18,13 +19,13 @@ export default function VittanayaLogo({
   const handleClick = onClick || onHome;
 
   const sizeClasses = {
-    xs: 'h-6 sm:h-7',
-    sm: 'h-8 sm:h-9',
-    header: 'h-9 sm:h-10 md:h-11',
-    md: 'h-10 sm:h-11 md:h-12',
-    lg: 'h-12 sm:h-14 md:h-16',
-    xl: 'h-16 sm:h-20',
-    responsive: 'h-9 sm:h-10 md:h-11',
+    xs: 'h-8 sm:h-9',
+    sm: 'h-10 sm:h-11 md:h-12',
+    header: 'h-11 sm:h-12 md:h-14 lg:h-16',
+    md: 'h-12 sm:h-14 md:h-16 lg:h-18',
+    lg: 'h-16 sm:h-20 md:h-24',
+    xl: 'h-20 sm:h-24 md:h-28 lg:h-32',
+    responsive: 'h-11 sm:h-12 md:h-14 lg:h-16',
   };
 
   const selectedSize = sizeClasses[size] || size;
@@ -38,7 +39,7 @@ export default function VittanayaLogo({
 
   return (
     <img
-      src="/assets/vittanaya-logo.png"
+      src={vittanayaBrandLogo || '/assets/vittanaya-logo.png'}
       alt={alt}
       onClick={handleClick}
       onKeyDown={handleClick ? handleKeyDown : undefined}
@@ -57,3 +58,4 @@ export default function VittanayaLogo({
     />
   );
 }
+

@@ -37,13 +37,29 @@ export default function OnboardingFlow({
   currentProfile,
   initialStep = 1,
   onIntroComplete,
+  selectedStage: controlledSelectedStage,
+  onSelectStage,
+  establishedSubStep: controlledEstablishedSubStep,
+  onEstablishedSubStepChange,
+  onBackToStageSelect: externalBackToStageSelect,
+  onHome,
 }) {
   const [step, setStep] = useState(initialStep); // 1: Welcome | 2: Stage / Profile Flow
-  const [selectedStage, setSelectedStage] = useState(''); // '' | 'new_idea' | 'startup' | 'established'
-  const [establishedSubStep, setEstablishedSubStep] = useState(2); // 2: Info | 3: Type | 4: Ops | 5: Prepare
+  const [internalSelectedStage, setInternalSelectedStage] = useState('');
+  const [internalEstablishedSubStep, setInternalEstablishedSubStep] = useState(2);
 
-  // Forward history slot for onboarding
-  const [forwardStage, setForwardStage] = useState('');
+  const selectedStage = controlledSelectedStage !== undefined ? controlledSelectedStage : internalSelectedStage;
+  const establishedSubStep = controlledEstablishedSubStep !== undefined ? controlledEstablishedSubStep : internalEstablishedSubStep;
+
+  const setSelectedStage = (stg) => {
+    setInternalSelectedStage(stg);
+    if (onSelectStage) onSelectStage(stg);
+  };
+
+  const setEstablishedSubStep = (sub) => {
+    setInternalEstablishedSubStep(sub);
+    if (onEstablishedSubStepChange) onEstablishedSubStepChange(sub);
+  };
 
   // Pending workspace object during Workspace Preparation loading transition
   const [pendingPreparedWorkspace, setPendingPreparedWorkspace] = useState(null);
@@ -118,38 +134,34 @@ export default function OnboardingFlow({
 
   // Nav actions
   const handleStageSelect = (stg) => {
-    setSelectedStage(stg);
-    setForwardStage('');
     setPendingPreparedWorkspace(null);
+    setSelectedStage(stg);
     if (stg === 'established') {
       setEstablishedSubStep(2);
     }
   };
 
   const handleBackToStageSelect = () => {
-    setForwardStage(selectedStage);
-    setSelectedStage('');
     setPendingPreparedWorkspace(null);
-  };
-
-  const handleForwardToStage = () => {
-    if (forwardStage) {
-      setSelectedStage(forwardStage);
-      setForwardStage('');
-      setPendingPreparedWorkspace(null);
+    if (externalBackToStageSelect) {
+      externalBackToStageSelect();
+    } else {
+      setSelectedStage('');
     }
   };
 
   const handleOnboardingHome = () => {
     setPendingPreparedWorkspace(null);
-    if (selectedStage) {
-      setForwardStage(selectedStage);
-      setSelectedStage('');
+    if (onHome) {
+      onHome();
+    } else if (selectedStage) {
+      handleBackToStageSelect();
     } else if (step === 2) {
       if (onClose) onClose();
       else setStep(1);
     }
   };
+
 
   // Completion handler for New Idea intake
   const handleCompleteNewIdea = (newIdeaData) => {
@@ -273,8 +285,6 @@ export default function OnboardingFlow({
           <StageSelectionScreen
             onSelectStage={handleStageSelect}
             onBack={onClose || (() => setStep(1))}
-            onForward={forwardStage ? handleForwardToStage : null}
-            canGoForward={Boolean(forwardStage)}
             onHome={handleOnboardingHome}
             onExploreDemo={onExploreDemo}
           />
@@ -294,6 +304,7 @@ export default function OnboardingFlow({
               }}
               businessType={pendingPreparedWorkspace.businessType || 'manufacturing'}
               selectedOps={pendingPreparedWorkspace.selectedOperations || ['sales', 'purchases']}
+              onHome={handleOnboardingHome}
               onComplete={() => {
                 const ws = pendingPreparedWorkspace;
                 setPendingPreparedWorkspace(null);
@@ -331,6 +342,7 @@ export default function OnboardingFlow({
               }}
               businessType={pendingPreparedWorkspace.businessType || 'manufacturing'}
               selectedOps={pendingPreparedWorkspace.selectedOperations || ['sales', 'purchases', 'inventory', 'assets']}
+              onHome={handleOnboardingHome}
               onComplete={() => {
                 const ws = pendingPreparedWorkspace;
                 setPendingPreparedWorkspace(null);
@@ -366,6 +378,7 @@ export default function OnboardingFlow({
               setFormData={setFormData}
               onBack={handleBackToStageSelect}
               onNext={() => setEstablishedSubStep(3)}
+              onHome={handleOnboardingHome}
             />
           </div>
         );
@@ -379,6 +392,7 @@ export default function OnboardingFlow({
               onSelectBusinessType={handleSelectBusinessType}
               onBack={() => setEstablishedSubStep(2)}
               onNext={() => setEstablishedSubStep(4)}
+              onHome={handleOnboardingHome}
             />
           </div>
         );
@@ -393,6 +407,7 @@ export default function OnboardingFlow({
               onToggleOp={handleToggleOp}
               onBack={() => setEstablishedSubStep(3)}
               onComplete={() => setEstablishedSubStep(5)}
+              onHome={handleOnboardingHome}
             />
           </div>
         );
@@ -405,6 +420,7 @@ export default function OnboardingFlow({
               formData={formData}
               businessType={businessType}
               selectedOps={selectedOps}
+              onHome={handleOnboardingHome}
               onComplete={handleCompleteEstablishedWorkspace}
             />
           </div>
@@ -415,3 +431,4 @@ export default function OnboardingFlow({
 
   return null;
 }
+

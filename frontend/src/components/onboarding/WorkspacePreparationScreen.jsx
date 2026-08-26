@@ -230,7 +230,7 @@ export default function WorkspacePreparationScreen({
             {/* Top Heading & Logo */}
             <div className="text-center space-y-3 flex flex-col items-center">
               <div className="flex justify-center mb-1">
-                <VittanayaLogo size="lg" className="h-12 sm:h-14" />
+                <VittanayaLogo size="lg" className="h-16 sm:h-20" />
               </div>
 
               <h2 className="text-2xl sm:text-[28px] font-black text-[#0F172A] leading-tight tracking-tight">

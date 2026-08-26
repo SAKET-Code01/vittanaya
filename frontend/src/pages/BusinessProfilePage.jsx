@@ -301,7 +301,7 @@ export default function BusinessProfilePage({ onNavigateHome }) {
                 <span>Phone Number</span>
               </span>
               <span className="font-semibold text-slate-800 text-right font-mono">
-                {currentProfile.phone || '+91 82606 58692'}
+                {currentProfile.phone || <span className="text-slate-400 italic font-normal">Not provided</span>}
               </span>
             </div>
 
@@ -311,7 +311,7 @@ export default function BusinessProfilePage({ onNavigateHome }) {
                 <span>Email Address</span>
               </span>
               <span className="font-semibold text-slate-800 text-right truncate max-w-[180px]">
-                {currentProfile.email || 'amiya.nayak@msme.com'}
+                {currentProfile.email || <span className="text-slate-400 italic font-normal">Not provided</span>}
               </span>
             </div>
 
@@ -321,7 +321,7 @@ export default function BusinessProfilePage({ onNavigateHome }) {
                 <span>Business Location</span>
               </span>
               <span className="font-semibold text-slate-800 text-right truncate max-w-[180px]">
-                {currentProfile.location || 'Rourkela, Odisha, India'}
+                {currentProfile.location || <span className="text-slate-400 italic font-normal">Not set</span>}
               </span>
             </div>
 
@@ -477,7 +477,7 @@ export default function BusinessProfilePage({ onNavigateHome }) {
                 <span>Onboarding Completed</span>
               </span>
               <span className="font-semibold text-slate-800 text-right">
-                {currentProfile.onboardingCompletedAt || '15 Nov 2024, 10:15 AM'}
+                {currentProfile.onboardingCompletedAt || <span className="text-slate-400 italic font-normal">Not recorded</span>}
               </span>
             </div>
           </div>
@@ -724,21 +724,21 @@ export default function BusinessProfilePage({ onNavigateHome }) {
           <div className="space-y-1">
             <span className="font-bold text-slate-700 block">Registered Address</span>
             <p className="text-slate-600 leading-relaxed">
-              {currentProfile.registeredAddress || currentProfile.location || 'L-1-68, Sector-1, Rourkela, Sundargarh, Odisha - 769001, India'}
+              {currentProfile.registeredAddress || currentProfile.location || <span className="text-slate-400 italic">Not provided</span>}
             </p>
           </div>
 
           <div className="space-y-1">
             <span className="font-bold text-slate-700 block">Business Description</span>
             <p className="text-slate-600 leading-relaxed">
-              {currentProfile.description || currentProfile.industry || 'We manufacture precision industrial components with focus on quality, reliability and timely delivery.'}
+              {currentProfile.description || currentProfile.industry || <span className="text-slate-400 italic">No description provided</span>}
             </p>
           </div>
 
           <div className="space-y-1">
             <span className="font-bold text-slate-700 block">Notes</span>
             <p className="text-slate-600 leading-relaxed">
-              {currentProfile.notes || 'Focus on automation, quality control and customer satisfaction.'}
+              {currentProfile.notes || <span className="text-slate-400 italic">No notes added</span>}
             </p>
           </div>
         </div>

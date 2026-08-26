@@ -12,14 +12,22 @@ import VittanayaLogo from '../common/VittanayaLogo';
 export default function StageSelectionScreen({
   onSelectStage,
   onBack,
-  onForward,
-  canGoForward = false,
   onHome,
   onExploreDemo,
 }) {
-  const [selected, setSelected] = useState('new_idea');
+  const [selected, setSelected] = useState('');
+  const [error, setError] = useState(null);
+
+  const handleContinue = () => {
+    if (!selected) {
+      setError('Please select your business stage above to proceed.');
+      return;
+    }
+    onSelectStage(selected);
+  };
 
   const stages = [
+
     {
       id: 'new_idea',
       badge: 'Concept & Planning',
@@ -113,7 +121,10 @@ export default function StageSelectionScreen({
             return (
               <div
                 key={stg.id}
-                onClick={() => setSelected(stg.id)}
+                onClick={() => {
+                  setSelected(stg.id);
+                  if (error) setError(null);
+                }}
                 className={`p-5 sm:p-6 rounded-3xl bg-white border transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-4 shadow-sm hover:shadow-md ${stg.accentBorder} ${
                   isSelected ? stg.selectedRing : 'border-slate-200/90'
                 }`}
@@ -151,7 +162,7 @@ export default function StageSelectionScreen({
 
                 {/* Radio selection indicator */}
                 <div className="pt-2 flex items-center justify-between text-xs font-bold">
-                  <span className={isSelected ? 'text-slate-900' : 'text-slate-400'}>
+                  <span className={isSelected ? 'text-slate-900 font-extrabold' : 'text-slate-400'}>
                     {isSelected ? 'Selected' : 'Click to select'}
                   </span>
                   <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
@@ -165,6 +176,12 @@ export default function StageSelectionScreen({
           })}
         </div>
 
+        {error && (
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-700 text-center animate-fadeIn">
+            {error}
+          </div>
+        )}
+
         {/* Action Controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200/80">
           <button
@@ -177,13 +194,18 @@ export default function StageSelectionScreen({
 
           <button
             type="button"
-            onClick={() => onSelectStage(selected)}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+            onClick={handleContinue}
+            className={`w-full sm:w-auto px-8 py-3.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center justify-center space-x-2 cursor-pointer ${
+              selected
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-600/20 hover:scale-[1.01]'
+                : 'bg-slate-200 text-slate-500 cursor-pointer hover:bg-slate-300'
+            }`}
           >
             <span>Continue to Assessment</span>
             <span>→</span>
           </button>
         </div>
+
 
       </main>
 

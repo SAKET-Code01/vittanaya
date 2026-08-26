@@ -199,16 +199,16 @@
   transform: translateY(0);
 }
 
-.splash-brand-title {
-  font-size: 38px;
-  font-weight: 900;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  margin: 0;
-  background: linear-gradient(180deg, #0A2540 0%, #1D4ED8 50%, #3B82F6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 10px rgba(37, 99, 235, 0.12));
+/* Official logo image shown during brand reveal step */
+.splash-official-logo {
+  height: 3.5rem;         /* 56px on mobile */
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  mix-blend-mode: multiply;
+  filter: contrast(1.04) drop-shadow(0 2px 10px rgba(37, 99, 235, 0.10));
 }
 
 .splash-brand-subtitle {
@@ -263,13 +263,24 @@
 }
 
 /* Responsive Scaling */
+@media (min-width: 640px) {
+  .splash-official-logo {
+    height: 4rem;        /* 64px on tablet */
+    max-width: 260px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .splash-official-logo {
+    height: 5rem;        /* 80px on desktop */
+    max-width: 320px;
+  }
+}
+
 @media (max-width: 640px) {
   .splash-canvas-box {
     width: 220px;
     height: 220px;
-  }
-  .splash-brand-title {
-    font-size: 30px;
   }
   .splash-brand-subtitle {
     font-size: 12.5px;
