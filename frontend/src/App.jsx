@@ -136,27 +136,9 @@ function AppContent() {
     navigate('steps', { stage: '' });
   };
 
-  // Explicit Login action
+  // Explicit Login action — Replicates Guest functionality to always show Business Stage Selection
   const handleLoginSuccess = () => {
-    let hasCompletedProfile = false;
-    try {
-      const savedProfile = localStorage.getItem('vittanaya_profile_v2');
-      if (savedProfile) {
-        const parsed = JSON.parse(savedProfile);
-        if (parsed && (parsed.onboardingCompletedAt || parsed.name)) {
-          hasCompletedProfile = true;
-        }
-      }
-    } catch (e) {}
-    if (currentProfile && (currentProfile.onboardingCompletedAt || currentProfile.name)) {
-      hasCompletedProfile = true;
-    }
-
-    if (hasCompletedProfile) {
-      navigate('workspace', { navId: 'dashboard' });
-    } else {
-      navigate('steps', { stage: '' });
-    }
+    navigate('steps', { stage: '' });
   };
 
   // Stage Selection -> Stage Intake
@@ -186,11 +168,30 @@ function AppContent() {
 
   // Onboarding Complete (after Workspace Preparation)
   const handleOnboardingComplete = (newProfile) => {
-    setCurrentProfile(newProfile);
-    if (newProfile?.ownCapital) {
+    const profileWithCompletion = {
+      ...newProfile,
+      onboardingCompletedAt: newProfile?.onboardingCompletedAt || new Date().toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true,
+      }),
+      lastUpdatedAt: newProfile?.lastUpdatedAt || new Date().toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true,
+      }),
+    };
+    setCurrentProfile(profileWithCompletion);
+    if (profileWithCompletion?.ownCapital) {
       updateFinancialValues({
-        min_cash_buffer: Math.max(50000, Math.round(newProfile.ownCapital * 0.2)),
-        cash_balance: newProfile.ownCapital,
+        min_cash_buffer: Math.max(50000, Math.round(profileWithCompletion.ownCapital * 0.2)),
+        cash_balance: profileWithCompletion.ownCapital,
       });
     }
     if (clearNavigationHistory) clearNavigationHistory();

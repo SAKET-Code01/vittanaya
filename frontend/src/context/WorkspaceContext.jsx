@@ -71,8 +71,10 @@ export function WorkspaceProvider({ children }) {
       const saved = localStorage.getItem(STORAGE_KEYS.PROFILE);
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Only restore a profile that was produced by a real onboarding completion
-        if (parsed && (parsed.onboardingCompletedAt || parsed.name)) {
+        // Only restore a profile that was produced by a REAL onboarding completion.
+        // onboardingCompletedAt is set exclusively by WorkspaceContext.setCurrentProfile
+        // at the end of a real onboarding flow — never by buildAdaptiveWorkspace defaults.
+        if (parsed && parsed.onboardingCompletedAt) {
           return parsed;
         }
       }
@@ -661,7 +663,7 @@ export function WorkspaceProvider({ children }) {
       if (savedProfile) {
         const parsed = JSON.parse(savedProfile);
         // Only restore a real onboarded profile, not demo/placeholder data
-        setCurrentProfile((parsed && (parsed.onboardingCompletedAt || parsed.name)) ? parsed : null);
+        setCurrentProfile((parsed && parsed.onboardingCompletedAt) ? parsed : null);
       } else {
         setCurrentProfile(null);
       }

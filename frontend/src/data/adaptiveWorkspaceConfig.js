@@ -440,8 +440,8 @@ export function buildAdaptiveWorkspace({
     description: description || `${typeConfig.desc}`,
     notes: notes || 'Focus on automation, quality control and customer satisfaction.',
     businessSince: businessSince || '2022',
-    onboardingCompletedAt: onboardingCompletedAt || '15 Nov 2024, 10:15 AM',
-    lastUpdatedAt: lastUpdatedAt || '15 Nov 2024, 10:30 AM',
+    onboardingCompletedAt: onboardingCompletedAt || null,
+    lastUpdatedAt: lastUpdatedAt || null,
     selectedOperations: selectedOps,
     terminology: typeConfig.terminology,
     businessKpis: businessKpis.slice(0, 4), // Top 4 operational KPIs

@@ -477,7 +477,7 @@ export default function BusinessProfilePage({ onNavigateHome }) {
                 <span>Onboarding Completed</span>
               </span>
               <span className="font-semibold text-slate-800 text-right">
-                {currentProfile.onboardingCompletedAt || '15 Nov 2024, 10:15 AM'}
+                {currentProfile.onboardingCompletedAt || <span className="text-slate-400 italic font-normal">Not recorded</span>}
               </span>
             </div>
           </div>
