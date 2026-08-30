@@ -141,13 +141,24 @@ export function WorkspaceProvider({ children }) {
   const [appPreferences, setAppPreferences] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PREFERENCES);
-      if (saved) {
-        return { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) };
-      }
+      // The shared navbar toggle writes the authoritative theme key.
+      let themeFromNav = null;
+      try {
+        const navTheme = localStorage.getItem('vittanaya-theme');
+        if (navTheme === 'dark' || navTheme === 'light') themeFromNav = navTheme;
+      } catch (e) {}
+      const mergedTheme = themeFromNav || (saved ? JSON.parse(saved).theme : null) || 'light';
+      const base = saved ? { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) } : DEFAULT_PREFERENCES;
+      return { ...base, theme: mergedTheme };
     } catch (e) {
-      console.warn('Could not read saved preferences from localStorage', e);
+      try {
+        const navTheme = localStorage.getItem('vittanaya-theme');
+        if (navTheme === 'dark' || navTheme === 'light') {
+          return { ...DEFAULT_PREFERENCES, theme: navTheme };
+        }
+      } catch (e2) {}
+      return DEFAULT_PREFERENCES;
     }
-    return DEFAULT_PREFERENCES;
   });
 
   // 7. Navigation State & History

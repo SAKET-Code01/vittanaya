@@ -7,22 +7,23 @@
 }
 
 /* =========================================================
-   VITTANAYA LIGHT-ONLY MODE
-   Dark mode is intentionally disabled for this version.
+   VITTANAYA GLOBAL THEME SYSTEM
+   Light (default) + Dark mode via html.dark class.
+   The shared theme toggle adds/removes `dark` on <html>.
    ========================================================= */
 html,
 html.light {
-  color-scheme: light !important;
+  color-scheme: light;
   background-color: #F8FAFC;
 }
 
 html.dark {
-  color-scheme: light !important;
+  color-scheme: dark;
 }
 
 html.dark body {
-  background-color: #F8FAFC !important;
-  color: #0F172A !important;
+  background-color: #0B120F;
+  color: #E7F0EB;
 }
 
 body {
@@ -63,21 +64,23 @@ body {
    VITTANAYA LIGHT DASHBOARD SURFACE SYSTEM
    ========================================================= */
 
-/* Crisp Premium White Dashboard Card */
+/* Crisp Premium Green-Glass Dashboard Card (VITTANAYA design language) */
 .dash-card {
-  background: #FFFFFF;
-  border: 1px solid rgba(226, 232, 240, 0.85);
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  box-shadow: 0 10px 30px rgba(16, 88, 56, 0.06);
+  backdrop-filter: blur(14px) saturate(135%);
+  -webkit-backdrop-filter: blur(14px) saturate(135%);
   border-radius: 18px;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.2s ease;
+  transition: transform 0.24s cubic-bezier(0.22, 0.61, 0.36, 1),
+              box-shadow 0.24s cubic-bezier(0.22, 0.61, 0.36, 1),
+              border-color 0.24s ease;
 }
 
 .dash-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.08), 0 4px 10px -2px rgba(15, 23, 42, 0.03);
-  border-color: rgba(203, 213, 225, 0.9);
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(16, 88, 56, 0.12);
+  border-color: rgba(16, 185, 129, 0.30);
 }
 
 /* =========================================================
@@ -124,7 +127,209 @@ body {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Prefers-reduced-motion override */
+/* ================================================================
+   VITTANAYA GLOBAL UI POLISH SYSTEM
+   Green-glass design language, entrance motion, reduced-motion safe
+   ================================================================ */
+
+:root {
+  --vt-glass-bg: rgba(255, 255, 255, 0.72);
+  --vt-glass-border: rgba(16, 185, 129, 0.12);
+  --vt-glass-shadow: 0 10px 30px rgba(16, 88, 56, 0.06);
+  --vt-glass-blur: blur(14px) saturate(135%);
+  --vt-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+html.dark {
+  --vt-glass-bg: rgba(10, 30, 23, 0.72);
+  --vt-glass-border: rgba(52, 211, 153, 0.13);
+  --vt-glass-shadow: 0 12px 35px rgba(0, 0, 0, 0.22);
+  --vt-glass-blur: blur(16px) saturate(125%);
+}
+
+/* ---- Page entrance ---- */
+@keyframes vtPageEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.vt-page-enter {
+  animation: vtPageEnter 420ms ease-out both;
+}
+
+/* subtle section stagger (apply vt-section-enter + delay class) */
+.vt-section-enter {
+  animation: vtPageEnter 420ms ease-out both;
+}
+.vt-delay-1 { animation-delay: 60ms; }
+.vt-delay-2 { animation-delay: 120ms; }
+.vt-delay-3 { animation-delay: 180ms; }
+
+/* ---- Green glass card ---- */
+.vt-glass-card {
+  background: var(--vt-glass-bg);
+  border: 1px solid var(--vt-glass-border);
+  backdrop-filter: var(--vt-glass-blur);
+  -webkit-backdrop-filter: var(--vt-glass-blur);
+  box-shadow: var(--vt-glass-shadow);
+  border-radius: 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.vt-glass-card-hover {
+  transition:
+    transform 240ms var(--vt-ease),
+    box-shadow 240ms var(--vt-ease),
+    border-color 240ms var(--vt-ease),
+    background 240ms var(--vt-ease);
+}
+
+.vt-glass-card-hover:hover {
+  transform: translateY(-3px);
+  border-color: rgba(16, 185, 129, 0.30);
+  box-shadow: 0 16px 40px rgba(16, 88, 56, 0.12);
+}
+
+html.dark .vt-glass-card-hover:hover {
+  border-color: rgba(52, 211, 153, 0.32);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.32);
+}
+
+/* subtle diagonal shine on hover */
+.vt-glass-card-hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.10) 50%,
+    transparent 58%
+  );
+  transform: translateX(-110%);
+  transition: transform 900ms var(--vt-ease);
+}
+
+.vt-glass-card-hover:hover::after {
+  transform: translateX(110%);
+}
+
+html.dark .vt-glass-card-hover::after {
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(110, 231, 183, 0.07) 50%,
+    transparent 58%
+  );
+}
+
+/* ---- Glass buttons ---- */
+.vt-glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.625rem 1rem;
+  transition: transform 200ms var(--vt-ease), box-shadow 200ms var(--vt-ease),
+    filter 200ms var(--vt-ease), background 200ms var(--vt-ease),
+    border-color 200ms var(--vt-ease);
+}
+
+.vt-glass-btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
+.vt-glass-btn:active { transform: translateY(0); }
+.vt-glass-btn svg { transition: transform 200ms var(--vt-ease); }
+.vt-glass-btn:hover svg { transform: translateX(2px); }
+
+.vt-glass-btn-primary {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.92), rgba(16, 185, 129, 0.88));
+  border: 1px solid rgba(16, 185, 129, 0.30);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.18);
+}
+.vt-glass-btn-primary:hover {
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.26);
+}
+
+html.dark .vt-glass-btn-primary {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(52, 211, 153, 0.32);
+  color: #6EE7B7;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12);
+}
+
+.vt-glass-btn-secondary {
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  color: #047857;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(16, 88, 56, 0.06);
+}
+.vt-glass-btn-secondary:hover {
+  background: rgba(236, 253, 245, 0.85);
+  border-color: rgba(16, 185, 129, 0.42);
+}
+
+html.dark .vt-glass-btn-secondary {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(52, 211, 153, 0.22);
+  color: #A7F3D0;
+  box-shadow: none;
+}
+html.dark .vt-glass-btn-secondary:hover {
+  background: rgba(16, 185, 129, 0.10);
+  border-color: rgba(52, 211, 153, 0.38);
+}
+
+/* ---- Icon micro-animation inside interactive cards ---- */
+.vt-icon-pop { transition: transform 220ms var(--vt-ease); }
+.vt-glass-card-hover:hover .vt-icon-pop { transform: scale(1.05); }
+
+/* ---- Floating AI orb ---- */
+@keyframes vtFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.vt-float {
+  animation: vtFloat 4s ease-in-out infinite;
+}
+
+/* ---- Page background atmosphere ---- */
+.vt-atmosphere {
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.06), transparent 35%),
+    radial-gradient(circle at 90% 85%, rgba(16, 185, 129, 0.045), transparent 40%);
+}
+
+html.dark .vt-atmosphere {
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(16, 185, 129, 0.07), transparent 35%),
+    radial-gradient(circle at 90% 85%, rgba(16, 185, 129, 0.05), transparent 40%);
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .vt-page-enter,
+  .vt-section-enter,
+  .vt-delay-1, .vt-delay-2, .vt-delay-3 {
+    animation: none !important;
+  }
+  .vt-glass-card-hover,
+  .vt-glass-btn,
+  .vt-icon-pop {
+    transition: none !important;
+  }
+  .vt-glass-card-hover:hover { transform: none; }
+  .vt-glass-card-hover::after { display: none; }
+  .vt-float { animation: none !important; }
+}
+
+/* Prefers-reduced-motion override (legacy utilities) */
 @media (prefers-reduced-motion: reduce) {
   .dash-card-hover:hover {
     transform: none;
@@ -623,4 +828,230 @@ html.compact-mode .gap-6 {
 
 .anim-single-pulse {
   animation: singleCenterPulse 0.9s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* =========================================================
+   VITTANAYA GLOBAL DARK MODE OVERRIDES
+   When <html> has the .dark class (toggled by the shared
+   navbar), remap the dominant light surfaces/text/borders so
+   the WHOLE application switches together — not only the
+   navbar. Uses html.dark + !important to reliably beat the
+   literal-hex Tailwind arbitrary utilities used across pages.
+   ========================================================= */
+
+html.dark,
+html.dark body {
+  background-color: #0B1410;
+  color: #E6F0EB;
+}
+
+/* ------------------------------------------------------------------
+   1. PAGE / APP SURFACES
+   ------------------------------------------------------------------ */
+html.dark .bg-\[\#F7F9F8\] { background-color: #0B1410 !important; }
+html.dark .bg-\[\#F8FAFC\] { background-color: #0B1410 !important; }
+html.dark .bg-\[\#F8F9FA\] { background-color: #0B1410 !important; }
+html.dark .bg-\[\#F4F6F5\] { background-color: #0E1914 !important; }
+
+/* ------------------------------------------------------------------
+   2. CARD SURFACES (white + app-specific tints)
+   ------------------------------------------------------------------ */
+html.dark .bg-white { background-color: #0F1A15 !important; }
+html.dark .dash-card { background: rgba(10, 30, 23, 0.72) !important; border-color: rgba(52, 211, 153, 0.13) !important; backdrop-filter: blur(16px) saturate(125%); -webkit-backdrop-filter: blur(16px) saturate(125%); box-shadow: 0 12px 35px rgba(0, 0, 0, 0.22) !important; }
+html.dark .dash-card-hover:hover { transform: translateY(-3px); border-color: rgba(52, 211, 153, 0.32) !important; box-shadow: 0 16px 42px rgba(0, 0, 0, 0.32) !important; }
+
+/* lightly tinted neutral/info panels */
+html.dark .bg-\[\#FCFDFC\] { background-color: #101C16 !important; }
+html.dark .bg-\[\#F5FAF7\] { background-color: #0F1C16 !important; }
+html.dark .bg-\[\#F3FBF7\] { background-color: #0F1D17 !important; }
+html.dark .bg-\[\#FAFCFB\] { background-color: #101C16 !important; }
+html.dark .bg-\[\#F0FBF4\] { background-color: #0F1E18 !important; }
+html.dark .bg-\[\#EAF8F0\] { background-color: #12231B !important; }
+html.dark .bg-\[\#EFFAF4\] { background-color: #102019 !important; }
+html.dark .bg-\[\#F3FBF6\] { background-color: #102019 !important; }
+html.dark .bg-\[\#E7F6ED\] { background-color: #11221A !important; }
+html.dark .bg-\[\#E8F1EC\] { background-color: #101F18 !important; }
+html.dark .bg-\[\#EDF9F3\] { background-color: #10221A !important; }
+html.dark .bg-\[\#D9EEE1\] { background-color: #15301F !important; }
+html.dark .bg-\[\#DCECE4\] { background-color: #15261E !important; }
+html.dark .bg-\[\#F2FBF7\] { background-color: #10201A !important; }
+html.dark .bg-\[\#F5FCF9\] { background-color: #10201A !important; }
+
+/* amber / warning tints */
+html.dark .bg-\[\#FFF7E8\] { background-color: #251C08 !important; }
+html.dark .bg-\[\#FFF9EA\] { background-color: #251C08 !important; }
+html.dark .bg-\[\#FFFBEB\] { background-color: #251D09 !important; }
+html.dark .bg-\[\#FFF8ED\] { background-color: #251B08 !important; }
+html.dark .bg-\[\#FFF7ED\] { background-color: #251B08 !important; }
+html.dark .bg-\[\#FEFCE8\] { background-color: #241D08 !important; }
+
+/* blue / info tints */
+html.dark .bg-\[\#EEF5FF\] { background-color: #0E1F2E !important; }
+html.dark .bg-\[\#F0F9FF\] { background-color: #0E1F2A !important; }
+html.dark .bg-\[\#F1F6FF\] { background-color: #0F202E !important; }
+html.dark .bg-\[\#EEF2FF\] { background-color: #121E30 !important; }
+html.dark .bg-\[\#E8EEFF\] { background-color: #131E30 !important; }
+
+/* purple / violet tints */
+html.dark .bg-\[\#F5F0FF\] { background-color: #1D1530 !important; }
+html.dark .bg-\[\#FAF7FF\] { background-color: #1D1730 !important; }
+html.dark .bg-\[\#F5F3FF\] { background-color: #1C1530 !important; }
+html.dark .bg-\[\#F6F0FF\] { background-color: #1C1630 !important; }
+html.dark .bg-\[\#FAF8FF\] { background-color: #1C1730 !important; }
+html.dark .bg-\[\#F7F2FF\] { background-color: #181430 !important; }
+
+/* red / rose tints */
+html.dark .bg-\[\#FFF1F2\] { background-color: #2A1213 !important; }
+html.dark .bg-\[\#FFF3F3\] { background-color: #2A1313 !important; }
+html.dark .bg-\[\#FFE8E8\] { background-color: #2C1212 !important; }
+html.dark .bg-\[\#FEF2F2\] { background-color: #2A1213 !important; }
+
+/* generic slate surfaces */
+html.dark .bg-slate-50 { background-color: #0E1914 !important; }
+html.dark .bg-slate-100 { background-color: #14211A !important; }
+html.dark .bg-slate-200 { background-color: #1C2B22 !important; }
+html.dark .bg-slate-50\/60 { background-color: rgba(14,25,20,0.6) !important; }
+html.dark .bg-slate-50\/70 { background-color: rgba(14,25,20,0.7) !important; }
+html.dark .bg-slate-50\/90 { background-color: rgba(14,25,20,0.9) !important; }
+
+/* ------------------------------------------------------------------
+   3. TEXT COLORS
+   ------------------------------------------------------------------ */
+html.dark .text-slate-900 { color: #E6F0EB !important; }
+html.dark .text-slate-800 { color: #D9E6DF !important; }
+html.dark .text-slate-700 { color: #C4D4CC !important; }
+html.dark .text-slate-600 { color: #A8BBB2 !important; }
+html.dark .text-slate-500 { color: #8DA299 !important; }
+html.dark .text-slate-400 { color: #769088 !important; }
+
+html.dark .text-\[\#0F172A\] { color: #E6F0EB !important; }
+html.dark .text-\[\#18211D\] { color: #E6F0EB !important; }
+html.dark .text-\[\#1A211D\] { color: #E6F0EB !important; }
+html.dark .text-\[\#1C2923\] { color: #E6F0EB !important; }
+html.dark .text-\[\#17201C\] { color: #E6F0EB !important; }
+html.dark .text-\[\#14201A\] { color: #E6F0EB !important; }
+html.dark .text-\[\#17241D\] { color: #E6F0EB !important; }
+html.dark .text-\[\#15231B\] { color: #E6F0EB !important; }
+html.dark .text-\[\#1B2922\] { color: #E6F0EB !important; }
+html.dark .text-\[\#102A1E\] { color: #D9E6DF !important; }
+html.dark .text-\[\#26332D\] { color: #D3E1DA !important; }
+html.dark .text-\[\#34443C\] { color: #C4D4CC !important; }
+html.dark .text-\[\#27362F\] { color: #C4D4CC !important; }
+html.dark .text-\[\#53625A\] { color: #A8BBB2 !important; }
+html.dark .text-\[\#4D5D54\] { color: #A8BBB2 !important; }
+html.dark .text-\[\#5F7066\] { color: #9DB2A8 !important; }
+html.dark .text-\[\#607267\] { color: #9DB2A8 !important; }
+html.dark .text-\[\#68776F\] { color: #9DB2A8 !important; }
+html.dark .text-\[\#6D7B73\] { color: #94A8A0 !important; }
+html.dark .text-\[\#718078\] { color: #94A8A0 !important; }
+html.dark .text-\[\#738278\] { color: #94A8A0 !important; }
+html.dark .text-\[\#75837C\] { color: #94A8A0 !important; }
+html.dark .text-\[\#78867F\] { color: #8DA299 !important; }
+html.dark .text-\[\#708078\] { color: #8DA299 !important; }
+html.dark .text-\[\#526158\] { color: #8DA299 !important; }
+html.dark .text-\[\#526159\] { color: #8DA299 !important; }
+html.dark .text-\[\#516059\] { color: #8DA299 !important; }
+html.dark .text-\[\#5E6D65\] { color: #8DA299 !important; }
+html.dark .text-\[\#56665E\] { color: #8DA299 !important; }
+html.dark .text-\[\#65757C\] { color: #8DA299 !important; }
+html.dark .text-\[\#809087\] { color: #8DA299 !important; }
+html.dark .text-\[\#83928A\] { color: #8DA299 !important; }
+html.dark .text-\[\#849189\] { color: #8DA299 !important; }
+html.dark .text-\[\#89958F\] { color: #7E948A !important; }
+html.dark .text-\[\#6B7970\] { color: #94A8A0 !important; }
+html.dark .text-\[\#64748B\] { color: #8FA6C0 !important; }
+
+/* ------------------------------------------------------------------
+   4. BORDERS / DIVIDERS
+   ------------------------------------------------------------------ */
+html.dark .border-\[\#E4E9E6\] { border-color: rgba(64,185,128,0.18) !important; }
+html.dark .border-\[\#E5EAE7\] { border-color: rgba(64,185,128,0.18) !important; }
+html.dark .border-\[\#E6EAE7\] { border-color: rgba(64,185,128,0.18) !important; }
+html.dark .border-\[\#E6EBE8\] { border-color: rgba(64,185,128,0.18) !important; }
+html.dark .border-\[\#E7ECE9\] { border-color: rgba(64,185,128,0.18) !important; }
+html.dark .border-\[\#E0E9E4\] { border-color: rgba(64,185,128,0.18) !important; }
+html.dark .border-\[\#E8E2D5\] { border-color: rgba(64,185,128,0.18) !important; }
+html.dark .border-\[\#DDE8E1\] { border-color: rgba(64,185,128,0.22) !important; }
+html.dark .border-\[\#DCE7E1\] { border-color: rgba(64,185,128,0.22) !important; }
+html.dark .border-\[\#DCE6E1\] { border-color: rgba(64,185,128,0.22) !important; }
+html.dark .border-\[\#DCEBE3\] { border-color: rgba(64,185,128,0.22) !important; }
+html.dark .border-\[\#DCECE4\] { border-color: rgba(64,185,128,0.22) !important; }
+html.dark .border-\[\#CDEBDD\] { border-color: rgba(64,185,128,0.30) !important; }
+html.dark .border-\[\#BDECCF\] { border-color: rgba(64,185,128,0.30) !important; }
+html.dark .border-\[\#BFE8CF\] { border-color: rgba(64,185,128,0.30) !important; }
+html.dark .border-\[\#D9EEE5\] { border-color: rgba(64,185,128,0.26) !important; }
+html.dark .border-\[\#D9EEE1\] { border-color: rgba(64,185,128,0.26) !important; }
+html.dark .border-\[\#D5EBE1\] { border-color: rgba(64,185,128,0.26) !important; }
+html.dark .border-\[\#DDECE5\] { border-color: rgba(64,185,128,0.26) !important; }
+html.dark .border-\[\#F6E1BB\] { border-color: rgba(217,119,6,0.28) !important; }
+html.dark .border-\[\#F0E3BC\] { border-color: rgba(217,119,6,0.28) !important; }
+html.dark .border-\[\#F4D49C\] { border-color: rgba(217,119,6,0.32) !important; }
+html.dark .border-\[\#E8E0F9\] { border-color: rgba(139,106,204,0.30) !important; }
+html.dark .border-\[\#E4D9F8\] { border-color: rgba(139,106,204,0.30) !important; }
+html.dark .border-\[\#DCE6F5\] { border-color: rgba(100,140,200,0.30) !important; }
+
+html.dark .border-slate-100 { border-color: rgba(64,185,128,0.14) !important; }
+html.dark .border-slate-200 { border-color: rgba(64,185,128,0.18) !important; }
+html.dark .border-slate-300 { border-color: rgba(64,185,128,0.26) !important; }
+html.dark .border-slate-200\/80 { border-color: rgba(64,185,128,0.16) !important; }
+html.dark .divide-slate-100 > * + * { border-color: rgba(64,185,128,0.14) !important; }
+
+/* ------------------------------------------------------------------
+   5. SHADOWS -> dark-emerald soft glows
+   ------------------------------------------------------------------ */
+html.dark .shadow-\[0_6px_24px_rgba\(25\,48\,38\,0\.045\)\] {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35) !important;
+}
+html.dark .shadow-\[0_6px_24px_rgba\(25\,48\,38\,0\.04\)\] {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35) !important;
+}
+html.dark .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.35) !important; }
+
+/* ------------------------------------------------------------------
+   6. DARK GLASS HIERARCHY — 3 depth levels
+   L1 page bg (#0B1410) < L2 main cards < L3 inner panels
+   ------------------------------------------------------------------ */
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/80 { background-color: #12241C !important; }
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/90 { background-color: #0D1913 !important; }
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/80 { background-color: #16291F !important; }
+html.dark .bg-gray-50 { background-color: #0D1913 !important; }
+
+/* pure-ish dark surfaces -> green-tinted dark glass (never flat black) */
+html.dark .bg-slate-900,
+html.dark .bg-slate-900\/90,
+html.dark .bg-slate-900\/80 { background-color: #101E17 !important; }
+html.dark .bg-gray-900 { background-color: #101E17 !important; }
+
+/* dark emerald glass buttons (primary) */
+html.dark button.bg-slate-900,
+html.dark .bg-slate-900.text-white {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+  color: #6EE7B7 !important;
+  border: 1px solid rgba(52, 211, 153, 0.30) !important;
+}
+html.dark button.bg-slate-900:hover,
+html.dark .bg-slate-900.text-white:hover {
+  background-color: rgba(16, 185, 129, 0.25) !important;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.18);
+}
+
+/* ------------------------------------------------------------------
+   7. SMOOTH GLOBAL THEME TRANSITION (250ms, no white flash)
+   ------------------------------------------------------------------ */
+body,
+.dash-card,
+header, nav, aside,
+button, input, select, textarea {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 250ms;
+  transition-timing-function: ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  body, .dash-card, header, nav, aside, button, input, select, textarea {
+    transition: none;
+  }
 }

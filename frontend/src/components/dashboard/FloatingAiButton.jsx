@@ -14,11 +14,11 @@ export default function FloatingAiButton({ onClick, className = '' }) {
       onClick={onClick}
       title="Ask VITTANAYA AI Business Advisor"
     >
-      <div className="relative">
-        {/* Main Circular Green Button */}
+      <div className="relative vt-float">
+        {/* Main Circular Glass Emerald Button */}
         <button
           type="button"
-          className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#15803D] to-[#22C55E] text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 border-2 border-white flex items-center justify-center cursor-pointer"
+          className="w-13 h-13 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr from-[#15803D]/95 to-[#22C55E]/95 text-white shadow-[0_12px_32px_rgba(16,185,129,0.35)] hover:shadow-[0_16px_42px_rgba(16,185,129,0.5)] hover:scale-105 active:scale-95 transition-all duration-200 border border-white/70 backdrop-blur-md flex items-center justify-center cursor-pointer ring-1 ring-emerald-300/40"
           aria-label="Ask VITTANAYA AI"
         >
           {/* Cute Robot / AI Mascot Vector */}
@@ -45,7 +45,7 @@ export default function FloatingAiButton({ onClick, className = '' }) {
         {/* Hover Tooltip */}
         {isHovered && (
           <div className="absolute right-16 top-2 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold whitespace-nowrap shadow-lg animate-fadeInScale pointer-events-none">
-            ✨ Ask VITTANAYA AI
+            Ask VITTANAYA AI
           </div>
         )}
       </div>

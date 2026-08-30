@@ -4,6 +4,7 @@ dist/
 dist-ssr/
 *.local
 .vite/
+.ai-memory/
 
 # Editor / Environment
 .env
