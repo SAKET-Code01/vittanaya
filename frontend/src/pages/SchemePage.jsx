@@ -1,176 +1,1246 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
 
 /**
- * SchemePage — Matched Government Schemes Module
+ * SchemePage — Personalized Government Scheme Matching
+ *
+ * Design goals:
+ * - Keep VITTANAYA's light theme.
+ * - Turn large repetitive scheme cards into compact, scannable cards.
+ * - Keep "Why Matched?" as the main trust feature.
+ * - Allow filtering, selection and side-by-side comparison.
+ * - Expand detailed information only when the user asks for it.
+ * - No external packages required.
+ *
+ * Backend note:
+ * The matching score, eligibility status, reasons, documents and official
+ * portal URL should eventually come from the backend. This file keeps the
+ * current demo data structure so the UI can be built/tested independently.
  */
-export default function SchemePage({ currentProfile: propProfile, onNavigateHome }) {
+
+const getTone = (type) => {
+  switch (type) {
+    case 'amber':
+      return {
+        badge: 'bg-[#FEF8E7] text-[#C78A17] border-[#E9CF86]',
+        accent: 'text-[#C78A17]',
+        soft: 'bg-[#FFFBF1]',
+      };
+    case 'blue':
+      return {
+        badge: 'bg-[#EEF6FF] text-[#3978D4] border-[#C8DDF7]',
+        accent: 'text-[#3978D4]',
+        soft: 'bg-[#F7FAFE]',
+      };
+    case 'purple':
+      return {
+        badge: 'bg-[#F5F0FF] text-[#7452C3] border-[#DCCCF7]',
+        accent: 'text-[#7452C3]',
+        soft: 'bg-[#FAF8FF]',
+      };
+    default:
+      return {
+        badge: 'bg-[#EAF7F0] text-[#277B57] border-[#BFDCCB]',
+        accent: 'text-[#277B57]',
+        soft: 'bg-[#F3FBF7]',
+      };
+  }
+};
+
+const CheckIcon = ({ className = '' }) => (
+  <span
+    className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#E5F5EC] text-[10px] font-black text-[#16835A] ${className}`}
+    aria-hidden="true"
+  >
+    ✓
+  </span>
+);
+
+const Chevron = ({ open = false }) => (
+  <span
+    aria-hidden="true"
+    className={`inline-block transition-transform duration-200 ${
+      open ? 'rotate-180' : ''
+    }`}
+  >
+    ↓
+  </span>
+);
+
+const Arrow = () => <span aria-hidden="true">→</span>;
+
+const SectionLabel = ({ children }) => (
+  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#008F68]">
+    {children}
+  </p>
+);
+
+const FilterButton = ({ children, active, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`inline-flex min-h-9 items-center justify-between gap-2 rounded-xl border px-3 text-xs font-extrabold transition-all ${
+      active
+        ? 'border-[#B8DDCB] bg-[#F1FBF6] text-[#087E5B]'
+        : 'border-[#E5EAE7] bg-white text-[#2D3933] hover:bg-[#F8FAF9]'
+    }`}
+  >
+    <span>{children}</span>
+    <span aria-hidden="true">⌄</span>
+  </button>
+);
+
+const MetaBox = ({ label, value, emphasis = 'dark' }) => {
+  const valueClass =
+    emphasis === 'green'
+      ? 'text-[#217A55]'
+      : emphasis === 'amber'
+      ? 'text-[#C78A17]'
+      : 'text-[#1A211D]';
+
+  return (
+    <div className="rounded-xl bg-[#FAF8F4] px-3 py-2.5">
+      <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#849189]">
+        {label}
+      </p>
+      <p className={`mt-1 text-[11px] font-black ${valueClass}`}>{value}</p>
+    </div>
+  );
+};
+
+const EligibilityPill = ({ status }) => {
+  const isGood = status === 'Likely Eligible';
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-extrabold ${
+        isGood
+          ? 'border-[#CDE9DA] bg-[#F2FBF6] text-[#14815A]'
+          : 'border-[#F1DEB5] bg-[#FFFBF1] text-[#B67B16]'
+      }`}
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${
+          isGood ? 'bg-[#1AA16D]' : 'bg-[#D89C2C]'
+        }`}
+      />
+      {status}
+    </span>
+  );
+};
+
+export default function SchemePage({
+  currentProfile: propProfile,
+  onNavigateHome,
+}) {
   const { currentProfile: contextProfile } = useWorkspace();
   const currentProfile = propProfile || contextProfile;
 
-  const navigateBack = onNavigateHome || (() => window.history.back());
+  const navigateBack =
+    onNavigateHome || (() => window.history.back());
+
+  const [expandedId, setExpandedId] = useState('pmegp');
+  const [activeTab, setActiveTab] = useState('why');
+  const [selectedIds, setSelectedIds] = useState(['pmegp']);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('fit');
+  const [collateralFilter, setCollateralFilter] = useState('all');
+  const [benefitFilter, setBenefitFilter] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const [applyScheme, setApplyScheme] = useState(null);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const schemes = [
     {
       id: 'pmegp',
       name: 'PMEGP (Prime Minister Employment Generation Programme)',
+      shortName: 'PMEGP',
+      ministry: 'Ministry of Micro, Small and Medium Enterprises (MSME)',
       badge: 'TOP MATCH • 98% Fit',
       badgeType: 'emerald',
+      fitScore: 98,
+      eligibility: 'Likely Eligible',
+      category: 'subsidy',
       subsidy: 'Up to 35% Margin Money Subsidy',
       maxCost: '₹ 50,00,000 for Manufacturing / ₹ 20,00,000 for Service',
       promoterShare: '5% to 10%',
       tenure: '7 Years with 6–12 months moratorium',
       collateral: 'Collateral-free up to ₹10 Lakhs (CGTMSE)',
+      collateralLevel: 'low',
       features: [
         'Direct DBT subsidy credit after physical verification.',
         'Supported through KVIC / KVIB / DIC / State Nodal Banks.',
         'Entrepreneurship Development Programme (EDP) training included.',
       ],
+      reasons: [
+        'Manufacturing business aligns with the scheme objective.',
+        'Project cost sits within the displayed project-cap range.',
+        'Promoter contribution falls inside the displayed 5%–10% range.',
+        'Location and business profile are available for matching.',
+      ],
+      documents: [
+        'Business registration / identity proof',
+        'Project report / DPR',
+        'Banking details',
+        'Promoter contribution evidence',
+      ],
+      process: [
+        'Review eligibility requirements.',
+        'Prepare the DPR and required documents.',
+        'Apply through the relevant government / banking channel.',
+        'Complete required verification / training steps.',
+      ],
+      links: [
+        'Official scheme portal',
+        'KVIC / KVIB / DIC information',
+        'Participating bank information',
+      ],
       isPrimary: true,
+      benefitType: 'subsidy',
     },
     {
       id: 'mudra-tarun',
       name: 'Pradhan Mantri Mudra Yojana (Tarun Scheme)',
+      shortName: 'MUDRA Tarun',
+      ministry: 'Ministry of Finance',
       badge: 'SECONDARY MATCH • 85% Fit',
       badgeType: 'amber',
+      fitScore: 85,
+      eligibility: 'Review Required',
+      category: 'loan',
       subsidy: 'Interest Subvention on prompt repayment',
       maxCost: '₹ 5,00,000 to ₹ 10,00,000',
       promoterShare: '15%',
       tenure: '5 Years with flexible working capital CC/OD',
       collateral: 'Zero collateral required under Mudra guarantee',
+      collateralLevel: 'low',
       features: [
         'Instant digital processing with simplified MSME checklist.',
         'Mudra Card for seamless working capital drawdowns.',
       ],
+      reasons: [
+        'MSME-style financing need aligns with a working-capital / loan use case.',
+        'Displayed scheme range covers part of the current demo financing band.',
+        'Zero-collateral language makes it relevant for low-security financing.',
+      ],
+      documents: [
+        'Identity / KYC documents',
+        'Business proof',
+        'Banking details',
+        'Loan-purpose / business documents',
+      ],
+      process: [
+        'Review lender-specific eligibility.',
+        'Prepare KYC and business documents.',
+        'Approach the participating lender.',
+        'Complete credit appraisal and sanction process.',
+      ],
+      links: [
+        'MUDRA / lender information',
+        'Participating bank information',
+      ],
       isPrimary: false,
+      benefitType: 'loan',
     },
     {
       id: 'cgtmse',
       name: 'CGTMSE (Credit Guarantee Fund Trust for MSEs)',
+      shortName: 'CGTMSE',
+      ministry: 'Ministry of MSME',
       badge: 'COLLATERAL COVER • 100% Fit',
       badgeType: 'blue',
+      fitScore: 100,
+      eligibility: 'Likely Eligible',
+      category: 'collateral',
       subsidy: 'Credit guarantee coverage up to 85%',
       maxCost: 'Up to ₹ 5,00,000',
       promoterShare: 'Standard Bank Norms',
       tenure: 'Synchronized with underlying term loan',
       collateral: '100% Third-party collateral free',
+      collateralLevel: 'low',
       features: [
         'Eliminates need for mortgage or property collateral.',
         'Annual guarantee fee supported under MSME ministry.',
       ],
+      reasons: [
+        'Directly addresses the collateral burden in business financing.',
+        'Useful as a credit-guarantee layer alongside an underlying loan.',
+        'Relevant when the lender requires additional credit support.',
+      ],
+      documents: [
+        'Business / MSME proof',
+        'Identity and KYC documents',
+        'Underlying loan documents',
+        'Lender-required financial documents',
+      ],
+      process: [
+        'Discuss guarantee coverage with the lender.',
+        'Submit the underlying loan application.',
+        'Lender assesses and processes the guarantee request.',
+        'Complete the lender documentation process.',
+      ],
+      links: [
+        'CGTMSE information',
+        'Participating lender information',
+      ],
       isPrimary: false,
+      benefitType: 'guarantee',
+    },
+    {
+      id: 'muvy',
+      name: 'Maharashtra Udyog Vridhhi Yojana (MUVY)',
+      shortName: 'MUVY',
+      ministry: 'Government of Maharashtra',
+      badge: 'POTENTIAL MATCH • 72% Fit',
+      badgeType: 'purple',
+      fitScore: 72,
+      eligibility: 'Review Required',
+      category: 'subsidy',
+      subsidy: 'Capital Investment Subsidy',
+      maxCost: 'As per government notification',
+      promoterShare: 'Minimum 25%',
+      tenure: 'As per applicable notification / lender terms',
+      collateral: 'As per bank requirements',
+      collateralLevel: 'standard',
+      features: [
+        'Potential support for capital investment under applicable conditions.',
+        'Eligibility depends on the relevant government notification.',
+      ],
+      reasons: [
+        'State-specific support can be relevant because the current business is in Maharashtra.',
+        'Capital investment support may complement the financial plan.',
+        'Detailed eligibility needs to be confirmed against the current notification.',
+      ],
+      documents: [
+        'Business registration',
+        'Capital investment details',
+        'Project report',
+        'State-specific supporting documents',
+      ],
+      process: [
+        'Check the current Maharashtra notification.',
+        'Validate eligibility with the relevant authority.',
+        'Prepare investment and project documents.',
+        'Submit through the applicable channel.',
+      ],
+      links: [
+        'Maharashtra government scheme information',
+      ],
+      isPrimary: false,
+      benefitType: 'subsidy',
     },
   ];
 
+  const filteredSchemes = useMemo(() => {
+    let result = [...schemes];
+
+    if (categoryFilter !== 'all') {
+      result = result.filter((scheme) => scheme.category === categoryFilter);
+    }
+
+    if (collateralFilter === 'low') {
+      result = result.filter((scheme) => scheme.collateralLevel === 'low');
+    }
+
+    if (benefitFilter !== 'all') {
+      result = result.filter((scheme) => scheme.benefitType === benefitFilter);
+    }
+
+    if (sortBy === 'fit') {
+      result.sort((a, b) => b.fitScore - a.fitScore);
+    } else if (sortBy === 'name') {
+      result.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return result;
+  }, [categoryFilter, collateralFilter, benefitFilter, sortBy]);
+
+  const selectedSchemes = schemes.filter((scheme) =>
+    selectedIds.includes(scheme.id)
+  );
+
+  const lowCollateralCount = schemes.filter(
+    (scheme) => scheme.collateralLevel === 'low'
+  ).length;
+
+  const toggleExpanded = (id) => {
+    setExpandedId((current) => (current === id ? null : id));
+    setActiveTab('why');
+  };
+
+  const toggleSelected = (id) => {
+    setSelectedIds((current) => {
+      if (current.includes(id)) {
+        return current.filter((item) => item !== id);
+      }
+
+      if (current.length >= 3) {
+        return current;
+      }
+
+      return [...current, id];
+    });
+  };
+
+  const handleTab = (schemeId, tab) => {
+    setExpandedId(schemeId);
+    setActiveTab(tab);
+  };
+
+  const resetFilters = () => {
+    setCategoryFilter('all');
+    setSortBy('fit');
+    setCollateralFilter('all');
+    setBenefitFilter('all');
+  };
+
+  const tabs = [
+    { id: 'why', label: 'Why Matched?' },
+    { id: 'guidelines', label: 'Key Guidelines' },
+    { id: 'eligibility', label: 'Eligibility' },
+    { id: 'documents', label: 'Documents' },
+    { id: 'process', label: 'Application Process' },
+    { id: 'links', label: 'Important Links' },
+  ];
+
+  const tabContent = (scheme) => {
+    switch (activeTab) {
+      case 'guidelines':
+        return (
+          <div className="rounded-2xl border border-[#E5EAE7] bg-[#FBFCFB] p-4">
+            <p className="text-xs font-black text-[#1B2922]">
+              Key Scheme Guidelines
+            </p>
+            <ul className="mt-3 space-y-2">
+              {scheme.features.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-2 text-[11px] leading-5 text-[#526158]"
+                >
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#27835C]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+
+      case 'eligibility':
+        return (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-[#D7EBDD] bg-[#F3FBF7] p-4">
+              <p className="text-xs font-black text-[#217954]">
+                Current matching status
+              </p>
+              <div className="mt-2">
+                <EligibilityPill status={scheme.eligibility} />
+              </div>
+              <p className="mt-2 text-[10px] leading-4 text-[#5F7067]">
+                This is the current VITTANAYA screening state. Final eligibility
+                must be confirmed against the scheme's current rules and the
+                lender / authority review.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#E7EBE9] bg-white p-4">
+              <p className="text-xs font-black text-[#1B2922]">
+                Important checks
+              </p>
+              <ul className="mt-2 space-y-2">
+                {scheme.reasons.slice(0, 3).map((item) => (
+                  <li
+                    key={item}
+                    className="flex items-start gap-2 text-[10px] leading-4 text-[#59675F]"
+                  >
+                    <CheckIcon className="mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+
+      case 'documents':
+        return (
+          <div className="rounded-2xl border border-[#E5EAE7] bg-white p-4">
+            <p className="text-xs font-black text-[#1B2922]">
+              Documents to prepare
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {scheme.documents.map((item, index) => (
+                <div
+                  key={item}
+                  className="flex items-center gap-2 rounded-xl bg-[#F7F9F8] px-3 py-2.5"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white text-[10px] font-black text-[#0C815B]">
+                    {index + 1}
+                  </span>
+                  <span className="text-[10px] font-bold text-[#526158]">
+                    {item}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'process':
+        return (
+          <div className="rounded-2xl border border-[#E5EAE7] bg-white p-4">
+            <p className="text-xs font-black text-[#1B2922]">
+              Application Process
+            </p>
+            <div className="mt-3 space-y-2.5">
+              {scheme.process.map((item, index) => (
+                <div key={item} className="flex items-start gap-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EEF8F3] text-[10px] font-black text-[#0C815B]">
+                    {index + 1}
+                  </span>
+                  <p className="pt-1 text-[11px] leading-4 text-[#526158]">
+                    {item}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 'links':
+        return (
+          <div className="rounded-2xl border border-[#E5EAE7] bg-white p-4">
+            <p className="text-xs font-black text-[#1B2922]">
+              Important Links
+            </p>
+            <div className="mt-3 space-y-2">
+              {scheme.links.map((item) => (
+                <div
+                  key={item}
+                  className="flex items-center justify-between rounded-xl bg-[#F7F9F8] px-3 py-2.5"
+                >
+                  <span className="text-[10px] font-bold text-[#526158]">
+                    {item}
+                  </span>
+                  <span className="text-xs font-black text-[#0C815B]">
+                    ↗
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.05fr_1fr]">
+            <div className="rounded-2xl border border-[#D6EBDD] bg-[#F3FBF7] p-4">
+              <p className="text-xs font-black text-[#087E5B]">
+                Why VITTANAYA matched this scheme
+              </p>
+
+              <ul className="mt-3 space-y-2.5">
+                {scheme.reasons.map((reason) => (
+                  <li
+                    key={reason}
+                    className="flex items-start gap-2 text-[10px] leading-4 text-[#53635A]"
+                  >
+                    <CheckIcon className="mt-0.5" />
+                    <span>{reason}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-4 rounded-xl bg-white/80 px-3 py-2.5">
+                <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#7D8D84]">
+                  Match confidence
+                </p>
+                <p className="mt-1 text-sm font-black text-[#0B7D59]">
+                  {scheme.fitScore >= 90
+                    ? 'High'
+                    : scheme.fitScore >= 80
+                    ? 'Good'
+                    : 'Review'}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#E5EAE7] bg-white p-4">
+              <p className="text-xs font-black text-[#1B2922]">
+                Key Scheme Guidelines
+              </p>
+
+              <ul className="mt-3 space-y-2.5">
+                {scheme.features.slice(0, 4).map((feature) => (
+                  <li
+                    key={feature}
+                    className="flex items-start gap-2 text-[10px] leading-4 text-[#526158]"
+                  >
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#23825B]" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
-    <div className="w-full space-y-6 animate-fadeIn pb-12">
-      
-      {/* 1. Header with Breadcrumb */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="w-full space-y-5 bg-[#F7F9F8] pb-12 text-[#18211D]">
+      {/* HEADER */}
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <div className="flex items-center space-x-2 text-xs font-semibold text-[#607267] mb-1">
+          <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-[#607267]">
             <button
               type="button"
               onClick={navigateBack}
-              className="hover:text-[#102A1E] transition-colors cursor-pointer"
+              className="transition-colors hover:text-[#102A1E]"
             >
               Dashboard
             </button>
             <span>/</span>
-            <span className="text-[#102A1E] font-bold">Scheme Matching</span>
+            <span className="font-extrabold text-[#18211D]">
+              Scheme Matching
+            </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1A211D] tracking-tight">
-            Government Subsidies & Institutional Schemes
+
+          <h1 className="text-[27px] font-black tracking-tight text-[#17201C] sm:text-[31px]">
+            Government Subsidies &amp; Institutional Schemes
           </h1>
-          <p className="text-xs sm:text-sm text-[#607267] mt-0.5">
-            Personalized scheme rankings for {currentProfile?.name || 'Your Enterprise'} in {currentProfile?.location || 'India'}
+
+          <p className="mt-1 text-xs leading-5 text-[#607267] sm:text-sm">
+            Personalized scheme rankings for{' '}
+            <strong>
+              {currentProfile?.name || 'Your Enterprise'}
+            </strong>{' '}
+            in {currentProfile?.location || 'India'}.
           </p>
         </div>
 
         <button
           type="button"
           onClick={navigateBack}
-          className="px-4 py-2 rounded-2xl bg-white border border-[#E8E2D5] text-xs font-bold text-[#1A211D] hover:bg-[#FAF7F2] transition-colors shadow-2xs cursor-pointer flex items-center space-x-1.5 self-start sm:self-auto"
+          className="self-start rounded-full border border-[#E4E9E6] bg-white px-4 py-2 text-xs font-extrabold text-[#26332D] shadow-sm transition hover:bg-[#F8FAF9] xl:self-auto"
         >
-          <span>← Back to Dashboard</span>
+          ← Back to Dashboard
         </button>
       </div>
 
-      {/* 2. Scheme Cards List */}
-      <div className="space-y-5">
-        {schemes.map((scheme) => (
-          <div
-            key={scheme.id}
-            className={`rounded-3xl p-6 sm:p-7 border transition-all ${
-              scheme.isPrimary
-                ? 'bg-white border-[#2F7757]/40 shadow-card-hover'
-                : 'bg-white border-[#E8E2D5] shadow-card-soft'
+      {/* SUMMARY */}
+      <section className="rounded-[22px] border border-[#E2E9E5] bg-white p-4 shadow-[0_6px_24px_rgba(25,48,38,0.045)]">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.3fr_0.55fr_0.85fr_0.85fr] md:items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EEF8F3] text-2xl text-[#0A815A]">
+              ♧
+            </div>
+            <div>
+              <SectionLabel>Best matches for your business</SectionLabel>
+              <p className="mt-1 text-base font-black text-[#1B2922]">
+                {schemes.length} schemes matched your profile
+              </p>
+              <p className="mt-0.5 text-[10px] text-[#708078]">
+                Ranked using current workspace profile and demo matching rules.
+              </p>
+            </div>
+          </div>
+
+          <div className="border-l border-[#E7ECE9] pl-4">
+            <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#849189]">
+              Top Match
+            </p>
+            <p className="mt-1 text-2xl font-black text-[#087E5B]">98%</p>
+            <p className="text-[10px] text-[#708078]">Best fit score</p>
+          </div>
+
+          <div className="border-l border-[#E7ECE9] pl-4">
+            <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#849189]">
+              Low-Collateral Options
+            </p>
+            <p className="mt-1 text-2xl font-black text-[#1B2922]">
+              {lowCollateralCount}
+            </p>
+            <p className="text-[10px] text-[#708078]">Schemes available</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setAiOpen(true)}
+            className="rounded-2xl border border-[#D8ECE2] bg-[#F2FAF6] px-4 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm"
+          >
+            <p className="text-xs font-black text-[#0A815A]">
+              Ask AI Advisor <Arrow />
+            </p>
+            <p className="mt-1 text-[10px] leading-4 text-[#64736B]">
+              Get help choosing between matched schemes.
+            </p>
+          </button>
+        </div>
+      </section>
+
+      {/* FILTERS */}
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-extrabold transition ${
+              showFilters
+                ? 'border-[#B8DDCB] bg-[#F1FBF6] text-[#087E5B]'
+                : 'border-[#E5EAE7] bg-white text-[#2D3933]'
             }`}
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#F4EFE6]">
+            ⏷ Filter Schemes
+            <Chevron open={showFilters} />
+          </button>
+
+          <FilterButton
+            active={categoryFilter === 'all'}
+            onClick={() => setCategoryFilter('all')}
+          >
+            All Schemes
+          </FilterButton>
+
+          <FilterButton
+            active={sortBy === 'fit'}
+            onClick={() => setSortBy('fit')}
+          >
+            Highest Fit
+          </FilterButton>
+
+          <FilterButton
+            active={collateralFilter === 'low'}
+            onClick={() =>
+              setCollateralFilter((v) => (v === 'low' ? 'all' : 'low'))
+            }
+          >
+            Low Collateral
+          </FilterButton>
+
+          <FilterButton
+            active={benefitFilter === 'subsidy'}
+            onClick={() =>
+              setBenefitFilter((v) => (v === 'subsidy' ? 'all' : 'subsidy'))
+            }
+          >
+            Subsidy
+          </FilterButton>
+
+          <FilterButton
+            active={benefitFilter === 'loan'}
+            onClick={() =>
+              setBenefitFilter((v) => (v === 'loan' ? 'all' : 'loan'))
+            }
+          >
+            Loan Support
+          </FilterButton>
+
+          <button
+            type="button"
+            disabled={selectedIds.length < 2}
+            onClick={() => setComparisonOpen(true)}
+            className={`ml-auto inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-extrabold transition ${
+              selectedIds.length >= 2
+                ? 'border-[#BFD9CA] bg-white text-[#087E5B] hover:bg-[#F4FBF7]'
+                : 'cursor-not-allowed border-[#E8ECEA] bg-white text-[#9AA49F]'
+            }`}
+          >
+            ⇄ Compare ({selectedIds.length})
+          </button>
+        </div>
+
+        {showFilters && (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#E5EAE7] bg-white p-3">
+            <span className="mr-1 text-[10px] font-extrabold uppercase tracking-wider text-[#7E8B84]">
+              Categories
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setCategoryFilter('subsidy')}
+              className={`rounded-lg px-3 py-1.5 text-[10px] font-extrabold ${
+                categoryFilter === 'subsidy'
+                  ? 'bg-[#EAF7F0] text-[#217A55]'
+                  : 'bg-[#F5F7F6] text-[#58665E]'
+              }`}
+            >
+              Subsidy
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCategoryFilter('loan')}
+              className={`rounded-lg px-3 py-1.5 text-[10px] font-extrabold ${
+                categoryFilter === 'loan'
+                  ? 'bg-[#FFF8E7] text-[#B7790C]'
+                  : 'bg-[#F5F7F6] text-[#58665E]'
+              }`}
+            >
+              Loan
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCategoryFilter('collateral')}
+              className={`rounded-lg px-3 py-1.5 text-[10px] font-extrabold ${
+                categoryFilter === 'collateral'
+                  ? 'bg-[#EEF6FF] text-[#3978D4]'
+                  : 'bg-[#F5F7F6] text-[#58665E]'
+              }`}
+            >
+              Guarantee
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSortBy('name')}
+              className={`ml-auto rounded-lg px-3 py-1.5 text-[10px] font-extrabold ${
+                sortBy === 'name'
+                  ? 'bg-[#F0F7F4] text-[#217A55]'
+                  : 'bg-[#F5F7F6] text-[#58665E]'
+              }`}
+            >
+              A–Z
+            </button>
+
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded-lg px-3 py-1.5 text-[10px] font-extrabold text-[#087E5B] hover:bg-[#F2FAF6]"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* SCHEME LIST */}
+      <section className="space-y-3">
+        {filteredSchemes.length === 0 ? (
+          <div className="rounded-[22px] border border-dashed border-[#D9E2DD] bg-white p-10 text-center">
+            <p className="text-base font-black text-[#233029]">
+              No schemes match these filters.
+            </p>
+            <p className="mt-1 text-xs text-[#708078]">
+              Try a broader filter set to view the available matches.
+            </p>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="mt-4 rounded-xl bg-[#0A8D62] px-4 py-2 text-xs font-extrabold text-white"
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          filteredSchemes.map((scheme) => {
+            const expanded = expandedId === scheme.id;
+            const tone = getTone(scheme.badgeType);
+
+            return (
+              <article
+                key={scheme.id}
+                className={`overflow-hidden rounded-[22px] border bg-white transition-all ${
+                  scheme.isPrimary
+                    ? 'border-[#7FC5A5] shadow-[0_8px_30px_rgba(25,48,38,0.06)]'
+                    : 'border-[#E4E9E6] shadow-[0_5px_20px_rgba(25,48,38,0.035)]'
+                }`}
+              >
+                {/* COMPACT CARD HEADER */}
+                <div className="p-4 sm:p-5">
+                  <div className="grid grid-cols-1 gap-4 lg:grid-cols-[auto_minmax(240px,1.55fr)_repeat(4,minmax(100px,0.72fr))_auto] lg:items-center">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(scheme.id)}
+                        onChange={() => toggleSelected(scheme.id)}
+                        className="h-4 w-4 accent-[#0A8D62]"
+                        aria-label={`Select ${scheme.name} for comparison`}
+                      />
+                    </label>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${tone.badge}`}
+                        >
+                          {scheme.badge}
+                        </span>
+
+                        <EligibilityPill status={scheme.eligibility} />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(scheme.id)}
+                        className="mt-2 text-left text-sm font-black leading-5 text-[#17221C] hover:text-[#087E5B] sm:text-base"
+                      >
+                        {scheme.name}
+                      </button>
+
+                      <p className="mt-0.5 text-[10px] text-[#758279]">
+                        {scheme.ministry}
+                      </p>
+                    </div>
+
+                    <MetaBox
+                      label="Subsidy / Benefit"
+                      value={scheme.subsidy}
+                      emphasis="green"
+                    />
+
+                    <MetaBox
+                      label="Max Project Cap"
+                      value={scheme.maxCost}
+                    />
+
+                    <MetaBox
+                      label="Own Contribution"
+                      value={scheme.promoterShare}
+                      emphasis="amber"
+                    />
+
+                    <MetaBox
+                      label="Collateral"
+                      value={scheme.collateral}
+                    />
+
+                    <div className="flex items-center justify-between gap-2 lg:block">
+                      <button
+                        type="button"
+                        onClick={() => setApplyScheme(scheme)}
+                        className="rounded-xl bg-[#102A1E] px-3.5 py-2.5 text-[10px] font-black text-white transition hover:bg-[#173D2E]"
+                      >
+                        Apply via Portal ↗
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleExpanded(scheme.id)}
+                        className="ml-auto mt-0 rounded-full border border-[#E4E9E6] bg-white px-2.5 py-2 text-xs font-black text-[#516059] transition hover:bg-[#F7F9F8] lg:mt-2 lg:block"
+                        aria-label={`${expanded ? 'Collapse' : 'Expand'} ${scheme.name}`}
+                      >
+                        <Chevron open={expanded} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* EXPANDED DETAILS */}
+                {expanded && (
+                  <div className="border-t border-[#E9EEEB] bg-[#FCFDFC]">
+                    <div className="overflow-x-auto border-b border-[#E8EDEB] px-4 pt-3 sm:px-5">
+                      <div className="flex min-w-max gap-5">
+                        {tabs.map((tab) => (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => handleTab(scheme.id, tab.id)}
+                            className={`relative pb-3 text-[10px] font-extrabold ${
+                              activeTab === tab.id
+                                ? 'text-[#087E5B]'
+                                : 'text-[#68766E] hover:text-[#1D2A24]'
+                            }`}
+                          >
+                            {tab.label}
+                            {activeTab === tab.id && (
+                              <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#0A8D62]" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-4 sm:p-5">
+                      {tabContent(scheme)}
+                    </div>
+                  </div>
+                )}
+              </article>
+            );
+          })
+        )}
+      </section>
+
+      {/* BOTTOM ACTIONS */}
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="rounded-[22px] border border-[#DCEBE3] bg-[#F3FBF7] p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-xl text-[#16825A] shadow-sm">
+              ⇄
+            </div>
+            <div className="min-w-0 flex-1">
+              <SectionLabel>Compare schemes side-by-side</SectionLabel>
+              <p className="mt-1 text-sm font-black text-[#1F2C25]">
+                Select 2–3 schemes to compare.
+              </p>
+              <p className="mt-1 text-[10px] leading-4 text-[#67756D]">
+                Compare fit, benefits, contribution, collateral and eligibility
+                without switching between cards.
+              </p>
+              <button
+                type="button"
+                disabled={selectedIds.length < 2}
+                onClick={() => setComparisonOpen(true)}
+                className={`mt-3 rounded-xl border px-3.5 py-2 text-[10px] font-extrabold ${
+                  selectedIds.length >= 2
+                    ? 'border-[#BBDDCB] bg-white text-[#087E5B]'
+                    : 'cursor-not-allowed border-[#DCE6E1] bg-white text-[#99A49E]'
+                }`}
+              >
+                Compare Schemes <Arrow />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[22px] border border-[#DCEBE3] bg-[#F6FBF9] p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-xl text-[#16825A] shadow-sm">
+              ✦
+            </div>
+            <div className="min-w-0 flex-1">
+              <SectionLabel>Need help choosing?</SectionLabel>
+              <p className="mt-1 text-sm font-black text-[#1F2C25]">
+                Ask VITTANAYA AI Advisor.
+              </p>
+              <p className="mt-1 text-[10px] leading-4 text-[#67756D]">
+                Get a personalized explanation using the selected business and
+                scheme context.
+              </p>
+              <button
+                type="button"
+                onClick={() => setAiOpen(true)}
+                className="mt-3 rounded-xl border border-[#BBDDCB] bg-white px-3.5 py-2 text-[10px] font-extrabold text-[#087E5B]"
+              >
+                Ask AI Advisor <Arrow />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="rounded-xl border border-[#DCE7F3] bg-[#F4F8FC] px-4 py-3 text-[10px] leading-4 text-[#627281]">
+        Scheme details shown in the demo are indicative. Final eligibility,
+        benefit, limits, documents and application process should be confirmed
+        against the current official scheme / lender information before
+        applying.
+      </div>
+
+      {/* APPLY MODAL */}
+      {applyScheme && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#102A1E]/35 p-4 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Apply via portal confirmation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setApplyScheme(null);
+            }
+          }}
+        >
+          <div className="w-full max-w-md rounded-[24px] bg-white p-5 shadow-2xl sm:p-6">
+            <SectionLabel>Application</SectionLabel>
+            <h2 className="mt-1 text-xl font-black text-[#18211D]">
+              Continue to scheme portal
+            </h2>
+            <p className="mt-2 text-xs leading-5 text-[#68766E]">
+              You selected <strong>{applyScheme.shortName}</strong>. In the
+              production version, this action should open the official portal
+              URL returned by the backend.
+            </p>
+
+            <div className="mt-4 rounded-2xl bg-[#F5FAF7] p-4">
+              <p className="text-xs font-black text-[#17221C]">
+                What VITTANAYA should pass forward
+              </p>
+              <div className="mt-2 space-y-1.5 text-[10px] text-[#5F7067]">
+                <p>• Business profile / business ID</p>
+                <p>• Selected scheme ID</p>
+                <p>• Current eligibility state</p>
+                <p>• Relevant supporting documents</p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setApplyScheme(null)}
+                className="rounded-xl border border-[#E3E8E5] px-4 py-2.5 text-xs font-extrabold text-[#55645C]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setApplyScheme(null)}
+                className="rounded-xl bg-[#102A1E] px-4 py-2.5 text-xs font-extrabold text-white"
+              >
+                Continue ↗
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* COMPARE MODAL */}
+      {comparisonOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#102A1E]/35 p-4 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Compare schemes"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setComparisonOpen(false);
+            }
+          }}
+        >
+          <div className="max-h-[88vh] w-full max-w-5xl overflow-auto rounded-[24px] bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase mb-2 ${
-                    scheme.badgeType === 'emerald'
-                      ? 'bg-[#E8F1EC] text-[#2F7757] border border-[#2F7757]/30'
-                      : scheme.badgeType === 'amber'
-                      ? 'bg-[#FEF8E7] text-[#D4A343] border border-[#D4A343]/30'
-                      : 'bg-[#EBF4FE] text-[#3B82F6] border border-[#3B82F6]/30'
-                  }`}
-                >
-                  {scheme.badge}
-                </span>
-                <h2 className="text-lg sm:text-xl font-black text-[#1A211D]">
-                  {scheme.name}
+                <SectionLabel>Side-by-side comparison</SectionLabel>
+                <h2 className="mt-1 text-xl font-black">
+                  Compare Selected Schemes
                 </h2>
+                <p className="mt-1 text-xs text-[#6D7B73]">
+                  Compare up to three matched options at a glance.
+                </p>
               </div>
 
               <button
                 type="button"
-                className="px-5 py-2.5 rounded-2xl bg-[#102A1E] hover:bg-[#153928] text-white font-bold text-xs shadow-xs transition-colors cursor-pointer self-start sm:self-auto"
+                onClick={() => setComparisonOpen(false)}
+                className="rounded-full border border-[#E3E8E5] px-3 py-1.5 text-xs font-extrabold text-[#55645C]"
               >
-                Apply via Portal →
+                Close
               </button>
             </div>
 
-            {/* Scheme Details Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-4 text-xs">
-              <div className="p-3 rounded-2xl bg-[#FAF7F2]">
-                <p className="text-[10px] font-bold text-[#819388] uppercase">Subsidy / Benefit</p>
-                <p className="font-extrabold text-[#2F7757] mt-0.5">{scheme.subsidy}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-[#FAF7F2]">
-                <p className="text-[10px] font-bold text-[#819388] uppercase">Max Project Cap</p>
-                <p className="font-extrabold text-[#1A211D] mt-0.5">{scheme.maxCost}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-[#FAF7F2]">
-                <p className="text-[10px] font-bold text-[#819388] uppercase">Own Contribution</p>
-                <p className="font-extrabold text-[#D4A343] mt-0.5">{scheme.promoterShare}</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-[#FAF7F2]">
-                <p className="text-[10px] font-bold text-[#819388] uppercase">Collateral Security</p>
-                <p className="font-extrabold text-[#1A211D] mt-0.5">{scheme.collateral}</p>
-              </div>
+            <div className="mt-5 overflow-x-auto rounded-2xl border border-[#E5EAE7]">
+              <table className="min-w-[760px] w-full border-collapse text-left">
+                <thead>
+                  <tr className="bg-[#F5F8F6]">
+                    <th className="w-44 px-4 py-3 text-[10px] font-extrabold uppercase tracking-wider text-[#75837A]">
+                      Attribute
+                    </th>
+                    {selectedSchemes.map((scheme) => (
+                      <th
+                        key={scheme.id}
+                        className="px-4 py-3 text-xs font-black text-[#18211D]"
+                      >
+                        {scheme.shortName}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {[
+                    ['Fit Score', (scheme) => `${scheme.fitScore}%`],
+                    ['Eligibility', (scheme) => scheme.eligibility],
+                    ['Benefit', (scheme) => scheme.subsidy],
+                    ['Project Cap', (scheme) => scheme.maxCost],
+                    ['Own Contribution', (scheme) => scheme.promoterShare],
+                    ['Collateral', (scheme) => scheme.collateral],
+                    ['Tenure', (scheme) => scheme.tenure],
+                  ].map(([label, getter]) => (
+                    <tr key={label} className="border-t border-[#E9EEEB]">
+                      <td className="px-4 py-3 text-[10px] font-extrabold text-[#68766E]">
+                        {label}
+                      </td>
+                      {selectedSchemes.map((scheme) => (
+                        <td
+                          key={scheme.id}
+                          className="px-4 py-3 text-[10px] font-bold leading-4 text-[#37453E]"
+                        >
+                          {getter(scheme)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
-            {/* Features List */}
-            <div className="pt-2">
-              <p className="text-[11px] font-bold text-[#607267] uppercase tracking-wider mb-2">
-                Key Scheme Guidelines
-              </p>
-              <ul className="space-y-1.5 text-xs text-[#2D3832]">
-                {scheme.features.map((feat, fIdx) => (
-                  <li key={fIdx} className="flex items-center space-x-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#2F7757]" />
-                    <span>{feat}</span>
-                  </li>
-                ))}
-              </ul>
+            <div className="mt-4 rounded-xl bg-[#F3FBF7] px-3 py-2.5 text-[10px] leading-4 text-[#587064]">
+              The comparison is intended to support decisions; final scheme
+              terms must be verified from the current official source.
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
+      {/* AI MODAL */}
+      {aiOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#102A1E]/35 p-4 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Scheme AI advisor"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setAiOpen(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-lg rounded-[24px] bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EDF8F3] text-xl text-[#09825C]">
+                ✦
+              </div>
+              <div className="flex-1">
+                <SectionLabel>VITTANAYA AI Advisor</SectionLabel>
+                <h2 className="mt-1 text-xl font-black">
+                  Choosing the right scheme
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAiOpen(false)}
+                className="rounded-full border border-[#E3E8E5] px-3 py-1.5 text-xs font-extrabold text-[#55645C]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-[#E3EAE7] bg-[#FAFCFB] p-4">
+              <p className="text-xs font-black text-[#18211D]">
+                Demo guidance
+              </p>
+              <p className="mt-2 text-[11px] leading-5 text-[#5E6D65]">
+                Based on the current demo ranking, <strong>PMEGP</strong> is
+                the highest-fit displayed option. <strong>CGTMSE</strong> is
+                valuable where collateral support is the main concern, while
+                <strong> MUDRA</strong> is a loan-oriented alternative.
+              </p>
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {schemes.slice(0, 3).map((scheme) => (
+                <div
+                  key={scheme.id}
+                  className="rounded-xl border border-[#E5EAE7] bg-white p-3"
+                >
+                  <p className="text-[10px] font-black text-[#18211D]">
+                    {scheme.shortName}
+                  </p>
+                  <p className="mt-1 text-[10px] text-[#68766E]">
+                    {scheme.fitScore}% fit
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-4 text-[10px] leading-4 text-[#7A8880]">
+              Production version: connect this modal to the existing VITTANAYA
+              AI endpoint so the response uses the current business profile,
+              financial plan, feasibility result and scheme dataset.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -51,7 +51,10 @@ export default function CleanHeader({ activeNavId, onSelectNav, onOpenChangeBusi
           title="Go to VITTANAYA Home (Dashboard)"
           aria-label="Go to VITTANAYA Home"
         >
-          <VittanayaLogo size="header" className="transition-opacity group-hover:opacity-90" />
+          <VittanayaLogo
+            size="header"
+            className="transition-opacity group-hover:opacity-90 h-[36px] sm:h-[42px] md:h-[48px] lg:h-[52px]"
+          />
         </button>
       </div>
 

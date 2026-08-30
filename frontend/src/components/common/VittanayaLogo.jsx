@@ -47,7 +47,7 @@ export default function VittanayaLogo({
       role={handleClick ? 'button' : undefined}
       aria-label={handleClick ? 'Go to VITTANAYA Home' : undefined}
       style={{
-        aspectRatio: '3.38 / 1',
+        aspectRatio: '3 / 1',
         ...style,
       }}
       className={`w-auto object-contain block select-none max-w-full ${selectedSize} ${

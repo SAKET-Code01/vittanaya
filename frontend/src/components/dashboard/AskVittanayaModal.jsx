@@ -1,14 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { AiMascotAvatar } from '../common/JapaneseArtwork';
 
 /**
- * AskVittanayaModal Component — Multilingual AI Business Advisory Dialog
+ * AskVittanayaModal Component â€” Multilingual AI Business Advisory Dialog
  */
 export default function AskVittanayaModal({
   isOpen,
   onClose,
   currentProfile,
   financialSummary,
+  initialPrompt = '',
 }) {
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [inputText, setInputText] = useState('');
@@ -16,7 +17,7 @@ export default function AskVittanayaModal({
     {
       id: 1,
       sender: 'ai',
-      text: `Hello ${currentProfile?.user_name || 'Entrepreneur'}! I am VITTANAYA AI Advisor. Based on your business profile (${currentProfile?.name || 'MSME'} in ${currentProfile?.location || 'India'}), your Feasibility Score is 78% and PMEGP scheme matches your ₹10,00,000 project cost with 70% loan support. How can I assist you with feasibility, financial planning, or government schemes today?`,
+      text: `Hello ${currentProfile?.user_name || 'Entrepreneur'}! I am VITTANAYA AI Advisor. Based on your business profile (${currentProfile?.name || 'MSME'} in ${currentProfile?.location || 'India'}), your Feasibility Score is 78% and PMEGP scheme matches your â‚¹10,00,000 project cost with 70% loan support. How can I assist you with feasibility, financial planning, or government schemes today?`,
       time: 'Just now',
     },
   ]);
@@ -25,13 +26,13 @@ export default function AskVittanayaModal({
 
   const languages = [
     'English',
-    'हिन्दी (Hindi)',
-    'ଓଡ଼ିଆ (Odia)',
-    'मराठी (Marathi)',
-    'বাংলা (Bengali)',
-    'தமிழ் (Tamil)',
-    'తెలుగు (Telugu)',
-    'ગુજરાતી (Gujarati)',
+    'à¤¹à¤¿à¤¨à¥à¤¦à¥€ (Hindi)',
+    'à¬“à¬¡à¬¼à¬¿à¬† (Odia)',
+    'à¤®à¤°à¤¾à¤ à¥€ (Marathi)',
+    'à¦¬à¦¾à¦‚à¦²à¦¾ (Bengali)',
+    'à®¤à®®à®¿à®´à¯ (Tamil)',
+    'à°¤à±†à°²à±à°-à± (Telugu)',
+    'àª-à«àªœàª°àª¾àª¤à«€ (Gujarati)',
   ];
 
   const suggestedQuestions = [
@@ -46,6 +47,15 @@ export default function AskVittanayaModal({
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialPrompt) {
+      setInputText(initialPrompt);
+      return;
+    }
+    setInputText('');
+  }, [isOpen, initialPrompt]);
 
   if (!isOpen) return null;
 
@@ -70,13 +80,13 @@ export default function AskVittanayaModal({
       const lower = text.toLowerCase();
 
       if (lower.includes('pmegp') || lower.includes('scheme') || lower.includes('subsidy')) {
-        aiReply = `Under PMEGP (Prime Minister Employment Generation Programme), your ₹10,00,000 project qualifies for up to 25–35% margin money subsidy (₹2,50,000 – ₹3,50,000). Your own contribution is only 5–10% (₹1,00,000), and the remaining ₹9,00,000 is supported by the bank with CGTMSE collateral-free guarantee.`;
+        aiReply = `Under PMEGP (Prime Minister Employment Generation Programme), your â‚¹10,00,000 project qualifies for up to 25â€“35% margin money subsidy (â‚¹2,50,000 â€“ â‚¹3,50,000). Your own contribution is only 5â€“10% (â‚¹1,00,000), and the remaining â‚¹9,00,000 is supported by the bank with CGTMSE collateral-free guarantee.`;
       } else if (lower.includes('why') || lower.includes('score') || lower.includes('78')) {
-        aiReply = `Your 78% Feasibility Score is driven by: 1) Strong local market demand with 12,450 estimated consumers within 5–10 km; 2) Controlled competition (18 similar units); 3) Healthy margin buffer (+₹1.4L cushion above minimum safety threshold).`;
+        aiReply = `Your 78% Feasibility Score is driven by: 1) Strong local market demand with 12,450 estimated consumers within 5â€“10 km; 2) Controlled competition (18 similar units); 3) Healthy margin buffer (+â‚¹1.4L cushion above minimum safety threshold).`;
       } else if (lower.includes('repayment') || lower.includes('emi') || lower.includes('quarterly')) {
-        aiReply = `For your ₹9,00,000 loan at ~8.5% interest over a 7-year tenure with a 6-month moratorium, your estimated quarterly repayment is ₹35,000. Your monthly operating surplus comfortably exceeds this obligation with a 2.8x Debt Service Coverage Ratio.`;
+        aiReply = `For your â‚¹9,00,000 loan at ~8.5% interest over a 7-year tenure with a 6-month moratorium, your estimated quarterly repayment is â‚¹35,000. Your monthly operating surplus comfortably exceeds this obligation with a 2.8x Debt Service Coverage Ratio.`;
       } else {
-        aiReply = `I have analyzed your request regarding "${text}". Based on current market data for ${currentProfile?.category || 'your sector'} in ${currentProfile?.location || 'your region'}, your working capital cycle requires approximately ₹1,50,000. You can review detailed cash flows in the Financial Plan tab.`;
+        aiReply = `I have analyzed your request regarding "${text}". Based on current market data for ${currentProfile?.category || 'your sector'} in ${currentProfile?.location || 'your region'}, your working capital cycle requires approximately â‚¹1,50,000. You can review detailed cash flows in the Financial Plan tab.`;
       }
 
       setMessages((prev) => [
@@ -107,7 +117,7 @@ export default function AskVittanayaModal({
                 <h3 className="text-base font-extrabold text-white">
                   Ask VITTANAYA
                 </h3>
-                <span className="text-xs text-amber-400">✨</span>
+                <span className="text-xs text-amber-400">âœ¨</span>
               </div>
               <p className="text-xs text-[#A6B5AC] font-medium">
                 Multilingual AI Business Advisory
@@ -137,13 +147,18 @@ export default function AskVittanayaModal({
               title="Close"
               aria-label="Close"
             >
-              ✕
+              âœ•
             </button>
           </div>
         </div>
 
         {/* Message History */}
         <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[50vh] bg-[#FAF7F2]">
+          {initialPrompt && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800 font-medium">
+              Feasibility context loaded. You can send the suggested question or edit it first.
+            </div>
+          )}
           {messages.map((msg) => {
             const isAi = msg.sender === 'ai';
             return (
@@ -232,7 +247,7 @@ export default function AskVittanayaModal({
             className="px-5 py-2.5 rounded-2xl bg-[#102A1E] hover:bg-[#153928] disabled:opacity-40 text-white font-bold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center space-x-1.5"
           >
             <span>Send</span>
-            <span>→</span>
+            <span>â†’</span>
           </button>
         </form>
 
@@ -240,3 +255,5 @@ export default function AskVittanayaModal({
     </div>
   );
 }
+
+
