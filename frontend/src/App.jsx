@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AppLayout from './components/layout/AppLayout';
 import DashboardPage from './pages/DashboardPage';
 import BusinessProfilePage from './pages/BusinessProfilePage';
@@ -69,9 +69,15 @@ function AppContent() {
   }, [selectedStage, establishedSubStep, activeNavId, setActiveNavId]);
 
   // Native Browser Back / Forward History Listener
+  const didInitHistoryRef = useRef(false);
   useEffect(() => {
-    // Fresh session always begins at #welcome
-    window.history.replaceState({ screen: 'welcome' }, '', '#welcome');
+    // Fresh session always begins at #welcome (only once — re-running replaceState
+    // on every render would clobber the current navigation hash, e.g. after
+    // onboarding completes and the workspace loads).
+    if (!didInitHistoryRef.current) {
+      didInitHistoryRef.current = true;
+      window.history.replaceState({ screen: 'welcome' }, '', '#welcome');
+    }
 
     const handlePopState = (event) => {
       const state = event.state;

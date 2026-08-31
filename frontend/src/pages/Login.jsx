@@ -6,6 +6,31 @@ import vittanayaLogo from "../assets/vittanaya-logo.png";
 import "./Login.css";
 
 /**
+ * Google Sign-In (Google Identity Services — OAuth2 token popup flow).
+ * The Client ID is a PUBLIC value (safe for the browser bundle); it is provided
+ * via VITE_GOOGLE_CLIENT_ID so local dev (http://localhost:3001) and production
+ * (https://vittanaya.vercel.app) can each be configured without code changes.
+ * No client secrets are used or stored anywhere in the frontend.
+ */
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
+// Lazily load the official GIS script only when Google Sign-In is used.
+const loadGoogleScript = () =>
+  new Promise((resolve, reject) => {
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Could not load Google Sign-In. Check your network."));
+    document.head.appendChild(script);
+  });
+
+/**
  * Login — VITTANAYA Database-Connected Authentication Page.
  *
  * Requirements:
@@ -203,8 +228,55 @@ export default function Login({
     }
   };
 
-  const handleGoogleLogin = () => {
-    setServerError("Google Sign-In is configured for cloud deployment. Please use email/phone login for evaluation.");
+  const handleGoogleLogin = async () => {
+    setServerError("");
+
+    // Google Sign-In requires a public OAuth Client ID supplied via env var.
+    // When it is not configured, preserve the original placeholder behaviour.
+    if (!GOOGLE_CLIENT_ID) {
+      setServerError("Google Sign-In is configured for cloud deployment. Please use email/phone login for evaluation.");
+      return;
+    }
+
+    try {
+      await loadGoogleScript();
+
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: "openid email profile",
+        callback: async (resp) => {
+          if (resp.error) {
+            setServerError("Google Sign-In was cancelled. Please try again.");
+            return;
+          }
+          try {
+            const res = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+              headers: { Authorization: `Bearer ${resp.access_token}` },
+            });
+            if (!res.ok) throw new Error("Could not fetch your Google profile.");
+            const profile = await res.json();
+            if (onLoginSuccess) {
+              onLoginSuccess({
+                authenticated: true,
+                provider: "google",
+                user: {
+                  name: profile.name || profile.email,
+                  email: profile.email,
+                  picture: profile.picture,
+                },
+                message: "Signed in with Google.",
+              });
+            }
+          } catch (err) {
+            setServerError(err.message || "Google Sign-In failed. Please try again.");
+          }
+        },
+      });
+
+      client.requestAccessToken({ prompt: "select_account" });
+    } catch (err) {
+      setServerError(err.message || "Google Sign-In failed. Please try again.");
+    }
   };
 
   const handleGuestLogin = () => {
