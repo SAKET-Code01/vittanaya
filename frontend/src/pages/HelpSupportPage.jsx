@@ -167,7 +167,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
         <button
           type="button"
           onClick={() => onNavigateHome ? onNavigateHome() : setActiveNavId('dashboard')}
-          className="hover:text-emerald-600 transition-colors flex items-center gap-1 cursor-pointer"
+          className="hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -181,7 +181,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
       {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-bold shadow-2xl flex items-center space-x-2.5 animate-slideUp">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -236,7 +236,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
               <div className="flex items-center justify-center p-2 relative flex-shrink-0">
                 <div className="relative w-36 h-36 flex items-center justify-center">
                   {/* Decorative sound doodle waves */}
-                  <div className="absolute -top-2 -right-2 text-emerald-500 font-mono text-base animate-pulse">
+                  <div className="absolute -top-2 -right-2 text-blue-600 font-mono text-base animate-pulse">
                     ♩ ♪ ♫
                   </div>
                   
@@ -246,8 +246,8 @@ export default function HelpSupportPage({ onNavigateHome }) {
                     <div className="absolute -top-3 inset-x-3 h-5 border-t-4 border-slate-900 rounded-t-full" />
                     
                     {/* Ear cushions */}
-                    <div className="absolute -left-3 top-8 w-4 h-10 rounded-full bg-emerald-500 border-2 border-slate-900 shadow-xs" />
-                    <div className="absolute -right-3 top-8 w-4 h-10 rounded-full bg-emerald-500 border-2 border-slate-900 shadow-xs" />
+                    <div className="absolute -left-3 top-8 w-4 h-10 rounded-full bg-blue-600 border-2 border-slate-900 shadow-xs" />
+                    <div className="absolute -right-3 top-8 w-4 h-10 rounded-full bg-blue-600 border-2 border-slate-900 shadow-xs" />
                     
                     {/* Microphone arm */}
                     <div className="absolute -bottom-1 left-5 w-14 h-2 bg-slate-900 rounded-full transform -rotate-12" />
@@ -269,14 +269,14 @@ export default function HelpSupportPage({ onNavigateHome }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
 
             {/* CARD 1: CONTACT SUPPORT (GREEN ACCENT) */}
-            <div className="torn-paper p-8 flex flex-col justify-between space-y-6 hover:border-emerald-300 transition-all group relative overflow-hidden min-h-[260px]">
+            <div className="torn-paper p-8 flex flex-col justify-between space-y-6 hover:border-blue-300 transition-all group relative overflow-hidden min-h-[260px]">
               {/* Corner washi tape accent */}
               <div className="washi-tape-green -bottom-2 -right-3 transform rotate-45 pointer-events-none opacity-80" />
 
               <div className="space-y-4 relative z-10">
                 {/* Header with Painted Circular Icon */}
                 <div className="flex items-center space-x-3.5">
-                  <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center text-2xl shadow-md shadow-emerald-500/20 border-2 border-white">
+                  <div className="w-14 h-14 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl shadow-md shadow-blue-500/20 border-2 border-white">
                     💬
                   </div>
                   <div>
@@ -298,7 +298,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
                 <button
                   type="button"
                   onClick={() => setIsContactModalOpen(true)}
-                  className="w-full py-3.5 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold text-sm shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                  className="w-full py-3.5 px-5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-extrabold text-sm shadow-md shadow-blue-600/25 transition-all flex items-center justify-center space-x-2 cursor-pointer"
                 >
                   <span>Contact Support</span>
                   <span className="text-base">→</span>
@@ -371,7 +371,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
               
               {/* Pillar 1: Safe & Secure */}
               <div className="flex items-start space-x-3.5 p-2">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-2xl flex-shrink-0 shadow-xs">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center text-2xl flex-shrink-0 shadow-xs">
                   🛡️
                 </div>
                 <div className="space-y-1">
@@ -424,7 +424,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   {/* Robot Icon */}
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/20">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center text-xl shadow-md shadow-blue-500/20">
                     🤖
                   </div>
                   <div>
@@ -432,7 +432,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
                       <span className="font-black text-base text-slate-900 tracking-tight">
                         VITTANAYA AI Assistant
                       </span>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black tracking-wide">
+                      <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black tracking-wide">
                         BETA
                       </span>
                     </div>
@@ -466,7 +466,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
                 >
                   <div className="flex items-start space-x-2.5 max-w-[90%]">
                     {msg.sender === 'ai' && (
-                      <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm flex-shrink-0 mt-1 shadow-2xs">
+                      <div className="w-7 h-7 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-sm flex-shrink-0 mt-1 shadow-2xs">
                         🤖
                       </div>
                     )}
@@ -486,9 +486,9 @@ export default function HelpSupportPage({ onNavigateHome }) {
 
               {isAiTyping && (
                 <div className="flex items-center space-x-2 text-xs text-slate-400 italic py-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce" />
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce delay-100" />
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce delay-200" />
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce" />
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce delay-100" />
+                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-bounce delay-200" />
                   <span className="text-xs ml-1">VITTANAYA AI is typing...</span>
                 </div>
               )}
@@ -508,10 +508,10 @@ export default function HelpSupportPage({ onNavigateHome }) {
                       key={idx}
                       type="button"
                       onClick={() => handleSendMessage(sq.q)}
-                      className="w-full p-2.5 rounded-xl bg-white hover:bg-emerald-50/70 border border-slate-200 text-slate-800 hover:text-emerald-700 text-xs font-semibold flex items-center justify-between transition-all text-left cursor-pointer group shadow-2xs hover:shadow-xs"
+                      className="w-full p-2.5 rounded-xl bg-white hover:bg-blue-50/70 border border-slate-200 text-slate-800 hover:text-blue-700 text-xs font-semibold flex items-center justify-between transition-all text-left cursor-pointer group shadow-2xs hover:shadow-xs"
                     >
                       <span>{sq.q}</span>
-                      <span className="text-emerald-500 font-bold group-hover:translate-x-1 transition-transform">
+                      <span className="text-blue-600 font-bold group-hover:translate-x-1 transition-transform">
                         →
                       </span>
                     </button>
@@ -534,11 +534,11 @@ export default function HelpSupportPage({ onNavigateHome }) {
                   placeholder="Type your question here..."
                   value={inputQuery}
                   onChange={(e) => setInputQuery(e.target.value)}
-                  className="flex-1 p-3 rounded-2xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-emerald-500 shadow-xs"
+                  className="flex-1 p-3 rounded-2xl border border-slate-200 bg-white text-xs sm:text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500 shadow-xs"
                 />
                 <button
                   type="submit"
-                  className="p-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-md shadow-emerald-600/20 transition-all cursor-pointer flex items-center justify-center"
+                  className="p-3 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-md shadow-blue-600/20 transition-all cursor-pointer flex items-center justify-center"
                 >
                   <svg className="w-5 h-5 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
@@ -621,7 +621,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
                   placeholder="e.g. Question regarding 30-day runway projection"
                   value={contactForm.subject}
                   onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 outline-none focus:border-emerald-500"
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -632,7 +632,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
                   placeholder="Describe your issue or question in detail..."
                   value={contactForm.message}
                   onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                  className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 outline-none focus:border-emerald-500"
+                  className="w-full p-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-900 outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -646,7 +646,7 @@ export default function HelpSupportPage({ onNavigateHome }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/20 cursor-pointer"
                 >
                   Submit Ticket →
                 </button>

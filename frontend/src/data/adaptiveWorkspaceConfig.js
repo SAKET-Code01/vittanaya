@@ -397,6 +397,7 @@ export function buildAdaptiveWorkspace({
     stage,
     businessType,
     name: businessName,
+    businessName: businessName,
     user_name: ownerName,
     user_role: userRole || 'Business Owner',
     phone,

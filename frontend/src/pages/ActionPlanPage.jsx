@@ -378,6 +378,142 @@ const phases = [
   },
 ];
 
+const establishedPhases = [
+  {
+    id: 1,
+    name: 'Stabilize & Cash Preservation',
+    short: 'STABILIZE',
+  },
+  {
+    id: 2,
+    name: 'Optimize & Unit Economics',
+    short: 'OPTIMIZE',
+  },
+  {
+    id: 3,
+    name: 'Scale & Growth Financing',
+    short: 'GROW',
+  },
+];
+
+const establishedTasksInitial = [
+  {
+    id: 101,
+    phase: 'Phase 1',
+    phaseName: 'Stabilize & Cash Preservation',
+    title: 'Audit Overdue Receivables & Factor Invoices',
+    done: true,
+    deadline: 'Week 1',
+    description:
+      'Systematically follow up on 30+ day outstanding customer invoices and activate early discount factoring.',
+    steps: [
+      'Extract aging analysis for all commercial accounts.',
+      'Send formal reconciliation statements and payment reminders.',
+      'Negotiate early settlement terms with top 3 corporate clients.',
+    ],
+    documents: ['Aging Debtors Report', 'Customer Invoices', 'Bank Statements'],
+    why: 'Accelerating collections unlocks vital operating liquidity without resorting to high-cost emergency credit.',
+    scheme: 'Cash Preservation',
+    fit: 'Priority 1',
+  },
+  {
+    id: 102,
+    phase: 'Phase 1',
+    phaseName: 'Stabilize & Cash Preservation',
+    title: 'Statutory GST & Advance Tax Compliance Reconciliation',
+    done: true,
+    deadline: 'Week 2',
+    description:
+      'Fulfill all quarterly GSTR-3B filings, input tax credit claims, and local municipal trade license renewals.',
+    steps: [
+      'Reconcile GSTR-2B input tax credit with purchase ledger.',
+      'File monthly/quarterly returns before statutory deadline.',
+      'Archive trade license and pollution control NOC compliance certificates.',
+    ],
+    documents: ['GSTR-3B Acknowledgement', 'Trade License', 'Tax Challans'],
+    why: 'Zero statutory default maintains tier-1 credit rating required for institutional working capital facilities.',
+    scheme: 'Statutory Compliance',
+    fit: 'Required',
+  },
+  {
+    id: 103,
+    phase: 'Phase 2',
+    phaseName: 'Optimize & Unit Economics',
+    title: 'Raw Material Supplier Contract & Price Renegotiation',
+    done: false,
+    current: true,
+    deadline: 'Week 4',
+    description:
+      'Consolidate supplier purchasing volume to negotiate 45-day credit terms and 4-6% bulk procurement discounts.',
+    steps: [
+      'Evaluate material price indices and alternative vendors.',
+      'Draft standardized quarterly vendor agreements with price locks.',
+      'Establish revolving supplier credit accounts.',
+    ],
+    documents: ['Vendor Quotations', 'Purchase Orders', 'Supplier Master File'],
+    why: 'Direct material cost reduction improves gross operating margins by 3.2% across current output volume.',
+    scheme: 'Cost Optimization',
+    fit: 'Active',
+  },
+  {
+    id: 104,
+    phase: 'Phase 2',
+    phaseName: 'Optimize & Unit Economics',
+    title: 'Machine Preventive Maintenance & Capacity Calibration',
+    done: false,
+    deadline: 'Week 6',
+    description:
+      'Calibrate primary production equipment, minimize downtime, and increase single-shift capacity utilization from 65% to 82%.',
+    steps: [
+      'Conduct comprehensive tooling inspection and servicing.',
+      'Implement digital job cards and machine log tracking.',
+      'Eliminate bottlenecks in the primary fabrication stage.',
+    ],
+    documents: ['Maintenance Log', 'Equipment Manuals', 'Tooling Invoices'],
+    why: 'Higher machine utilization reduces fixed overhead per unit and accommodates surge order flow.',
+    scheme: 'Operational Excellence',
+    fit: 'High Impact',
+  },
+  {
+    id: 105,
+    phase: 'Phase 3',
+    phaseName: 'Scale & Growth Financing',
+    title: 'Apply for Pre-Approved CGTMSE Working Capital Loan (₹15L)',
+    done: false,
+    deadline: 'Week 8',
+    description:
+      'Submit collateral-free credit facility application to principal bank under Credit Guarantee Scheme for Micro & Small Enterprises.',
+    steps: [
+      'Collate audited financial statements and 12-month GST returns.',
+      'Submit collateral-free credit proposal under CGTMSE framework.',
+      'Obtain bank sanction letter and establish revolving overdraft limit.',
+    ],
+    documents: ['Audited Financials (2 Yrs)', 'GST Returns', 'Sanction Application'],
+    why: 'Institutional working capital line fuels second-shift operations without diluting founder equity.',
+    scheme: 'CGTMSE Credit Line',
+    fit: 'Growth',
+  },
+  {
+    id: 106,
+    phase: 'Phase 3',
+    phaseName: 'Scale & Growth Financing',
+    title: 'Onboard 4 Technical CNC Machinist Apprentices & Expand Shift',
+    done: false,
+    deadline: 'Week 12',
+    description:
+      'Recruit skilled technical operators under National Apprenticeship Promotion Scheme (NAPS) to launch two-shift continuous production.',
+    steps: [
+      'Post apprentice requirements on NAPS / PMKVY portal.',
+      'Interview and onboard certified CNC / fabrication machinists.',
+      'Initiate secondary evening production shift.',
+    ],
+    documents: ['Apprenticeship Contracts', 'Staff KYC', 'Shift Schedules'],
+    why: 'Double-shift operations doubles revenue throughput while utilizing existing facility infrastructure.',
+    scheme: 'Capacity Expansion',
+    fit: 'Growth Target',
+  },
+];
+
 export default function ActionPlanPage({
   currentProfile: propProfile,
   onNavigateHome,
@@ -385,14 +521,17 @@ export default function ActionPlanPage({
   const { currentProfile: contextProfile } = useWorkspace();
 
   const currentProfile = propProfile || contextProfile;
+  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
 
   const navigateBack =
     onNavigateHome || (() => window.history.back());
 
-  const [tasks, setTasks] = useState(tasksInitial);
-  const [expandedId, setExpandedId] = useState(4);
+  const [tasks, setTasks] = useState(isEstablished ? establishedTasksInitial : tasksInitial);
+  const [expandedId, setExpandedId] = useState(isEstablished ? 103 : 4);
   const [phaseFilter, setPhaseFilter] = useState('All');
   const [showPhaseMenu, setShowPhaseMenu] = useState(false);
+
+  const activePhasesList = isEstablished ? establishedPhases : phases;
 
   const completedCount = tasks.filter((task) => task.done).length;
   const progressPct = Math.round(
@@ -452,24 +591,24 @@ export default function ActionPlanPage({
 
     if (status === 'Completed') {
       return {
-        card: 'border-[#CDE9D9] bg-gradient-to-r from-[#F3FBF6] via-white to-[#FAFFFC]',
-        node: 'bg-[#11834B] text-white border-[#11834B] shadow-[0_0_0_5px_rgba(17,131,75,0.08)]',
-        badge: 'bg-[#E5F7EC] text-[#087A45] border-[#BEE5CE]',
+        card: 'border-blue-200/80 bg-gradient-to-r from-blue-50/40 via-white to-blue-50/20',
+        node: 'bg-blue-600 text-white border-blue-600 shadow-[0_0_0_5px_rgba(37,99,235,0.12)]',
+        badge: 'bg-blue-50 text-blue-700 border-blue-200',
       };
     }
 
     if (status === 'In Progress') {
       return {
-        card: 'border-[#F1C98B] bg-gradient-to-r from-[#FFF9EF] via-white to-[#FFFDF8] shadow-[0_18px_50px_rgba(178,111,24,0.10)]',
-        node: 'bg-[#FFF7E8] text-[#C77900] border-[#E5A72B] shadow-[0_0_0_6px_rgba(229,167,43,0.10)]',
-        badge: 'bg-[#FFF2D8] text-[#B66A00] border-[#F2D09A]',
+        card: 'border-blue-500 bg-gradient-to-r from-blue-50/50 via-white to-white shadow-[0_18px_50px_rgba(37,99,235,0.08)]',
+        node: 'bg-blue-50 text-blue-700 border-blue-600 shadow-[0_0_0_6px_rgba(37,99,235,0.12)]',
+        badge: 'bg-blue-600 text-white border-blue-600',
       };
     }
 
     return {
-      card: 'border-[#E4E9E6] bg-white hover:border-[#BCD8C9] hover:shadow-[0_14px_35px_rgba(25,72,51,0.07)]',
-      node: 'bg-white text-[#607267] border-[#D5DEDA]',
-      badge: 'bg-[#EEF5FF] text-[#3975D3] border-[#D7E6FC]',
+      card: 'border-slate-200 bg-white hover:border-blue-200 hover:shadow-[0_14px_35px_rgba(15,23,42,0.05)]',
+      node: 'bg-white text-slate-500 border-slate-300',
+      badge: 'bg-slate-100 text-slate-600 border-slate-200',
     };
   };
 
@@ -480,32 +619,32 @@ export default function ActionPlanPage({
     (progressPct / 100) * ringCircumference;
 
   return (
-    <div className="min-h-full w-full bg-[#F7F9F8] text-[#14201A]">
+    <div className="min-h-full w-full bg-transparent text-slate-900">
       <div className="relative mx-auto w-full max-w-[1480px] px-4 pb-16 pt-5 sm:px-6 lg:px-8">
 
         {/* Decorative background glow */}
-        <div className="pointer-events-none absolute left-[12%] top-0 h-64 w-64 rounded-full bg-[#DFF4E8] opacity-30 blur-3xl" />
-        <div className="pointer-events-none absolute right-[8%] top-24 h-72 w-72 rounded-full bg-[#EEF7F2] opacity-50 blur-3xl" />
+        <div className="pointer-events-none absolute left-[12%] top-0 h-64 w-64 rounded-full bg-blue-200/30 opacity-30 blur-3xl" />
+        <div className="pointer-events-none absolute right-[8%] top-24 h-72 w-72 rounded-full bg-indigo-100/30 opacity-50 blur-3xl" />
 
         {/* =========================================================
             PREMIUM HEADER + EXECUTION OVERVIEW
         ========================================================= */}
         <section className="relative mb-8">
-          <div className="absolute -left-20 top-4 h-64 w-64 rounded-full bg-[#DDF8E9]/70 blur-3xl" />
+          <div className="absolute -left-20 top-4 h-64 w-64 rounded-full bg-blue-100/40 blur-3xl" />
           <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[#EEF4FF]/80 blur-3xl" />
 
           <div className="relative mb-6 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
             <div className="min-w-0">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#DCE7E1] bg-white/90 px-3 py-2 text-[11px] font-bold text-[#66766D] shadow-[0_8px_24px_rgba(27,58,43,0.05)] backdrop-blur">
-                <button type="button" onClick={navigateBack} className="transition-colors hover:text-[#087A45]">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-2 text-[11px] font-bold text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.04)] backdrop-blur">
+                <button type="button" onClick={navigateBack} className="transition-colors hover:text-blue-700">
                   Dashboard
                 </button>
                 <span className="text-[#B2BCB7]">/</span>
-                <span className="font-black text-[#087A45]">Action Plan</span>
+                <span className="font-black text-blue-700">Action Plan</span>
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="hidden h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[18px] border border-[#C8E9D7] bg-gradient-to-br from-[#E8FAF0] via-white to-[#F4FBF7] text-[#087A45] shadow-[0_12px_30px_rgba(15,126,73,0.10)] sm:flex">
+                <div className="hidden h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[18px] border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-blue-50/40 text-blue-700 shadow-[0_12px_30px_rgba(37,99,235,0.10)] sm:flex">
                   <FlagIcon size={27} />
                 </div>
 
@@ -514,8 +653,8 @@ export default function ActionPlanPage({
                     <h1 className="text-[31px] font-black leading-[1.08] tracking-[-0.045em] text-[#102018] sm:text-[42px]">
                       60-Day Business Execution Roadmap
                     </h1>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#CBE8D6] bg-[#EFFAF3] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#087A45]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#11A35A]" />
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-blue-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
                       Live Plan
                     </span>
                   </div>
@@ -529,15 +668,15 @@ export default function ActionPlanPage({
                   </p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-bold text-[#6E7D75]">
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E0E9E4] bg-white px-3 py-1.5 shadow-sm">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
                       <BriefcaseIcon size={13} />
                       Business launch plan
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E0E9E4] bg-white px-3 py-1.5 shadow-sm">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
                       <CalendarIcon size={13} />
                       60-day target
                     </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#E0E9E4] bg-white px-3 py-1.5 shadow-sm">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
                       <ShieldIcon size={13} />
                       Milestone-based execution
                     </span>
@@ -549,7 +688,7 @@ export default function ActionPlanPage({
             <button
               type="button"
               onClick={navigateBack}
-              className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-[#D8E3DD] bg-white px-5 py-3.5 text-xs font-black text-[#23352B] shadow-[0_10px_28px_rgba(25,55,40,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#9FCBB1] hover:shadow-[0_16px_34px_rgba(25,55,40,0.10)]"
+              className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 text-xs font-black text-[#23352B] shadow-[0_10px_28px_rgba(25,55,40,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_16px_34px_rgba(37,99,235,0.08)]"
             >
               <ArrowLeft size={15} />
               Back to Dashboard
@@ -557,24 +696,24 @@ export default function ActionPlanPage({
           </div>
 
           {/* Premium execution overview */}
-          <div className="relative overflow-hidden rounded-[30px] border border-[#D9E6DF] bg-white shadow-[0_18px_60px_rgba(24,62,43,0.075)]">
-            <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-[#DFF7E9] opacity-80 blur-3xl" />
+          <div className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white shadow-[0_18px_60px_rgba(24,62,43,0.075)]">
+            <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-blue-100/30 opacity-80 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 left-[34%] h-56 w-56 rounded-full bg-[#EEF5FF] opacity-60 blur-3xl" />
 
             <div className="relative grid lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="border-b border-[#E8EEEA] p-6 sm:p-8 lg:border-b-0 lg:border-r">
+              <div className="border-b border-slate-100 p-6 sm:p-8 lg:border-b-0 lg:border-r">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EAF8F0] text-[#087A45]">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
                       <TrendingIcon size={21} />
                     </div>
                     <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#087A45]">Execution progress</p>
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-blue-700">Execution progress</p>
                       <p className="mt-0.5 text-xs text-[#78877F]">Your roadmap is moving toward launch</p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#CBE8D6] bg-[#F0FBF4] px-3 py-1.5 text-[10px] font-black text-[#087A45]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#10A35A]" />
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-black text-blue-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
                     On Track
                   </span>
                 </div>
@@ -582,7 +721,7 @@ export default function ActionPlanPage({
                 <div className="mt-7 flex items-end justify-between gap-6">
                   <div>
                     <div className="flex items-end gap-3">
-                      <span className="text-[66px] font-black leading-none tracking-[-0.065em] text-[#0D8650]">{progressPct}%</span>
+                      <span className="text-[66px] font-black leading-none tracking-[-0.065em] text-blue-700">{progressPct}%</span>
                       <span className="pb-2 text-sm font-extrabold text-[#34473D]">complete</span>
                     </div>
                     <p className="mt-3 text-xs font-medium text-[#7A8981]">
@@ -603,25 +742,25 @@ export default function ActionPlanPage({
                     <span>{progressPct}%</span>
                   </div>
                   <div className="h-3 overflow-hidden rounded-full bg-[#ECF2EE] p-[2px]">
-                    <div className="h-full rounded-full bg-gradient-to-r from-[#087A45] via-[#18A461] to-[#63CB8A] shadow-[0_3px_12px_rgba(10,139,78,0.25)] transition-all duration-700" style={{ width: `${progressPct}%` }} />
+                    <div className="h-full rounded-full bg-gradient-to-r from-blue-700 via-blue-600 to-sky-400 shadow-[0_3px_12px_rgba(37,99,235,0.25)] transition-all duration-700" style={{ width: `${progressPct}%` }} />
                   </div>
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {[
-                    { value: completedCount, label: 'Completed', tone: 'green', icon: CheckIcon },
+                    { value: completedCount, label: 'Completed', tone: 'blue', icon: CheckIcon },
                     { value: inProgressCount, label: 'In Progress', tone: 'amber', icon: ClockIcon },
-                    { value: upcomingCount, label: 'Upcoming', tone: 'blue', icon: ArrowRight },
+                    { value: upcomingCount, label: 'Upcoming', tone: 'slate', icon: ArrowRight },
                     { value: overdueCount, label: 'Overdue', tone: 'red', icon: InfoIcon },
                   ].map((stat) => {
                     const IconComponent = stat.icon;
-                    const tone = stat.tone === 'green'
-                      ? 'border-[#D8EBDD] bg-[#F3FBF6] text-[#0B8650]'
+                    const tone = stat.tone === 'blue'
+                      ? 'border-blue-200 bg-blue-50 text-blue-700'
                       : stat.tone === 'amber'
-                      ? 'border-[#F1DFBE] bg-[#FFF9EF] text-[#C77908]'
-                      : stat.tone === 'blue'
-                      ? 'border-[#DCE8FA] bg-[#F4F7FF] text-[#3978D7]'
-                      : 'border-[#F1DADA] bg-[#FFF6F6] text-[#D94A4A]';
+                      ? 'border-amber-200 bg-amber-50 text-amber-800'
+                      : stat.tone === 'slate'
+                      ? 'border-slate-200 bg-slate-50 text-slate-700'
+                      : 'border-rose-200 bg-rose-50 text-rose-700';
                     return (
                       <div key={stat.label} className={`rounded-2xl border p-3.5 ${tone}`}>
                         <div className="mb-3 flex h-7 w-7 items-center justify-center rounded-lg bg-white shadow-sm">
@@ -649,16 +788,16 @@ export default function ActionPlanPage({
                   <span className="rounded-full border border-[#F0D39E] bg-[#FFF9EF] px-3 py-1.5 text-[10px] font-black text-[#B96C00]">In Progress</span>
                 </div>
 
-                <div className="mt-6 rounded-[24px] border border-[#C9E8D5] bg-gradient-to-br from-[#EFFBF4] via-white to-[#F9FCFA] p-5 shadow-[0_12px_35px_rgba(19,115,68,0.07)]">
+                <div className="mt-6 rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50/40 via-white to-white p-5 shadow-[0_12px_35px_rgba(37,99,235,0.07)]">
                   <div className="flex items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#0F8A51] text-white shadow-[0_10px_24px_rgba(15,138,81,0.22)]">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-[0_10px_24px_rgba(37,99,235,0.22)]">
                       <DocumentIcon size={22} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-[#0B7B47]">{currentTask.phase} · {currentTask.phaseName}</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.14em] text-blue-700">{currentTask.phase} · {currentTask.phaseName}</p>
                       <h2 className="mt-1.5 text-[17px] font-black leading-6 tracking-[-0.025em] text-[#14231B]">{currentTask.title}</h2>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1.5 text-[10px] font-black text-[#087A45] shadow-sm">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1.5 text-[10px] font-black text-blue-700 shadow-sm">
                           <CalendarIcon size={12} /> {currentTask.deadline}
                         </span>
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1.5 text-[10px] font-bold text-[#687970] shadow-sm">
@@ -675,14 +814,14 @@ export default function ActionPlanPage({
                         setExpandedId(currentTask.id);
                         document.getElementById(`milestone-${currentTask.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       }}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0D8650] px-4 py-3 text-xs font-black text-white shadow-[0_9px_22px_rgba(13,134,80,0.20)] transition-all hover:-translate-y-0.5 hover:bg-[#087443]"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-xs font-black text-white shadow-[0_4px_14px_rgba(37,99,235,0.25)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
                     >
                       Open Milestone <ArrowRight size={14} />
                     </button>
                     <button
                       type="button"
                       onClick={() => toggleTask(currentTask.id)}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#9CCEB1] bg-white px-4 py-3 text-xs font-black text-[#087A45] transition-all hover:-translate-y-0.5 hover:bg-[#F3FBF6]"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-3 text-xs font-black text-blue-700 transition-all hover:-translate-y-0.5 hover:bg-blue-50"
                     >
                       <CheckIcon size={14} /> Mark Complete
                     </button>
@@ -699,23 +838,23 @@ export default function ActionPlanPage({
         <section className="relative mb-7 overflow-hidden rounded-[26px] border border-[#DDE7E1] bg-white shadow-[0_10px_35px_rgba(24,62,43,0.05)]">
           <div className="flex flex-col justify-between gap-4 border-b border-[#EDF1EE] px-6 py-5 sm:flex-row sm:items-center">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#07804B]">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-700">
                 Phase Journey
               </p>
 
               <h2 className="mt-1 text-base font-black text-[#16231C]">
-                60-day execution track
+                {isEstablished ? '90-Day Optimization Track' : '60-Day Execution Track'}
               </h2>
             </div>
 
             <span className="text-[11px] font-semibold text-[#89958F]">
-              Follow the journey from registration to launch
+              {isEstablished ? 'Follow the journey from stabilization to expansion' : 'Follow the journey from registration to launch'}
             </span>
           </div>
 
           <div className="overflow-x-auto p-5 sm:p-6">
             <div className="flex min-w-[760px] items-center">
-              {phases.map((phase, index) => {
+              {activePhasesList.map((phase, index) => {
                 const phaseNumber = phase.id;
                 const completedPhase = phaseNumber < activePhaseNumber;
                 const activePhase = phaseNumber === activePhaseNumber;
@@ -725,16 +864,16 @@ export default function ActionPlanPage({
                     <div
                       className={`relative flex min-w-[205px] items-center gap-3 rounded-2xl border px-4 py-3.5 transition-all ${
                         activePhase
-                          ? 'border-[#12864D] bg-gradient-to-br from-[#EDF9F2] to-white shadow-[0_8px_25px_rgba(18,134,77,0.10)]'
+                          ? 'border-blue-500 bg-gradient-to-br from-blue-50/50 to-white shadow-[0_8px_25px_rgba(37,99,235,0.08)]'
                           : completedPhase
-                          ? 'border-[#CFE7D8] bg-[#F4FBF6]'
+                          ? 'border-blue-200/70 bg-blue-50/30'
                           : 'border-[#E2E8E4] bg-[#FAFCFB]'
                       }`}
                     >
                       <div
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-black ${
                           completedPhase || activePhase
-                            ? 'border-[#11864D] bg-[#11864D] text-white'
+                            ? 'border-blue-600 bg-blue-600 text-white'
                             : 'border-[#D7E0DB] bg-white text-[#7D8B84]'
                         }`}
                       >
@@ -755,9 +894,9 @@ export default function ActionPlanPage({
                         <p
                           className={`mt-1 text-xs font-black ${
                             activePhase
-                              ? 'text-[#0B7745]'
+                              ? 'text-blue-700'
                               : completedPhase
-                              ? 'text-[#38614C]'
+                              ? 'text-blue-700'
                               : 'text-[#63726B]'
                           }`}
                         >
@@ -766,19 +905,19 @@ export default function ActionPlanPage({
                       </div>
                     </div>
 
-                    {index < phases.length - 1 && (
+                    {index < activePhasesList.length - 1 && (
                       <div className="mx-2 flex flex-1 items-center">
                         <div
                           className={`h-[2px] w-full ${
                             phaseNumber < activePhaseNumber
-                              ? 'bg-[#48A970]'
+                              ? 'bg-blue-600'
                               : 'bg-[#E2E9E5]'
                           }`}
                         />
                         <div
                           className={`-ml-1 h-2 w-2 rotate-45 border-r border-t ${
                             phaseNumber < activePhaseNumber
-                              ? 'border-[#48A970]'
+                              ? 'border-blue-600'
                               : 'border-[#D6DFDA]'
                           }`}
                         />
@@ -803,13 +942,13 @@ export default function ActionPlanPage({
                   Milestone Checklist
                 </h2>
 
-                <span className="rounded-full bg-[#EEF7F1] px-2.5 py-1 text-[9px] font-black text-[#147B4A]">
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-black text-blue-700 border border-blue-200/60">
                   {completedCount}/{tasks.length}
                 </span>
               </div>
 
               <p className="mt-1 text-xs text-[#77867E]">
-                Complete each step to move your business toward launch.
+                {isEstablished ? 'Execute each milestone to stabilize cash flow, optimize margins, and expand operations.' : 'Complete each step to move your business toward launch.'}
               </p>
             </div>
 
@@ -835,14 +974,14 @@ export default function ActionPlanPage({
                     }}
                     className={`w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold ${
                       phaseFilter === 'All'
-                        ? 'bg-[#EDF8F1] text-[#087A45]'
+                        ? 'bg-blue-50 text-blue-700'
                         : 'text-[#52645A] hover:bg-[#F6F8F7]'
                     }`}
                   >
                     All Phases
                   </button>
 
-                  {phases.map((phase) => (
+                  {activePhasesList.map((phase) => (
                     <button
                       key={phase.id}
                       type="button"
@@ -852,7 +991,7 @@ export default function ActionPlanPage({
                       }}
                       className={`w-full rounded-xl px-3 py-2.5 text-left text-xs font-bold ${
                         phaseFilter === `Phase ${phase.id}`
-                          ? 'bg-[#EDF8F1] text-[#087A45]'
+                          ? 'bg-blue-50 text-blue-700'
                           : 'text-[#52645A] hover:bg-[#F6F8F7]'
                       }`}
                     >
@@ -867,7 +1006,7 @@ export default function ActionPlanPage({
           <div className="relative px-5 py-6 sm:px-7 sm:py-7">
 
             {/* timeline line */}
-            <div className="absolute bottom-10 left-[40px] top-10 hidden w-px bg-gradient-to-b from-[#A8D6BA] via-[#D9E6DF] to-[#E9EEEB] sm:block" />
+            <div className="absolute bottom-10 left-[40px] top-10 hidden w-px bg-gradient-to-b from-blue-400 via-blue-200 to-slate-200 sm:block" />
 
             <div className="space-y-3">
               {filteredTasks.map((task) => {
@@ -966,7 +1105,7 @@ export default function ActionPlanPage({
                           {/* What to do */}
                           <div className="lg:border-r lg:border-[#E7ECE9] lg:pr-5">
                             <div className="mb-3 flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EAF8F0] text-[#0B7B47]">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                                 <CheckIcon size={15} />
                               </div>
 
@@ -981,7 +1120,7 @@ export default function ActionPlanPage({
                                   key={`${task.id}-step-${index}`}
                                   className="flex items-start gap-2.5"
                                 >
-                                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EFF9F3] text-[#0B7B47]">
+                                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
                                     <CheckIcon size={12} />
                                   </span>
 
@@ -1009,7 +1148,7 @@ export default function ActionPlanPage({
                               {task.why}
                             </p>
 
-                            <div className="mt-4 rounded-xl border border-[#E0E9E4] bg-white p-3">
+                            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
                               <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#8A9891]">
                                 Milestone objective
                               </p>
@@ -1053,7 +1192,7 @@ export default function ActionPlanPage({
                           {/* Related scheme */}
                           <div>
                             <div className="mb-3 flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EAF8F0] text-[#0B7B47]">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-[#0B7B47]">
                                 <SparkIcon size={15} />
                               </div>
 
@@ -1062,15 +1201,15 @@ export default function ActionPlanPage({
                               </h4>
                             </div>
 
-                            <div className="relative overflow-hidden rounded-2xl border border-[#D6E7DC] bg-gradient-to-br from-[#F3FBF6] to-white p-4">
-                              <div className="absolute -right-5 -top-5 h-16 w-16 rounded-full bg-[#DDF3E5] blur-xl" />
+                            <div className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/40 to-white p-4">
+                              <div className="absolute -right-5 -top-5 h-16 w-16 rounded-full bg-blue-100/50 blur-xl" />
 
                               <div className="relative">
                                 <p className="text-base font-black text-[#17251D]">
                                   {task.scheme}
                                 </p>
 
-                                <span className="mt-2 inline-flex rounded-full bg-[#E3F6EA] px-2.5 py-1 text-[9px] font-black text-[#087A45]">
+                                <span className="mt-2 inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-black text-blue-700">
                                   {task.fit}
                                 </span>
 
@@ -1079,7 +1218,7 @@ export default function ActionPlanPage({
                                   onClick={(event) => {
                                     event.stopPropagation();
                                   }}
-                                  className="mt-4 flex items-center gap-1.5 text-[10px] font-black text-[#087A45] transition-colors hover:text-[#045F35]"
+                                  className="mt-4 flex items-center gap-1.5 text-[10px] font-black text-blue-700 transition-colors hover:text-blue-800"
                                 >
                                   View scheme details
                                   <ArrowRight size={13} />
@@ -1100,7 +1239,7 @@ export default function ActionPlanPage({
                             onClick={(event) => {
                               event.stopPropagation();
                             }}
-                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#10834B] px-5 py-3 text-xs font-black text-white shadow-[0_7px_18px_rgba(16,131,75,0.17)] transition-all hover:-translate-y-0.5 hover:bg-[#08733F]"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-xs font-black text-white shadow-[0_7px_18px_rgba(37,99,235,0.20)] transition-all hover:-translate-y-0.5 hover:bg-blue-700"
                           >
                             View Full Details
                             <ArrowRight size={15} />
@@ -1113,7 +1252,7 @@ export default function ActionPlanPage({
                                 event.stopPropagation();
                                 toggleTask(task.id);
                               }}
-                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#9CCBAE] bg-white px-5 py-3 text-xs font-black text-[#087A45] transition-all hover:-translate-y-0.5 hover:bg-[#F2FAF5]"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 text-xs font-black text-blue-700 transition-all hover:-translate-y-0.5 hover:bg-blue-50"
                             >
                               <CheckIcon size={15} />
                               Mark as Complete
@@ -1121,7 +1260,7 @@ export default function ActionPlanPage({
                           )}
 
                           {task.done && (
-                            <div className="inline-flex items-center gap-2 rounded-xl bg-[#F0F9F3] px-4 py-3 text-xs font-bold text-[#087A45]">
+                            <div className="inline-flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-xs font-bold text-blue-700">
                               <CheckIcon size={15} />
                               Milestone completed
                             </div>
@@ -1151,8 +1290,8 @@ export default function ActionPlanPage({
           <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
             <div>
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#0B8A50] shadow-[0_0_0_5px_rgba(11,138,80,0.08)]" />
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#087A45]">
+                <span className="h-2 w-2 rounded-full bg-blue-600 shadow-[0_0_0_5px_rgba(37,99,235,0.12)]" />
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
                   Execution Command Center
                 </p>
               </div>
@@ -1164,7 +1303,7 @@ export default function ActionPlanPage({
               </p>
             </div>
             <div className="inline-flex items-center gap-2 self-start rounded-full border border-[#D6E7DC] bg-white px-3 py-2 text-[10px] font-bold text-[#63736A] shadow-sm sm:self-auto">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#14A15B]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
               Live roadmap status
             </div>
           </div>
@@ -1172,30 +1311,30 @@ export default function ActionPlanPage({
           <div className="grid gap-5 xl:grid-cols-[1fr_1.15fr_1fr]">
             {/* ROADMAP HEALTH */}
             <div className="group relative overflow-hidden rounded-[26px] border border-[#DCE7E1] bg-white shadow-[0_12px_40px_rgba(24,62,43,0.055)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(24,62,43,0.10)]">
-              <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#DDF6E7] opacity-70 blur-3xl" />
+              <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-blue-100/50 opacity-70 blur-3xl" />
               <div className="relative p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D5EBDD] bg-[#EFFAF3] text-[#0B7B47]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-blue-700">
                       <HeartIcon size={19} />
                     </div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#087A45]">Roadmap Health</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-blue-700">Roadmap Health</p>
                       <h3 className="mt-0.5 text-sm font-black text-[#17241D]">Overall Progress</h3>
                     </div>
                   </div>
-                  <span className="rounded-full border border-[#CBE8D6] bg-[#EFFAF3] px-2.5 py-1 text-[9px] font-black text-[#087A45]">Healthy</span>
+                  <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[9px] font-black text-blue-700">Healthy</span>
                 </div>
 
                 <div className="mt-6 flex justify-center">
                   <div className="relative h-[172px] w-[172px]">
                     <svg className="h-full w-full -rotate-90" viewBox="0 0 180 180">
-                      <circle cx="90" cy="90" r="68" stroke="#E8F0EB" strokeWidth="11" fill="none" />
+                      <circle cx="90" cy="90" r="68" stroke="#E2E8F0" strokeWidth="11" fill="none" />
                       <circle
                         cx="90"
                         cy="90"
                         r="68"
-                        stroke="#10834B"
+                        stroke="#2563EB"
                         strokeWidth="11"
                         fill="none"
                         strokeLinecap="round"
@@ -1205,15 +1344,15 @@ export default function ActionPlanPage({
                       />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-[38px] font-black leading-none tracking-[-0.06em] text-[#10834B]">{progressPct}%</span>
+                      <span className="text-[38px] font-black leading-none tracking-[-0.06em] text-blue-700">{progressPct}%</span>
                       <span className="mt-2 text-[8px] font-black uppercase tracking-[0.18em] text-[#7B8982]">Complete</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-4 flex justify-center">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#CBE8D6] bg-[#F0FAF4] px-4 py-2 text-[10px] font-black text-[#087A45]">
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#10834B] text-white"><CheckIcon size={10} /></span>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[10px] font-black text-blue-700">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-white"><CheckIcon size={10} /></span>
                     On Track
                   </div>
                 </div>
@@ -1233,7 +1372,7 @@ export default function ActionPlanPage({
                       <ChartIcon size={19} />
                     </div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#087A45]">Execution Pulse</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-blue-700">Execution Pulse</p>
                       <h3 className="mt-0.5 text-sm font-black text-[#17241D]">Roadmap Snapshot</h3>
                     </div>
                   </div>
@@ -1245,9 +1384,9 @@ export default function ActionPlanPage({
                     <div>
                       <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#819089]">Current Phase</p>
                       <p className="mt-1 text-sm font-black text-[#17251D]">Phase {activePhaseNumber}</p>
-                      <p className="mt-0.5 text-[10px] font-semibold text-[#087A45]">{currentTask?.phaseName}</p>
+                      <p className="mt-0.5 text-[10px] font-semibold text-blue-700">{currentTask?.phaseName}</p>
                     </div>
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[#BFDCCB] bg-white text-[#0B7B47] shadow-sm"><TargetIcon size={19} /></div>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-blue-200 bg-white text-blue-700 shadow-sm"><TargetIcon size={19} /></div>
                   </div>
                 </div>
 
@@ -1259,7 +1398,7 @@ export default function ActionPlanPage({
                   </div>
                   <div className="rounded-2xl border border-[#E5EBE7] bg-[#FCFDFC] p-3.5">
                     <p className="text-[9px] font-bold text-[#849189]">Avg. Pace</p>
-                    <p className="mt-1 text-xl font-black text-[#10834B]">7.5</p>
+                    <p className="mt-1 text-xl font-black text-blue-700">7.5</p>
                     <p className="mt-0.5 text-[9px] text-[#8A9690]">days / milestone</p>
                   </div>
                 </div>
@@ -1272,7 +1411,7 @@ export default function ActionPlanPage({
                       <p className="text-[11px] font-black text-[#25362D]">{currentTask?.deadline}</p>
                     </div>
                   </div>
-                  <span className="text-[10px] font-black text-[#087A45]">On Schedule</span>
+                  <span className="text-[10px] font-black text-blue-700">On Schedule</span>
                 </div>
               </div>
             </div>
@@ -1285,7 +1424,7 @@ export default function ActionPlanPage({
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#DDE7F8] bg-[#F1F6FF] text-[#4D78C6]"><ShieldIcon size={19} /></div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-[#087A45]">Business Readiness</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.16em] text-blue-700">Business Readiness</p>
                       <h3 className="mt-0.5 text-sm font-black text-[#17241D]">Launch Preparedness</h3>
                     </div>
                   </div>
@@ -1300,7 +1439,7 @@ export default function ActionPlanPage({
                     </div>
                     <div className="rounded-xl bg-white px-3 py-2 text-right shadow-sm">
                       <p className="text-[9px] font-bold text-[#84919B]">Status</p>
-                      <p className="mt-0.5 text-[10px] font-black text-[#087A45]">Good Progress</p>
+                      <p className="mt-0.5 text-[10px] font-black text-blue-700">Good Progress</p>
                     </div>
                   </div>
                   <div className="mt-5">
@@ -1310,8 +1449,8 @@ export default function ActionPlanPage({
                 </div>
 
                 <div className="mt-4 space-y-2.5">
-                  <div className="flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-[#10834B]" /><span className="flex-1 text-[10px] font-semibold text-[#63726B]">Legal readiness</span><span className="text-[10px] font-black text-[#10834B]">Ready</span></div>
-                  <div className="flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-[#10834B]" /><span className="flex-1 text-[10px] font-semibold text-[#63726B]">Documentation</span><span className="text-[10px] font-black text-[#10834B]">Ready</span></div>
+                  <div className="flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-blue-600" /><span className="flex-1 text-[10px] font-semibold text-slate-600">Legal readiness</span><span className="text-[10px] font-black text-blue-700">Ready</span></div>
+                  <div className="flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-blue-600" /><span className="flex-1 text-[10px] font-semibold text-slate-600">Documentation</span><span className="text-[10px] font-black text-blue-700">Ready</span></div>
                   <div className="flex items-center gap-3"><div className="h-1.5 w-1.5 rounded-full bg-[#E3A229]" /><span className="flex-1 text-[10px] font-semibold text-[#63726B]">Funding readiness</span><span className="text-[10px] font-black text-[#B87508]">In Progress</span></div>
                 </div>
               </div>
@@ -1324,14 +1463,14 @@ export default function ActionPlanPage({
               <div className="flex shrink-0 items-center gap-3 lg:w-[210px]">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF5E5] text-[#C77A0B]"><FolderIcon size={19} /></div>
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-[0.15em] text-[#087A45]">Resources</p>
+                  <p className="text-[9px] font-black uppercase tracking-[0.15em] text-blue-700">Resources</p>
                   <p className="text-sm font-black text-[#17241D]">Useful References</p>
                 </div>
               </div>
 
               <div className="grid flex-1 gap-2.5 md:grid-cols-3">
                 {[
-                  { title: 'PMEGP Official Portal', description: 'Government scheme landing page', tone: 'green' },
+                  { title: 'PMEGP Official Portal', description: 'Government scheme landing page', tone: 'blue' },
                   { title: 'KVIC PMEGP Guidelines', description: 'Eligibility & application rules', tone: 'amber' },
                   { title: 'Sample DPR Format', description: 'Bankable project report template', tone: 'blue' },
                 ].map((resource) => (
@@ -1340,14 +1479,14 @@ export default function ActionPlanPage({
                     key={resource.title}
                     className="group/resource flex items-center gap-3 rounded-2xl border border-[#E3E9E5] bg-[#FCFDFC] p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[#BDD8C8] hover:bg-white hover:shadow-[0_8px_24px_rgba(24,62,43,0.07)]"
                   >
-                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${resource.tone === 'green' ? 'bg-[#EAF8F0] text-[#0B7B47]' : resource.tone === 'amber' ? 'bg-[#FFF4E2] text-[#C77A0B]' : 'bg-[#EEF4FF] text-[#4C78C9]'}`}>
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${resource.tone === 'blue' ? 'bg-blue-50 text-blue-700' : resource.tone === 'amber' ? 'bg-[#FFF4E2] text-[#C77A0B]' : 'bg-[#EEF4FF] text-[#4C78C9]'}`}>
                       <DocumentIcon size={15} />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[10px] font-black text-[#273830]">{resource.title}</span>
                       <span className="mt-0.5 block truncate text-[9px] text-[#89958F]">{resource.description}</span>
                     </span>
-                    <span className={`transition-transform duration-200 group-hover/resource:translate-x-1 ${resource.tone === 'green' ? 'text-[#0B7B47]' : resource.tone === 'amber' ? 'text-[#C77A0B]' : 'text-[#4C78C9]'}`}>
+                    <span className={`transition-transform duration-200 group-hover/resource:translate-x-1 ${resource.tone === 'blue' ? 'text-blue-700' : resource.tone === 'amber' ? 'text-[#C77A0B]' : 'text-[#4C78C9]'}`}>
                       <ExternalIcon size={14} />
                     </span>
                   </button>

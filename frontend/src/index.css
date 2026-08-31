@@ -4,6 +4,29 @@
 
 :root {
   color-scheme: light;
+
+  /* VITTANAYA DESIGN TOKENS (BLUE + BLACK + WHITE SYSTEM) */
+  --vtn-primary-navy: #060D1D;
+  --vtn-primary-blue: #2563EB;
+  --vtn-primary-cobalt: #1D4ED8;
+  --vtn-primary-sky: #0EA5E9;
+  --vtn-bg: #F8FAFC;
+  --vtn-bg-alt: #F1F5F9;
+  --vtn-surface: #FFFFFF;
+  --vtn-surface-glass: rgba(255, 255, 255, 0.85);
+  --vtn-border: rgba(59, 130, 246, 0.12);
+  --vtn-border-subtle: #E2E8F0;
+  --vtn-text: #0F172A;
+  --vtn-text-muted: #64748B;
+  --vtn-text-subtle: #94A3B8;
+  --vtn-success: #10B981;
+  --vtn-warning: #F59E0B;
+  --vtn-danger: #EF4444;
+  --vtn-radius-sm: 12px;
+  --vtn-radius-md: 18px;
+  --vtn-radius-lg: 24px;
+  --vtn-shadow-card: 0 4px 20px rgba(15, 23, 42, 0.04);
+  --vtn-shadow-hover: 0 10px 30px rgba(37, 99, 235, 0.08);
 }
 
 /* =========================================================
@@ -64,23 +87,138 @@ body {
    VITTANAYA LIGHT DASHBOARD SURFACE SYSTEM
    ========================================================= */
 
-/* Crisp Premium Green-Glass Dashboard Card (VITTANAYA design language) */
-.dash-card {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(16, 185, 129, 0.12);
-  box-shadow: 0 10px 30px rgba(16, 88, 56, 0.06);
-  backdrop-filter: blur(14px) saturate(135%);
-  -webkit-backdrop-filter: blur(14px) saturate(135%);
-  border-radius: 18px;
+/* Unified Premium Dashboard & Workspace Card System (Blue + Black + White) */
+.dash-card,
+.vtn-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+  border-radius: 22px;
   transition: transform 0.24s cubic-bezier(0.22, 0.61, 0.36, 1),
               box-shadow 0.24s cubic-bezier(0.22, 0.61, 0.36, 1),
               border-color 0.24s ease;
 }
 
-.dash-card-hover:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 40px rgba(16, 88, 56, 0.12);
-  border-color: rgba(16, 185, 129, 0.30);
+.dash-card-hover:hover,
+.vtn-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.08);
+  border-color: rgba(59, 130, 246, 0.28);
+}
+
+.vtn-card-glass {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(59, 130, 246, 0.14);
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+  border-radius: 22px;
+}
+
+/* Global Workspace Typography Utilities */
+.vtn-eyebrow {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: #2563EB;
+}
+
+.vtn-page-title {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 900;
+  color: #0F172A;
+  letter-spacing: -0.025em;
+}
+
+.vtn-section-title {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.015em;
+}
+
+/* Global Button Utilities */
+.vtn-btn-primary {
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 0.625rem 1.25rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.vtn-btn-primary:hover {
+  background-color: #1D4ED8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.vtn-btn-secondary {
+  background-color: #FFFFFF;
+  color: #1E293B;
+  border: 1px solid #E2E8F0;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 0.625rem 1.25rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+.vtn-btn-secondary:hover {
+  background-color: #F8FAFC;
+  border-color: #BFDBFE;
+  color: #1D4ED8;
+}
+
+/* Global Badge / Status Pills */
+.vtn-pill-blue {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 11px;
+}
+
+.vtn-pill-emerald {
+  background-color: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 11px;
+}
+
+.vtn-pill-amber {
+  background-color: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 11px;
+}
+
+.vtn-pill-slate {
+  background-color: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+  font-weight: 700;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 11px;
 }
 
 /* =========================================================
@@ -994,6 +1132,7 @@ html.dark .border-slate-100 { border-color: rgba(64,185,128,0.14) !important; }
 html.dark .border-slate-200 { border-color: rgba(64,185,128,0.18) !important; }
 html.dark .border-slate-300 { border-color: rgba(64,185,128,0.26) !important; }
 html.dark .border-slate-200\/80 { border-color: rgba(64,185,128,0.16) !important; }
+
 html.dark .divide-slate-100 > * + * { border-color: rgba(64,185,128,0.14) !important; }
 
 /* ------------------------------------------------------------------
@@ -1008,8 +1147,7 @@ html.dark .shadow-\[0_6px_24px_rgba\(25\,48\,38\,0\.04\)\] {
 html.dark .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.35) !important; }
 
 /* ------------------------------------------------------------------
-   6. DARK GLASS HIERARCHY — 3 depth levels
-   L1 page bg (#0B1410) < L2 main cards < L3 inner panels
+   6. DARK GLASS HIERARCHY
    ------------------------------------------------------------------ */
 html.dark .bg-white\/95,
 html.dark .bg-white\/90,
@@ -1019,39 +1157,81 @@ html.dark .bg-slate-50\/90 { background-color: #0D1913 !important; }
 html.dark .bg-slate-100,
 html.dark .bg-slate-100\/80 { background-color: #16291F !important; }
 html.dark .bg-gray-50 { background-color: #0D1913 !important; }
-
-/* pure-ish dark surfaces -> green-tinted dark glass (never flat black) */
 html.dark .bg-slate-900,
 html.dark .bg-slate-900\/90,
 html.dark .bg-slate-900\/80 { background-color: #101E17 !important; }
 html.dark .bg-gray-900 { background-color: #101E17 !important; }
 
-/* dark emerald glass buttons (primary) */
 html.dark button.bg-slate-900,
 html.dark .bg-slate-900.text-white {
   background-color: rgba(16, 185, 129, 0.18) !important;
   color: #6EE7B7 !important;
   border: 1px solid rgba(52, 211, 153, 0.30) !important;
+  transition: all 0.2s ease;
 }
 html.dark button.bg-slate-900:hover,
 html.dark .bg-slate-900.text-white:hover {
   background-color: rgba(16, 185, 129, 0.25) !important;
-  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.18);
 }
 
 /* ------------------------------------------------------------------
-   7. SMOOTH GLOBAL THEME TRANSITION (250ms, no white flash)
+   7. HERO BLUE SPARK & ATMOSPHERIC GLOW SYSTEM
+   Subtle intelligent blue particles on desktop hover only;
+   completely static on touch/mobile devices for 60fps performance.
    ------------------------------------------------------------------ */
-body,
-.dash-card,
-header, nav, aside,
-button, input, select, textarea {
-  transition-property: background-color, border-color, color, box-shadow;
-  transition-duration: 250ms;
-  transition-timing-function: ease;
+@keyframes sparkFloat1 {
+  0% { transform: translate(0, 0) scale(0.8); opacity: 0.2; }
+  50% { transform: translate(-10px, -18px) scale(1.1); opacity: 0.85; }
+  100% { transform: translate(6px, -32px) scale(0.6); opacity: 0; }
 }
-@media (prefers-reduced-motion: reduce) {
-  body, .dash-card, header, nav, aside, button, input, select, textarea {
-    transition: none;
+
+@keyframes sparkFloat2 {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0.1; }
+  50% { transform: translate(14px, -14px) scale(1.2); opacity: 0.9; }
+  100% { transform: translate(8px, -28px) scale(0.5); opacity: 0; }
+}
+
+@keyframes sparkFloat3 {
+  0% { transform: translate(0, 0) scale(0.7); opacity: 0.3; }
+  50% { transform: translate(-12px, -12px) scale(1.0); opacity: 0.8; }
+  100% { transform: translate(-6px, -24px) scale(0.4); opacity: 0; }
+}
+
+@keyframes sparkGlowPulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.65; transform: scale(1.05); }
+}
+
+/* Default / Mobile: Sparks hidden & static */
+.hero-spark-particle {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+/* Desktop only: Activate subtle sparks on hover */
+@media (hover: hover) and (pointer: fine) {
+  .hero-spark-card:hover .hero-spark-p1 {
+    opacity: 0.85;
+    animation: sparkFloat1 3s ease-in-out infinite;
+  }
+  .hero-spark-card:hover .hero-spark-p2 {
+    opacity: 0.95;
+    animation: sparkFloat2 2.6s ease-in-out infinite 0.4s;
+  }
+  .hero-spark-card:hover .hero-spark-p3 {
+    opacity: 0.9;
+    animation: sparkFloat3 3.2s ease-in-out infinite 0.8s;
+  }
+  .hero-spark-card:hover .hero-spark-p4 {
+    opacity: 0.8;
+    animation: sparkFloat1 2.8s ease-in-out infinite 1.2s;
+  }
+  .hero-spark-card:hover .hero-spark-p5 {
+    opacity: 0.85;
+    animation: sparkFloat2 3.4s ease-in-out infinite 0.2s;
+  }
+  .hero-spark-card:hover .hero-glow-pulse {
+    animation: sparkGlowPulse 4s ease-in-out infinite;
   }
 }

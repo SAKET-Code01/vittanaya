@@ -31,7 +31,7 @@ export function VittanayaEmblem({ size = 38, className = '' }) {
       {/* Outer subtle circle */}
       <circle cx="22" cy="22" r="21" stroke="#1B3B2B" strokeWidth="1.2" strokeOpacity="0.4" strokeDasharray="3 2" />
       <circle cx="22" cy="22" r="19" stroke="#1B3B2B" strokeWidth="1.2" />
-      
+
       {/* Bamboo / Laurel Leaves Ring */}
       <g stroke="#1B3B2B" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none">
         {/* Left wreath branch */}
@@ -39,7 +39,7 @@ export function VittanayaEmblem({ size = 38, className = '' }) {
         <path d="M 10 26 C 7 24, 8 21, 11 23" fill="#1B3B2B" fillOpacity="0.8" />
         <path d="M 10 20 C 7 18, 9 15, 12 17" fill="#1B3B2B" fillOpacity="0.8" />
         <path d="M 12 14 C 10 12, 13 9, 15 12" fill="#1B3B2B" fillOpacity="0.8" />
-        
+
         {/* Right wreath branch */}
         <path d="M 32 30 C 35 24, 35 18, 30 12" />
         <path d="M 34 26 C 37 24, 36 21, 33 23" fill="#1B3B2B" fillOpacity="0.8" />
@@ -88,7 +88,7 @@ export function RadarMapGraphic({ className = 'w-44 h-44' }) {
         {/* North */}
         <rect x="94" y="2" width="12" height="12" rx="3" fill="#FAF7F2" stroke="#2F7757" strokeWidth="1.5" />
         <path d="M 97 7 L 103 7 M 97 10 L 103 10" stroke="#2F7757" strokeWidth="1.2" strokeLinecap="round" />
-        
+
         {/* East */}
         <rect x="186" y="94" width="12" height="12" rx="3" fill="#FAF7F2" stroke="#2F7757" strokeWidth="1.5" />
         <path d="M 189 99 L 195 99 M 189 102 L 195 102" stroke="#2F7757" strokeWidth="1.2" strokeLinecap="round" />
@@ -119,7 +119,7 @@ export function RadarMapGraphic({ className = 'w-44 h-44' }) {
 /**
  * Circular Gauge for Business Verdict (78%)
  */
-export function CircularScoreGauge({ score = 78, size = 150, strokeWidth = 12 }) {
+export function CircularScoreGauge({ score = 78, size = 150, strokeWidth = 12, stroke = "#3B82F6" }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   // Arc angle spans ~270 degrees
@@ -146,7 +146,7 @@ export function CircularScoreGauge({ score = 78, size = 150, strokeWidth = 12 })
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#4EBA7D"
+          stroke={stroke}
           strokeWidth={strokeWidth}
           strokeDasharray={`${arcLength} ${circumference}`}
           strokeDashoffset={strokeDashoffset}

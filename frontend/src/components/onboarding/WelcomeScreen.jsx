@@ -1,6 +1,5 @@
 import React from 'react';
 import ruralBg from '../../assets/ruralbg.png';
-import vittanayaLogo from '../../assets/vittanaya-logo.png';
 import './WelcomeScreen.css';
 
 /**
@@ -20,7 +19,7 @@ import './WelcomeScreen.css';
 export default function WelcomeScreen({ onGetStarted, onExploreDemo }) {
   return (
     <div 
-      className="h-screen max-h-screen w-full text-slate-900 relative overflow-y-auto md:overflow-hidden flex flex-col justify-between selection:bg-blue-600 selection:text-white px-5 sm:px-8 py-3.5 sm:py-5"
+      className="h-screen max-h-screen w-full text-slate-900 relative overflow-y-auto md:overflow-hidden flex flex-col justify-between selection:bg-blue-600 selection:text-white px-5 sm:px-8 py-4 sm:py-6"
       style={{
         backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.55)), url(${ruralBg})`,
         backgroundSize: 'cover',
@@ -159,19 +158,6 @@ export default function WelcomeScreen({ onGetStarted, onExploreDemo }) {
       </div>
 
       {/* =========================================================================
-          TOP NAVIGATION BAR (Official Brand Header - Clean Top Right)
-          ========================================================================= */}
-      <header className="relative z-10 max-w-6xl w-full mx-auto flex items-center justify-start shrink-0">
-        <div className="flex items-center">
-          <img 
-            src={vittanayaLogo} 
-            alt="VITTANAYA - Financial Intelligence for Rural Entrepreneurs" 
-            className="vittanaya-brand-logo"
-          />
-        </div>
-      </header>
-
-      {/* =========================================================================
           MAIN CONTENT AREA (Compressed for Single-Screen Viewport Fit)
           ========================================================================= */}
       <main className="relative z-10 max-w-5xl w-full mx-auto my-auto flex flex-col items-center text-center justify-center shrink">
@@ -222,44 +208,44 @@ export default function WelcomeScreen({ onGetStarted, onExploreDemo }) {
         {/* -------------------------------------------------------------------
             SECTION 2: THREE FEATURES ROW (Typography-First Minimal Columns)
             ------------------------------------------------------------------- */}
-        <section className="w-full mt-4 sm:mt-6 pt-3.5 sm:pt-4 border-t border-slate-200/70">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-6 lg:gap-8 text-left">
+        <section className="w-full max-w-4xl mx-auto mt-4 sm:mt-6 pt-3.5 sm:pt-4 border-t border-slate-200/70">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 justify-center items-start text-center">
             
             {/* Block 1: Business Planning */}
-            <div className="flex flex-col space-y-1">
-              <span className="text-[10px] sm:text-[11px] font-bold text-blue-700/90 uppercase tracking-widest">
+            <div className="flex flex-col items-center text-center space-y-1 sm:space-y-1.5 w-full">
+              <span className="text-[10px] sm:text-[11px] font-bold text-blue-700/90 uppercase tracking-widest text-center">
                 01 / Strategy
               </span>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight text-center">
                 Business Planning
               </h3>
-              <p className="text-xs sm:text-[13px] text-slate-600 font-normal leading-relaxed">
+              <p className="text-xs sm:text-[13px] text-slate-600 font-normal leading-relaxed text-center max-w-xs mx-auto">
                 Build sustainable business plans backed by local insights.
               </p>
             </div>
 
             {/* Block 2: Financial Structuring */}
-            <div className="flex flex-col space-y-1">
-              <span className="text-[10px] sm:text-[11px] font-bold text-blue-700/90 uppercase tracking-widest">
+            <div className="flex flex-col items-center text-center space-y-1 sm:space-y-1.5 w-full">
+              <span className="text-[10px] sm:text-[11px] font-bold text-blue-700/90 uppercase tracking-widest text-center">
                 02 / Capital
               </span>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight text-center">
                 Financial Structuring
               </h3>
-              <p className="text-xs sm:text-[13px] text-slate-600 font-normal leading-relaxed">
+              <p className="text-xs sm:text-[13px] text-slate-600 font-normal leading-relaxed text-center max-w-xs mx-auto">
                 Understand capital requirements, cash flow and growth potential.
               </p>
             </div>
 
             {/* Block 3: Government Schemes */}
-            <div className="flex flex-col space-y-1">
-              <span className="text-[10px] sm:text-[11px] font-bold text-blue-700/90 uppercase tracking-widest">
+            <div className="flex flex-col items-center text-center space-y-1 sm:space-y-1.5 w-full">
+              <span className="text-[10px] sm:text-[11px] font-bold text-blue-700/90 uppercase tracking-widest text-center">
                 03 / Entitlements
               </span>
-              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight text-center">
                 Government Schemes
               </h3>
-              <p className="text-xs sm:text-[13px] text-slate-600 font-normal leading-relaxed">
+              <p className="text-xs sm:text-[13px] text-slate-600 font-normal leading-relaxed text-center max-w-xs mx-auto">
                 Discover schemes and funding opportunities relevant to your business.
               </p>
             </div>

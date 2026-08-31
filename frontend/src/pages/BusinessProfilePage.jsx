@@ -38,7 +38,7 @@ function getStatusTone(status) {
     case 'Strong':
     case 'Complete':
     case 'Active':
-      return 'emerald';
+      return 'blue';
     case 'Moderate':
     case 'Developing':
     case 'Partial':
@@ -54,7 +54,7 @@ function getStatusTone(status) {
 
 function StatusPill({ tone = 'slate', children }) {
   const styles = {
-    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    emerald: 'bg-blue-50 text-blue-700 border-blue-200',
     amber: 'bg-amber-50 text-amber-700 border-amber-200',
     rose: 'bg-rose-50 text-rose-700 border-rose-200',
     blue: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -73,7 +73,7 @@ function SectionLabel({ eyebrow, title, description, action }) {
     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 pb-4 border-b border-slate-100">
       <div className="space-y-1">
         {eyebrow && (
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-600">
             {eyebrow}
           </p>
         )}
@@ -109,9 +109,9 @@ function UsedByVittanaya({ items = [] }) {
   );
 }
 
-function MiniIcon({ type = 'sparkles', tone = 'emerald' }) {
+function MiniIcon({ type = 'sparkles', tone = 'blue' }) {
   const toneClasses = {
-    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-400/20',
+    emerald: 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-600/10 dark:text-blue-300 dark:border-blue-400/20',
     amber: 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-400/20',
     blue: 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-400/20',
   };
@@ -128,7 +128,7 @@ function MiniIcon({ type = 'sparkles', tone = 'emerald' }) {
   };
 
   return (
-    <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border shadow-[0_8px_20px_rgba(16,185,129,0.05)] ${toneClasses[tone] || toneClasses.emerald}`}>
+    <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border shadow-xs ${toneClasses[tone] || toneClasses.blue}`}>
       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d={paths[type] || paths.sparkles} />
       </svg>
@@ -181,7 +181,7 @@ function ProfileCompletenessCard({ profile, financialData, onCompleteProfile }) 
 
   return (
     <div className="dash-card group relative overflow-hidden p-5 sm:p-6 h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(16,88,56,0.10)]">
-      <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-emerald-100/40 blur-3xl transition-opacity duration-300 group-hover:opacity-100 dark:bg-emerald-400/10" />
+      <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-100/30 blur-3xl transition-opacity duration-300 group-hover:opacity-100 dark:bg-emerald-400/10" />
 
       <SectionLabel
         eyebrow="Profile Readiness"
@@ -191,7 +191,7 @@ function ProfileCompletenessCard({ profile, financialData, onCompleteProfile }) 
           <button
             type="button"
             onClick={onCompleteProfile}
-            className="group/button inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white/80 px-3.5 py-2.5 text-xs font-bold text-emerald-700 shadow-sm backdrop-blur transition-all duration-250 hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-[0_8px_22px_rgba(16,185,129,0.12)] dark:border-emerald-400/20 dark:bg-emerald-500/5 dark:text-emerald-200 dark:hover:bg-emerald-500/10"
+            className="group/button inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white/80 px-3.5 py-2.5 text-xs font-bold text-blue-700 shadow-sm backdrop-blur transition-all duration-250 hover:-translate-y-0.5 hover:border-blue-300 hover:bg-blue-50 hover:shadow-[0_8px_22px_rgba(16,185,129,0.12)] dark:border-blue-400/20 dark:bg-blue-600/5 dark:text-emerald-200 dark:hover:bg-blue-500/10"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L8 18l-4 1 1-4L16.5 3.5z" />
@@ -216,7 +216,7 @@ function ProfileCompletenessCard({ profile, financialData, onCompleteProfile }) 
                 strokeWidth="10"
                 strokeLinecap="round"
                 strokeDasharray={`${(safePercent / 100) * 301.6} 301.6`}
-                className="text-emerald-500 transition-all duration-700 ease-out"
+                className="text-blue-600 transition-all duration-700 ease-out"
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -243,7 +243,7 @@ function ProfileCompletenessCard({ profile, financialData, onCompleteProfile }) 
                 <span className="text-xs font-black text-slate-800 dark:text-slate-200">{safePercent}%</span>
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
-                <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700" style={{ width: `${safePercent}%` }} />
+                <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-500 transition-all duration-700" style={{ width: `${safePercent}%` }} />
               </div>
             </div>
 
@@ -251,10 +251,10 @@ function ProfileCompletenessCard({ profile, financialData, onCompleteProfile }) 
               {checklistPreview.map((item) => (
                 <span key={item.shortLabel} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
                   item.value
-                    ? 'border-emerald-100 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/5 dark:text-emerald-200'
+                    ? 'border-blue-100 bg-blue-50 text-blue-700 dark:border-blue-400/20 dark:bg-blue-600/5 dark:text-emerald-200'
                     : 'border-amber-100 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/5 dark:text-amber-200'
                 }`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${item.value ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  <span className={`h-1.5 w-1.5 rounded-full ${item.value ? 'bg-blue-600' : 'bg-amber-500'}`} />
                   {item.shortLabel}
                 </span>
               ))}
@@ -262,9 +262,9 @@ function ProfileCompletenessCard({ profile, financialData, onCompleteProfile }) 
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50/70 to-white/70 p-3.5 shadow-sm dark:border-emerald-400/15 dark:from-emerald-500/8 dark:to-white/[0.02]">
+        <div className="mt-5 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/50 to-white/70 p-3.5 shadow-xs dark:border-blue-400/15 dark:from-emerald-500/8 dark:to-white/[0.02]">
           <div className="flex items-start gap-3">
-            <MiniIcon type="sparkles" tone="emerald" />
+            <MiniIcon type="sparkles" tone="blue" />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-extrabold text-slate-900 dark:text-white">Next best action</p>
               <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
@@ -276,7 +276,7 @@ function ProfileCompletenessCard({ profile, financialData, onCompleteProfile }) 
             <button
               type="button"
               onClick={onCompleteProfile}
-              className="shrink-0 self-center text-xs font-black text-emerald-700 transition-all hover:translate-x-0.5 hover:text-emerald-800 dark:text-emerald-300"
+              className="shrink-0 self-center text-xs font-black text-blue-700 transition-all hover:translate-x-0.5 hover:text-blue-800 dark:text-blue-300"
             >
               Fix now →
             </button>
@@ -294,7 +294,7 @@ function BusinessHealthSnapshot({ profile, financialSummary, selectedOps }) {
     {
       title: 'Financial Health',
       type: 'heart',
-      tone: financialScore === null ? 'slate' : financialScore >= 80 ? 'emerald' : financialScore >= 60 ? 'amber' : 'rose',
+      tone: financialScore === null ? 'slate' : financialScore >= 80 ? 'blue' : financialScore >= 60 ? 'amber' : 'rose',
       value: financialScore === null ? '—' : `${financialScore} / 100`,
       status: financialScore === null ? 'Not enough data' : financialScore >= 80 ? 'Healthy' : financialScore >= 60 ? 'Moderate' : 'Needs attention',
       detail: financialScore === null ? 'Add financial data to assess health.' : 'Healthy financial profile.',
@@ -302,7 +302,7 @@ function BusinessHealthSnapshot({ profile, financialSummary, selectedOps }) {
     {
       title: 'Market Readiness',
       type: 'chart',
-      tone: profile?.location && (profile?.category || profile?.businessType) ? 'emerald' : 'amber',
+      tone: profile?.location && (profile?.category || profile?.businessType) ? 'blue' : 'amber',
       value: profile?.location && (profile?.category || profile?.businessType) ? 'Strong' : 'Developing',
       status: profile?.location && (profile?.category || profile?.businessType) ? 'Strong' : 'Developing',
       detail: profile?.location ? 'High potential from the current business context.' : 'Add a location to improve market context.',
@@ -310,7 +310,7 @@ function BusinessHealthSnapshot({ profile, financialSummary, selectedOps }) {
     {
       title: 'Operational Readiness',
       type: 'layers',
-      tone: selectedOps.length >= 8 ? 'emerald' : selectedOps.length >= 4 ? 'amber' : selectedOps.length > 0 ? 'blue' : 'slate',
+      tone: selectedOps.length >= 8 ? 'blue' : selectedOps.length >= 4 ? 'amber' : selectedOps.length > 0 ? 'blue' : 'slate',
       value: selectedOps.length >= 8 ? 'Strong' : selectedOps.length >= 4 ? 'Moderate' : selectedOps.length > 0 ? 'Developing' : '—',
       status: selectedOps.length >= 8 ? 'Strong' : selectedOps.length >= 4 ? 'Moderate' : selectedOps.length > 0 ? 'Developing' : 'Not enough data',
       detail: selectedOps.length > 0 ? `${selectedOps.length} active operations` : 'No active operations yet.',
@@ -318,7 +318,7 @@ function BusinessHealthSnapshot({ profile, financialSummary, selectedOps }) {
     {
       title: 'Documentation',
       type: 'file',
-      tone: profile?.gstin && profile?.pan ? 'emerald' : (profile?.gstin || profile?.pan || profile?.regNo || profile?.legalStructure ? 'amber' : 'rose'),
+      tone: profile?.gstin && profile?.pan ? 'blue' : (profile?.gstin || profile?.pan || profile?.regNo || profile?.legalStructure ? 'amber' : 'rose'),
       value: profile?.gstin && profile?.pan ? 'Complete' : (profile?.gstin || profile?.pan || profile?.regNo || profile?.legalStructure ? 'Partial' : 'Incomplete'),
       status: profile?.gstin && profile?.pan ? 'Complete' : (profile?.gstin || profile?.pan || profile?.regNo || profile?.legalStructure ? 'Partial' : 'Incomplete'),
       detail: profile?.gstin || profile?.pan || profile?.regNo ? 'Registration details are present.' : 'Add registration details to strengthen the profile.',
@@ -326,7 +326,7 @@ function BusinessHealthSnapshot({ profile, financialSummary, selectedOps }) {
   ];
 
   const iconTone = {
-    emerald: 'emerald',
+    emerald: 'blue',
     amber: 'amber',
     rose: 'amber',
     blue: 'blue',
@@ -335,7 +335,7 @@ function BusinessHealthSnapshot({ profile, financialSummary, selectedOps }) {
 
   return (
     <div className="dash-card group relative overflow-hidden p-5 sm:p-6 h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(16,88,56,0.10)]">
-      <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-emerald-100/40 blur-3xl dark:bg-emerald-400/10" />
+      <div className="pointer-events-none absolute -right-14 -top-16 h-40 w-40 rounded-full bg-blue-100/40 blur-3xl dark:bg-emerald-400/10" />
 
       <SectionLabel
         eyebrow="Business Health Snapshot"
@@ -347,17 +347,17 @@ function BusinessHealthSnapshot({ profile, financialSummary, selectedOps }) {
         {cards.map((card) => (
           <div
             key={card.title}
-            className="group/metric flex min-h-[148px] flex-col justify-between rounded-2xl border border-slate-100 bg-white/75 p-4.5 backdrop-blur transition-all duration-250 hover:-translate-y-1 hover:border-emerald-200 hover:bg-emerald-50/40 hover:shadow-[0_12px_30px_rgba(16,185,129,0.10)] dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-emerald-400/25 dark:hover:bg-emerald-500/[0.06]"
+            className="group/metric flex min-h-[148px] flex-col justify-between rounded-2xl border border-slate-100 bg-white/75 p-4.5 backdrop-blur transition-all duration-250 hover:-translate-y-1 hover:border-blue-200 hover:bg-blue-50/40 hover:shadow-[0_12px_30px_rgba(16,185,129,0.10)] dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-blue-400/25 dark:hover:bg-blue-500/[0.06]"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <MiniIcon type={card.type} tone={iconTone[card.tone] || 'emerald'} />
+                <MiniIcon type={card.type} tone={iconTone[card.tone] || 'blue'} />
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
                   {card.title}
                 </p>
               </div>
               {card.title === 'Financial Health' && financialScore !== null && (
-                <span className="whitespace-nowrap rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+                <span className="whitespace-nowrap rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black text-blue-700 dark:border-blue-400/20 dark:bg-blue-600/10 dark:text-emerald-200">
                   Score
                 </span>
               )}
@@ -370,12 +370,12 @@ function BusinessHealthSnapshot({ profile, financialSummary, selectedOps }) {
                   <span className={`h-2 w-2 rounded-full ${
                     card.tone === 'amber' ? 'bg-amber-500' :
                     card.tone === 'rose' ? 'bg-rose-500' :
-                    card.tone === 'blue' ? 'bg-blue-500' : 'bg-emerald-500'
+                    card.tone === 'blue' ? 'bg-blue-500' : 'bg-blue-600'
                   }`} />
                   <span className={`text-xs font-extrabold ${
                     card.tone === 'amber' ? 'text-amber-700 dark:text-amber-300' :
                     card.tone === 'rose' ? 'text-rose-700 dark:text-rose-300' :
-                    card.tone === 'blue' ? 'text-blue-700 dark:text-blue-300' : 'text-emerald-700 dark:text-emerald-300'
+                    card.tone === 'blue' ? 'text-blue-700 dark:text-blue-300' : 'text-blue-700 dark:text-blue-300'
                   }`}>
                     {card.status}
                   </span>
@@ -412,7 +412,7 @@ function LocationIntelligenceCard({ profile, onNavigateFeasibility, usedByItems 
 
   return (
     <div className="dash-card group relative overflow-hidden p-5 sm:p-6 h-full flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(16,88,56,0.10)]">
-      <div className="pointer-events-none absolute -left-16 -bottom-20 h-44 w-44 rounded-full bg-emerald-100/40 blur-3xl dark:bg-emerald-400/10" />
+      <div className="pointer-events-none absolute -left-16 -bottom-20 h-44 w-44 rounded-full bg-blue-100/40 blur-3xl dark:bg-emerald-400/10" />
 
       <SectionLabel
         eyebrow="Local Context"
@@ -422,7 +422,7 @@ function LocationIntelligenceCard({ profile, onNavigateFeasibility, usedByItems 
           <button
             type="button"
             onClick={onNavigateFeasibility}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-sm backdrop-blur transition-all duration-250 hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-[0_8px_22px_rgba(16,185,129,0.12)] dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-200 dark:hover:bg-emerald-500/10"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-sm backdrop-blur transition-all duration-250 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:shadow-[0_8px_22px_rgba(16,185,129,0.12)] dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-200 dark:hover:bg-blue-500/10"
           >
             View Local Analysis
             <span>→</span>
@@ -431,13 +431,13 @@ function LocationIntelligenceCard({ profile, onNavigateFeasibility, usedByItems 
       />
 
       <div className="mt-5 flex-1">
-        <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/75 via-white/80 to-white/60 p-4 shadow-sm dark:border-emerald-400/15 dark:from-emerald-500/10 dark:via-white/[0.03] dark:to-transparent">
+        <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-emerald-50/75 via-white/80 to-white/60 p-4 shadow-sm dark:border-blue-400/15 dark:from-emerald-500/10 dark:via-white/[0.03] dark:to-transparent">
           <div className="flex items-start gap-3">
             <MiniIcon type="pin" tone="emerald" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="break-words text-sm font-extrabold text-slate-900 dark:text-white">{locationLabel}</p>
-                <StatusPill tone={isReady ? 'emerald' : 'slate'}>
+                <StatusPill tone={isReady ? 'blue' : 'slate'}>
                   {isReady ? 'Ready' : 'Awaiting analysis'}
                 </StatusPill>
               </div>
@@ -449,7 +449,7 @@ function LocationIntelligenceCard({ profile, onNavigateFeasibility, usedByItems 
 
           <div className="mt-4 flex items-center justify-between rounded-xl border border-white/80 bg-white/70 px-3 py-2.5 text-[11px] dark:border-white/10 dark:bg-white/[0.03]">
             <span className="font-semibold text-slate-500 dark:text-slate-400">Current location signal</span>
-            <span className={`font-black ${isReady ? 'text-emerald-700 dark:text-emerald-300' : 'text-slate-500'}`}>
+            <span className={`font-black ${isReady ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500'}`}>
               {isReady ? 'Ready for analysis' : 'Needs location'}
             </span>
           </div>
@@ -459,10 +459,10 @@ function LocationIntelligenceCard({ profile, onNavigateFeasibility, usedByItems 
           {metrics.map((metric) => (
             <div
               key={metric.label}
-              className="group/location rounded-2xl border border-slate-100 bg-white/70 p-3.5 backdrop-blur transition-all duration-250 hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50/30 hover:shadow-[0_10px_24px_rgba(16,185,129,0.08)] dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-emerald-400/20 dark:hover:bg-emerald-500/[0.05]"
+              className="group/location rounded-2xl border border-slate-100 bg-white/70 p-3.5 backdrop-blur transition-all duration-250 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50/30 hover:shadow-[0_10px_24px_rgba(16,185,129,0.08)] dark:border-white/10 dark:bg-white/[0.025] dark:hover:border-blue-400/20 dark:hover:bg-blue-500/[0.05]"
             >
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-600/10 dark:text-blue-300">
                   <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d={
                       metric.icon === 'target'
@@ -491,7 +491,7 @@ function LocationIntelligenceCard({ profile, onNavigateFeasibility, usedByItems 
           <button
             type="button"
             onClick={onNavigateFeasibility}
-            className="hidden shrink-0 text-[11px] font-black text-emerald-700 transition-all hover:translate-x-0.5 hover:text-emerald-800 sm:inline-flex dark:text-emerald-300"
+            className="hidden shrink-0 text-[11px] font-black text-blue-700 transition-all hover:translate-x-0.5 hover:text-blue-800 sm:inline-flex dark:text-blue-300"
           >
             Explore area →
           </button>
@@ -621,7 +621,7 @@ function BusinessProfilePage({ onNavigateHome }) {
   const districtLabel = profile.district || profile.locationData?.district || 'Not provided';
   const stateLabel = profile.state || profile.locationData?.state || 'Not provided';
   const pinLabel = profile.pin || profile.locationData?.pin || 'Not provided';
-  const locationLabel = profile.location || [profile.village || profile.locationData?.village, profile.district || profile.locationData?.district, profile.state || profile.locationData?.state].filter(Boolean).join(', ') || 'Not provided';
+  const locationLabel = profile.location || [profile.city || profile.village || profile.locationData?.village, profile.district || profile.locationData?.district, profile.state || profile.locationData?.state].filter(Boolean).join(', ') || 'Not provided';
   const businessSinceLabel = profile.businessSince && profile.businessSince !== '2022' ? profile.businessSince : null;
   const financialLastCalculated = financialData?.lastCalculatedAt || profile.lastUpdatedAt || null;
 
@@ -632,7 +632,7 @@ function BusinessProfilePage({ onNavigateHome }) {
     <div className="w-full max-w-[1600px] mx-auto space-y-5 animate-fadeIn pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-600">
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">
             Business Intelligence Profile
           </p>
           <div className="space-y-1">
@@ -660,7 +660,7 @@ function BusinessProfilePage({ onNavigateHome }) {
           <button
             type="button"
             onClick={() => setIsEditProfileOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 transition-colors shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -671,12 +671,12 @@ function BusinessProfilePage({ onNavigateHome }) {
       </div>
 
       {showExportSuccess && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-800 flex items-center justify-between gap-3">
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-800 flex items-center justify-between gap-3">
           <span>Profile configuration exported successfully.</span>
           <button
             type="button"
             onClick={() => setShowExportSuccess(false)}
-            className="font-bold text-emerald-700 hover:text-emerald-900"
+            className="font-bold text-blue-700 hover:text-blue-900"
           >
             Close
           </button>
@@ -713,7 +713,7 @@ function BusinessProfilePage({ onNavigateHome }) {
               <button
                 type="button"
                 onClick={() => setIsEditBusinessInfoOpen(true)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-800"
               >
                 <span>Edit</span>
                 <span aria-hidden="true">✎</span>
@@ -742,7 +742,7 @@ function BusinessProfilePage({ onNavigateHome }) {
               <button
                 type="button"
                 onClick={() => setIsEditBusinessTypeOpen(true)}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-800"
               >
                 <span>Edit</span>
                 <span aria-hidden="true">✎</span>
@@ -750,19 +750,19 @@ function BusinessProfilePage({ onNavigateHome }) {
             }
           />
 
-          <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">
+          <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
               Business Type
             </p>
             <div className="mt-2 flex items-center gap-3">
-              <div className="h-12 w-12 rounded-2xl bg-white border border-emerald-100 text-emerald-600 flex items-center justify-center shadow-xs">
+              <div className="h-12 w-12 rounded-2xl bg-white border border-blue-100 text-blue-600 flex items-center justify-center shadow-xs">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
               <div>
                 <p className="text-xl font-black text-emerald-950">{businessTypeLabel}</p>
-                <p className="text-xs text-emerald-800/80">Primary Business Type</p>
+                <p className="text-xs text-blue-800/80">Primary Business Type</p>
               </div>
             </div>
           </div>
@@ -811,13 +811,13 @@ function BusinessProfilePage({ onNavigateHome }) {
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-500 font-medium">Active Operations</span>
-              <StatusPill tone={selectedOps.length > 0 ? 'emerald' : 'slate'}>
+              <StatusPill tone={selectedOps.length > 0 ? 'blue' : 'slate'}>
                 {selectedOps.length} / {AVAILABLE_OPERATIONS.length}
               </StatusPill>
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-500 font-medium">Workspace Status</span>
-              <StatusPill tone={profile.onboardingCompletedAt ? 'emerald' : 'amber'}>
+              <StatusPill tone={profile.onboardingCompletedAt ? 'blue' : 'amber'}>
                 {profile.onboardingCompletedAt ? 'Onboarded' : 'Pending'}
               </StatusPill>
             </div>
@@ -829,7 +829,7 @@ function BusinessProfilePage({ onNavigateHome }) {
             </div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-slate-500 font-medium">Onboarding Status</span>
-              <StatusPill tone={profile.onboardingCompletedAt ? 'emerald' : 'amber'}>
+              <StatusPill tone={profile.onboardingCompletedAt ? 'blue' : 'amber'}>
                 {profile.onboardingCompletedAt ? 'Completed' : 'Pending'}
               </StatusPill>
             </div>
@@ -906,7 +906,7 @@ function BusinessProfilePage({ onNavigateHome }) {
                       setActiveConfigOpId(op.id);
                       setIsOpConfigOpen(true);
                     }}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-800"
                   >
                     <span>Edit</span>
                     <span aria-hidden="true">✎</span>
@@ -959,7 +959,7 @@ function BusinessProfilePage({ onNavigateHome }) {
                         setActiveConfigOpId(op.id);
                         setIsOpConfigOpen(true);
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors"
                     >
                       <span>Enable</span>
                       <span aria-hidden="true">+</span>
@@ -981,7 +981,7 @@ function BusinessProfilePage({ onNavigateHome }) {
             <button
               type="button"
               onClick={() => setIsEditBusinessInfoOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-800"
             >
               <span>Edit</span>
               <span aria-hidden="true">✎</span>
@@ -1051,9 +1051,9 @@ function BusinessProfilePage({ onNavigateHome }) {
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-1">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 space-y-1">
             <p className="text-[11px] font-semibold text-slate-500">Cash Available</p>
-            <p className="text-base sm:text-lg font-extrabold text-emerald-700 font-mono">
+            <p className="text-base sm:text-lg font-extrabold text-blue-700 font-mono">
               {formatINR(financialData?.cash_balance ?? 0)}
             </p>
           </div>
@@ -1069,9 +1069,9 @@ function BusinessProfilePage({ onNavigateHome }) {
               {formatINR(financialData?.payables_total ?? 0)}
             </p>
           </div>
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-1">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 space-y-1">
             <p className="text-[11px] font-semibold text-slate-500">Expected Inflow</p>
-            <p className="text-base sm:text-lg font-extrabold text-emerald-700 font-mono">
+            <p className="text-base sm:text-lg font-extrabold text-blue-700 font-mono">
               {formatINR(financialData?.expected_inflow ?? 0)}
             </p>
           </div>
@@ -1119,7 +1119,7 @@ function BusinessProfilePage({ onNavigateHome }) {
             </div>
             <div>
               <span className="text-slate-400">Health Score: </span>
-              <strong className="font-mono font-extrabold text-emerald-700">
+              <strong className="font-mono font-extrabold text-blue-700">
                 {typeof financialSummary?.health_score === 'number'
                   ? `${financialSummary.health_score} / 100`
                   : 'Not recorded'}

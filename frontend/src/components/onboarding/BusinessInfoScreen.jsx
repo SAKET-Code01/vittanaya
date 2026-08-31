@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import VittanayaLogo from '../common/VittanayaLogo';
+import SearchableLocationSelect from '../common/SearchableLocationSelect';
+import locationService from '../../services/locationService';
 
 /**
  * BusinessInfoScreen Component (Step 2 of Onboarding)
@@ -9,13 +11,13 @@ import VittanayaLogo from '../common/VittanayaLogo';
  * - Top-left VITTANAYA logo with "Financial Intelligence"
  * - Top 4-stage progress tracker (Step 1 Welcome completed ✓, Step 2 Business Information active, Step 3 & 4 inactive)
  * - Two-column main container:
- *    - Left Panel: Clean form for business identity, description, contact and location + Back & Next buttons
+ *    - Left Panel: Clean form for business identity, description, contact and hierarchical location + Back & Next buttons
  *    - Right Panel: Business Profile card illustration (floating shield, mini chart, potted plant) + 4 benefit bullet points
  * - Bottom security guarantee with lock icon
- * - Form validation with clean inline states
+ * - Form validation with clean inline states & hierarchical cascading location selection
  */
 export default function BusinessInfoScreen({
-  formData,
+  formData = {},
   setFormData,
   onBack,
   onNext,
@@ -30,6 +32,138 @@ export default function BusinessInfoScreen({
     }
   };
 
+  // Location Loading Callbacks
+  const loadStates = useCallback(async () => {
+    return locationService.getStates();
+  }, []);
+
+  const loadDistricts = useCallback(async () => {
+    if (!formData.stateId && !formData.state) return [];
+    let sId = formData.stateId;
+    if (!sId && formData.state) {
+      const states = await locationService.getStates();
+      const match = states.find((s) => s.name.toLowerCase() === formData.state.toLowerCase());
+      sId = match?.id || 'OD';
+    }
+    return locationService.getDistricts(sId || 'OD');
+  }, [formData.stateId, formData.state]);
+
+  const loadBlocks = useCallback(async () => {
+    if (!formData.districtId && !formData.district) return [];
+    const dId = formData.districtId || `${formData.stateId || 'OD'}_DIST`;
+    return locationService.getBlocks(dId);
+  }, [formData.districtId, formData.district, formData.stateId]);
+
+  const loadVillages = useCallback(async () => {
+    if (!formData.blockId && !formData.block) return [];
+    const bId = formData.blockId || `${formData.districtId || 'OD_KH'}_BLK1`;
+    return locationService.getLocalities(bId);
+  }, [formData.blockId, formData.block, formData.districtId]);
+
+  // Hierarchical Cascading Location Handlers with Parent Clears
+  const handleStateChange = (stateObj) => {
+    setFormData((prev) => ({
+      ...prev,
+      state: stateObj.name,
+      stateId: stateObj.id,
+      district: '',
+      districtId: '',
+      block: '',
+      blockId: '',
+      city: '',
+      cityId: '',
+      village: '',
+      villageId: '',
+    }));
+    setErrors((prev) => ({ ...prev, state: null, district: null, village: null }));
+  };
+
+  const handleStateClear = () => {
+    setFormData((prev) => ({
+      ...prev,
+      state: '',
+      stateId: '',
+      district: '',
+      districtId: '',
+      block: '',
+      blockId: '',
+      city: '',
+      cityId: '',
+      village: '',
+      villageId: '',
+    }));
+  };
+
+  const handleDistrictChange = (districtObj) => {
+    setFormData((prev) => ({
+      ...prev,
+      district: districtObj.name,
+      districtId: districtObj.id,
+      block: '',
+      blockId: '',
+      city: '',
+      cityId: '',
+      village: '',
+      villageId: '',
+    }));
+    setErrors((prev) => ({ ...prev, district: null, village: null }));
+  };
+
+  const handleDistrictClear = () => {
+    setFormData((prev) => ({
+      ...prev,
+      district: '',
+      districtId: '',
+      block: '',
+      blockId: '',
+      city: '',
+      cityId: '',
+      village: '',
+      villageId: '',
+    }));
+  };
+
+  const handleBlockChange = (blockObj) => {
+    setFormData((prev) => ({
+      ...prev,
+      block: blockObj.name,
+      blockId: blockObj.id,
+      city: blockObj.name,
+      cityId: blockObj.id,
+      village: '',
+      villageId: '',
+    }));
+  };
+
+  const handleBlockClear = () => {
+    setFormData((prev) => ({
+      ...prev,
+      block: '',
+      blockId: '',
+      city: '',
+      cityId: '',
+      village: '',
+      villageId: '',
+    }));
+  };
+
+  const handleVillageChange = (villageObj) => {
+    setFormData((prev) => ({
+      ...prev,
+      village: villageObj.name,
+      villageId: villageObj.id,
+    }));
+    setErrors((prev) => ({ ...prev, village: null }));
+  };
+
+  const handleVillageClear = () => {
+    setFormData((prev) => ({
+      ...prev,
+      village: '',
+      villageId: '',
+    }));
+  };
+
   const handleNext = (e) => {
     e.preventDefault();
     const newErrors = {};
@@ -38,16 +172,16 @@ export default function BusinessInfoScreen({
       ['businessDescription', 'Business description', 10, 500],
       ['phone', 'Phone number', 10, 20],
       ['email', 'Email address', 5, 120],
-      ['village', 'Village / Town', 2, 100],
-      ['district', 'District', 2, 100],
       ['state', 'State', 2, 100],
+      ['district', 'District', 2, 100],
+      ['village', 'Village / Locality', 2, 100],
       ['pin', 'PIN Code', 6, 6],
     ];
 
     requiredFields.forEach(([field, label, minLength, maxLength]) => {
-      const value = formData[field]?.trim() || '';
+      const value = formData[field]?.toString().trim() || '';
       if (!value) {
-        newErrors[field] = `Please enter ${label.toLowerCase()}`;
+        newErrors[field] = `Please select or enter ${label.toLowerCase()}`;
       } else if (value.length < minLength || value.length > maxLength) {
         newErrors[field] = `${label} must be ${minLength === maxLength ? `${minLength} digits` : `${minLength}-${maxLength} characters`}`;
       }
@@ -84,17 +218,16 @@ export default function BusinessInfoScreen({
           <VittanayaLogo size="header" onHome={onHome || onBack} />
         </div>
 
-
         {/* 4-Step Progress Tracker */}
         <div className="flex items-center space-x-2 sm:space-x-4 self-center lg:self-auto overflow-x-auto py-1">
           {/* Step 1: Welcome (Completed) */}
           <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+            <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
               ✓
             </div>
             <div className="hidden sm:block text-left">
               <span className="text-[10px] font-semibold text-slate-400 block leading-tight">Step 1</span>
-              <span className="text-xs font-semibold text-emerald-600 block leading-tight">Welcome</span>
+              <span className="text-xs font-semibold text-blue-700 block leading-tight">Welcome</span>
             </div>
           </div>
 
@@ -255,32 +388,105 @@ export default function BusinessInfoScreen({
                 </div>
               </div>
 
-              {/* Business Location */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-black uppercase tracking-wide text-slate-500">Business Location</h3>
+              {/* ========================================================================= */}
+              {/* HIERARCHICAL BUSINESS LOCATION SECTION */}
+              {/* ========================================================================= */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                  <h3 className="text-xs font-black uppercase tracking-wide text-slate-500">
+                    Business Location (Catchment Area)
+                  </h3>
+                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                    Hierarchical Selection
+                  </span>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {[
-                    ['village', 'Village / Town', 'Enter village or town'],
-                    ['district', 'District', 'Enter district'],
-                    ['state', 'State', 'Enter state'],
-                    ['pin', 'PIN Code', 'Enter 6-digit PIN'],
-                  ].map(([field, label, placeholder]) => (
-                    <div key={field} className="space-y-1">
-                      <label className="block text-xs font-bold text-slate-800">
-                        {label} <span className="text-rose-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        inputMode={field === 'pin' ? 'numeric' : 'text'}
-                        maxLength={field === 'pin' ? 6 : undefined}
-                        value={formData[field] || ''}
-                        onChange={(e) => handleChange(field, e.target.value)}
-                        placeholder={placeholder}
-                        className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all ${errors[field] ? 'border-rose-400 ring-1 ring-rose-400' : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'}`}
-                      />
-                      {errors[field] && <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors[field]}</p>}
-                    </div>
-                  ))}
+                  {/* 1. State * */}
+                  <SearchableLocationSelect
+                    label="State"
+                    required
+                    value={formData.state || ''}
+                    placeholder="Select state"
+                    loadOptions={loadStates}
+                    parentSelected={true}
+                    onChange={handleStateChange}
+                    onClear={handleStateClear}
+                    error={errors.state}
+                    helperText="Primary state territory"
+                  />
+
+                  {/* 2. District * */}
+                  <SearchableLocationSelect
+                    label="District"
+                    required
+                    value={formData.district || ''}
+                    placeholder={formData.state ? "Select district" : "Select state first"}
+                    loadOptions={loadDistricts}
+                    parentSelected={Boolean(formData.state || formData.stateId)}
+                    parentName="State"
+                    disabled={!formData.state && !formData.stateId}
+                    onChange={handleDistrictChange}
+                    onClear={handleDistrictClear}
+                    error={errors.district}
+                    helperText="Administrative district"
+                  />
+
+                  {/* 3. Block / Tehsil / City */}
+                  <SearchableLocationSelect
+                    label="Block / Tehsil / City"
+                    value={formData.block || formData.city || ''}
+                    placeholder={formData.district ? "Select or enter block" : "Select district first"}
+                    loadOptions={loadBlocks}
+                    parentSelected={Boolean(formData.district || formData.districtId)}
+                    parentName="District"
+                    disabled={!formData.district && !formData.districtId}
+                    onChange={handleBlockChange}
+                    onClear={handleBlockClear}
+                    error={errors.block}
+                    helperText="Sub-division / Block"
+                  />
+
+                  {/* 4. Village / Town / Locality * */}
+                  <SearchableLocationSelect
+                    label="Village / Town / Locality"
+                    required
+                    value={formData.village || ''}
+                    placeholder={formData.district ? "Select or enter village" : "Select district first"}
+                    loadOptions={loadVillages}
+                    parentSelected={Boolean(formData.district || formData.districtId)}
+                    parentName="District"
+                    disabled={!formData.district && !formData.districtId}
+                    onChange={handleVillageChange}
+                    onClear={handleVillageClear}
+                    error={errors.village}
+                    helperText="Operating street / village"
+                  />
+                </div>
+
+                {/* Row 3: PIN Code */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-800">
+                      PIN Code <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={formData.pin || ''}
+                      onChange={(e) => handleChange('pin', e.target.value.replace(/\D/g, ''))}
+                      placeholder="Enter 6-digit PIN"
+                      className={`w-full px-4 py-3 rounded-xl border bg-white text-sm text-[#0F172A] placeholder:text-slate-400 focus:outline-none transition-all ${
+                        errors.pin
+                          ? 'border-rose-400 ring-1 ring-rose-400'
+                          : 'border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20'
+                      }`}
+                    />
+                    {errors.pin && (
+                      <p className="text-[11px] font-medium text-rose-500 mt-0.5">{errors.pin}</p>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -296,7 +502,7 @@ export default function BusinessInfoScreen({
                 </button>
                 <button
                   type="submit"
-                  className="px-10 py-3.5 rounded-xl bg-gradient-to-r from-[#7000FF] via-[#5A3FFF] to-[#00A3FF] hover:from-[#6200EA] hover:to-[#0091EA] text-white font-bold text-sm tracking-wide shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center space-x-1.5 cursor-pointer"
+                  className="px-10 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm tracking-wide shadow-md shadow-blue-600/20 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center space-x-1.5 cursor-pointer"
                 >
                   <span>Next</span>
                   <span>→</span>
@@ -315,9 +521,9 @@ export default function BusinessInfoScreen({
             {/* Top Visual: Floating Profile Card Composition */}
             <div className="relative w-full h-64 sm:h-72 bg-gradient-to-b from-[#F0F7FF] to-[#F8FAFC] rounded-2xl flex items-center justify-center p-4 border border-blue-50/80 overflow-hidden">
               
-              {/* Soft blue/purple background blobs */}
+              {/* Soft blue background blobs */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-full bg-blue-400/10 blur-2xl pointer-events-none" />
-              <div className="absolute top-8 right-8 w-24 h-24 rounded-full bg-purple-400/10 blur-xl pointer-events-none" />
+              <div className="absolute top-8 right-8 w-24 h-24 rounded-full bg-blue-400/10 blur-xl pointer-events-none" />
 
               {/* Central Business Profile Document */}
               <div className="relative w-52 sm:w-56 bg-white rounded-2xl p-4 shadow-xl border border-slate-100/90 space-y-3 z-10">
@@ -334,108 +540,44 @@ export default function BusinessInfoScreen({
                 {/* 3 Status Rows with Checkmarks */}
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-black">
+                    <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black">
                       ✓
                     </span>
                     <div className="h-2 w-28 bg-slate-200/90 rounded-full" />
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-black">
+                    <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black">
                       ✓
                     </span>
                     <div className="h-2 w-36 bg-slate-200/90 rounded-full" />
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-black">
+                    <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black">
                       ✓
                     </span>
-                    <div className="h-2 w-24 bg-slate-200/90 rounded-full" />
+                    <div className="h-2 w-20 bg-slate-200/90 rounded-full" />
                   </div>
                 </div>
-
-                {/* Bottom Signature flourish */}
-                <div className="pt-2 flex justify-end">
-                  <span className="font-serif italic text-xs text-slate-400 font-semibold tracking-wider">
-                    laa
-                  </span>
-                </div>
               </div>
-
-              {/* Floating Shield Badge (Left) */}
-              <div className="absolute left-3 bottom-6 sm:bottom-8 w-12 h-12 rounded-2xl bg-gradient-to-br from-[#3B82F6] to-[#1D4ED8] flex items-center justify-center text-white shadow-xl shadow-blue-500/30 z-20 transform -rotate-6 border-2 border-white">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-
-              {/* Floating Mini Chart Card (Right Top) */}
-              <div className="absolute right-3 top-6 sm:top-8 bg-white rounded-xl p-2.5 shadow-lg border border-slate-100 z-20 space-y-1">
-                <div className="flex items-center space-x-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                  <div className="w-6 h-1 bg-slate-200 rounded-full" />
-                </div>
-                <div className="h-8 flex items-end gap-1 px-1">
-                  <div className="w-1.5 h-4 bg-cyan-400 rounded-t-sm" />
-                  <div className="w-1.5 h-6 bg-blue-500 rounded-t-sm" />
-                  <div className="w-1.5 h-8 bg-purple-600 rounded-t-sm" />
-                </div>
-              </div>
-
-              {/* Potted Plant (Right Bottom) */}
-              <div className="absolute right-4 bottom-4 sm:bottom-6 z-20">
-                <div className="relative flex flex-col items-center">
-                  <svg className="w-9 h-9 text-emerald-500" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C7.58 2 4 5.58 4 10c0 2.5 1.15 4.74 2.95 6.22C7.03 16.5 7.1 16.76 7.17 17h9.66c.07-.24.14-.5.22-.78C18.85 14.74 20 12.5 20 10c0-4.42-3.58-8-8-8zm-1 14h2v-4h-2v4z" />
-                  </svg>
-                  <div className="w-5 h-4 bg-slate-100 border border-slate-300 rounded-b-md shadow-xs" />
-                </div>
-              </div>
-
             </div>
 
-            {/* Bottom Benefits Message */}
-            <div className="space-y-4 pt-1">
-              <h3 className="text-base font-bold text-[#0F172A] leading-snug">
-                We’ll tailor your workspace to your business.
-              </h3>
-
-              <div className="space-y-2.5 text-xs text-[#475569]">
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-5 h-5 rounded-full bg-cyan-50 text-cyan-600 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                  </div>
-                  <span>Understand your business and current situation</span>
-                </div>
-
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <span>See your financial position clearly</span>
-                </div>
-
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-5 h-5 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                  </div>
-                  <span>Get guidance relevant to your business</span>
-                </div>
-
-                <div className="flex items-center space-x-2.5">
-                  <div className="w-5 h-5 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <span>Keep your information under your control</span>
-                </div>
-              </div>
+            {/* Benefit Bullets */}
+            <div className="space-y-3 pt-2">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">Why this matters</h4>
+              <ul className="space-y-2.5 text-xs text-[#334155] font-medium">
+                <li className="flex items-start space-x-2">
+                  <span className="text-blue-600 font-black">•</span>
+                  <span>Enables localized market & competitor intelligence</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-blue-600 font-black">•</span>
+                  <span>Identifies state & central subsidy schemes</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-blue-600 font-black">•</span>
+                  <span>Calibrates bankable working capital formulas</span>
+                </li>
+              </ul>
             </div>
 
           </div>
@@ -443,21 +585,12 @@ export default function BusinessInfoScreen({
         </div>
       </main>
 
-      {/* Bottom Security Guarantee */}
-      <footer className="max-w-md mx-auto py-3 flex items-center justify-center space-x-3 text-center">
-        <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shadow-xs">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <div className="text-left">
-          <p className="text-xs font-bold text-[#0F172A] leading-tight">
-            Your information is secure with us.
-          </p>
-          <p className="text-[11px] text-[#64748B] leading-tight">
-            We never share your data with anyone.
-          </p>
-        </div>
+      {/* Bottom Guarantee */}
+      <footer className="max-w-6xl w-full mx-auto text-center text-xs text-slate-400 flex items-center justify-center space-x-1.5 pt-4">
+        <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <span>Your data is encrypted and confidential.</span>
       </footer>
 
     </div>

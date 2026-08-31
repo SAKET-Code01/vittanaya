@@ -275,7 +275,7 @@ export default function ComingSoonPage({ featureKey = 'reports', onNavigateHome 
       
       {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-xl border border-emerald-400/30 text-xs font-semibold flex items-center space-x-2 animate-bounce">
+        <div className="fixed bottom-6 right-6 z-50 bg-blue-600 text-white px-5 py-3 rounded-2xl shadow-xl border border-blue-400/30 text-xs font-semibold flex items-center space-x-2 animate-bounce">
           <span>✓</span>
           <span>{toastMsg}</span>
         </div>
@@ -285,7 +285,7 @@ export default function ComingSoonPage({ featureKey = 'reports', onNavigateHome 
       <div className="relative bg-white dark:bg-[#111C28] border border-slate-200/80 dark:border-[#162231] rounded-3xl p-8 sm:p-14 shadow-sm backdrop-blur-md overflow-hidden transition-all duration-300">
         
         {/* Subtle Ambient Decorative Gradient Halos */}
-        <div className="absolute -top-24 -right-24 w-72 h-72 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-72 h-72 bg-blue-600/5 dark:bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-cyan-500/5 dark:bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Content Layout */}
@@ -293,7 +293,7 @@ export default function ComingSoonPage({ featureKey = 'reports', onNavigateHome 
           
           {/* 1. Category & Release Badge */}
           <div className="flex items-center space-x-2.5">
-            <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+            <span className="px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
               {config.tag}
             </span>
             <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
@@ -330,7 +330,7 @@ export default function ComingSoonPage({ featureKey = 'reports', onNavigateHome 
                   key={idx}
                   className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-[#162231] border border-slate-200/80 dark:border-[#1E2D40] text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center space-x-1.5 transition-colors"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
                   <span>{feat}</span>
                 </div>
               ))}
@@ -342,7 +342,7 @@ export default function ComingSoonPage({ featureKey = 'reports', onNavigateHome 
             <button
               type="button"
               onClick={handleGoHome}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer flex items-center justify-center space-x-2"
             >
               <span>←</span>
               <span>Back to Dashboard</span>
@@ -354,7 +354,7 @@ export default function ComingSoonPage({ featureKey = 'reports', onNavigateHome 
               disabled={isNotified}
               className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs sm:text-sm border transition-all duration-200 cursor-pointer flex items-center justify-center space-x-2 ${
                 isNotified
-                  ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                  ? 'bg-emerald-50 dark:bg-blue-600/10 border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
                   : 'bg-white dark:bg-[#162231] border-slate-200 dark:border-[#1E2D40] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1A2838]'
               }`}
             >

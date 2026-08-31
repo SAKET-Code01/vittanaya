@@ -146,7 +146,7 @@ export function WorkspaceProvider({ children }) {
       try {
         const navTheme = localStorage.getItem('vittanaya-theme');
         if (navTheme === 'dark' || navTheme === 'light') themeFromNav = navTheme;
-      } catch (e) {}
+      } catch (e) { }
       const mergedTheme = themeFromNav || (saved ? JSON.parse(saved).theme : null) || 'light';
       const base = saved ? { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) } : DEFAULT_PREFERENCES;
       return { ...base, theme: mergedTheme };
@@ -156,7 +156,7 @@ export function WorkspaceProvider({ children }) {
         if (navTheme === 'dark' || navTheme === 'light') {
           return { ...DEFAULT_PREFERENCES, theme: navTheme };
         }
-      } catch (e2) {}
+      } catch (e2) { }
       return DEFAULT_PREFERENCES;
     }
   });
@@ -166,7 +166,7 @@ export function WorkspaceProvider({ children }) {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_NAV);
       if (saved) return saved;
-    } catch (e) {}
+    } catch (e) { }
     return 'dashboard';
   });
 
@@ -174,7 +174,7 @@ export function WorkspaceProvider({ children }) {
   const [historyIndex, setHistoryIndex] = useState(0);
 
   // Navigate to a new workspace section (pushes to history stack and clears forward history)
-  const navigateTo = (navId) => {
+  const navigateTo = React.useCallback((navId) => {
     if (!navId) return;
     setActiveNavIdState(navId);
     setNavHistory((prev) => {
@@ -184,41 +184,41 @@ export function WorkspaceProvider({ children }) {
       setHistoryIndex(next.length - 1);
       return next;
     });
-  };
+  }, [historyIndex]);
 
   // Back navigation
   const canGoBack = historyIndex > 0;
-  const goBack = () => {
+  const goBack = React.useCallback(() => {
     if (historyIndex > 0) {
       const prevIndex = historyIndex - 1;
       const targetNav = navHistory[prevIndex];
       setHistoryIndex(prevIndex);
       setActiveNavIdState(targetNav);
     }
-  };
+  }, [historyIndex, navHistory]);
 
   // Forward navigation
   const canGoForward = historyIndex < navHistory.length - 1;
-  const goForward = () => {
+  const goForward = React.useCallback(() => {
     if (historyIndex < navHistory.length - 1) {
       const nextIndex = historyIndex + 1;
       const targetNav = navHistory[nextIndex];
       setHistoryIndex(nextIndex);
       setActiveNavIdState(targetNav);
     }
-  };
+  }, [historyIndex, navHistory]);
 
   // Home navigation
-  const goHome = () => {
+  const goHome = React.useCallback(() => {
     navigateTo('dashboard');
-  };
+  }, [navigateTo]);
 
   // Clear navigation history (on logout / new session)
-  const clearNavigationHistory = () => {
+  const clearNavigationHistory = React.useCallback(() => {
     setNavHistory(['dashboard']);
     setHistoryIndex(0);
     setActiveNavIdState('dashboard');
-  };
+  }, []);
 
   const setActiveNavId = navigateTo;
 
@@ -227,49 +227,49 @@ export function WorkspaceProvider({ children }) {
     if (isDemoMode) return;
     try {
       localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(currentProfile));
-    } catch (e) {}
+    } catch (e) { }
   }, [currentProfile, isDemoMode]);
 
   useEffect(() => {
     if (isDemoMode) return;
     try {
       localStorage.setItem(STORAGE_KEYS.FINANCIAL, JSON.stringify(financialData));
-    } catch (e) {}
+    } catch (e) { }
   }, [financialData, isDemoMode]);
 
   useEffect(() => {
     if (isDemoMode) return;
     try {
       localStorage.setItem(STORAGE_KEYS.OPERATIONS, JSON.stringify(operationsConfig));
-    } catch (e) {}
+    } catch (e) { }
   }, [operationsConfig, isDemoMode]);
 
   useEffect(() => {
     if (isDemoMode) return;
     try {
       localStorage.setItem(STORAGE_KEYS.CASH_ACCOUNTS, JSON.stringify(cashAccounts));
-    } catch (e) {}
+    } catch (e) { }
   }, [cashAccounts, isDemoMode]);
 
   useEffect(() => {
     if (isDemoMode) return;
     try {
       localStorage.setItem(STORAGE_KEYS.CASH_TRANSACTIONS, JSON.stringify(cashTransactions));
-    } catch (e) {}
+    } catch (e) { }
   }, [cashTransactions, isDemoMode]);
 
   useEffect(() => {
     if (isDemoMode) return;
     try {
       localStorage.setItem(STORAGE_KEYS.PREFERENCES, JSON.stringify(appPreferences));
-    } catch (e) {}
+    } catch (e) { }
   }, [appPreferences, isDemoMode]);
 
   useEffect(() => {
     if (isDemoMode) return;
     try {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_NAV, activeNavId);
-    } catch (e) {}
+    } catch (e) { }
   }, [activeNavId, isDemoMode]);
 
   // Global Theme Engine (Light / Dark / System)
@@ -401,7 +401,7 @@ export function WorkspaceProvider({ children }) {
       const currentOps = prev.selectedOperations || [];
       const exists = currentOps.includes(opId);
       const newOps = exists ? currentOps.filter((id) => id !== opId) : [...currentOps, opId];
-      
+
       const businessKpis = [];
       newOps.forEach((id) => {
         const op = AVAILABLE_OPERATIONS.find((o) => o.id === id);

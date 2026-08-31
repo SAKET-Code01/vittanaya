@@ -80,7 +80,7 @@ export default function OperationConfigModal({
               </h3>
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                 isActive
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
                   : 'bg-slate-100 text-slate-600'
               }`}>
                 {isActive ? 'Active' : 'Available'}
@@ -147,7 +147,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.activeCustomers ?? 142}
                     onChange={(e) => handleChange('activeCustomers', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                     placeholder="e.g. 142"
                   />
                 </div>
@@ -158,7 +158,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlySales ?? 1250000}
                     onChange={(e) => handleChange('monthlySales', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                     placeholder="e.g. 1250000"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.monthlySales || 0))}</span>
@@ -172,7 +172,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.avgInvoiceValue ?? 88000}
                     onChange={(e) => handleChange('avgInvoiceValue', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                     placeholder="e.g. 88000"
                   />
                 </div>
@@ -183,7 +183,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.avgCollectionPeriod ?? 34}
                     onChange={(e) => handleChange('avgCollectionPeriod', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                     placeholder="e.g. 34"
                   />
                 </div>
@@ -196,7 +196,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.outstandingReceivables ?? 2850000}
                     onChange={(e) => handleChange('outstandingReceivables', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.outstandingReceivables || 0))}</span>
                 </div>
@@ -207,7 +207,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.overdueReceivables ?? 420000}
                     onChange={(e) => handleChange('overdueReceivables', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-rose-500 font-semibold">{formatINR(Number(formData.overdueReceivables || 0))}</span>
                 </div>
@@ -225,7 +225,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.activeSuppliers ?? 38}
                     onChange={(e) => handleChange('activeSuppliers', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -235,7 +235,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyPurchases ?? 720000}
                     onChange={(e) => handleChange('monthlyPurchases', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.monthlyPurchases || 0))}</span>
                 </div>
@@ -248,7 +248,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.outstandingPayables ?? 1920000}
                     onChange={(e) => handleChange('outstandingPayables', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.outstandingPayables || 0))}</span>
                 </div>
@@ -259,7 +259,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.avgSupplierPaymentPeriod ?? 42}
                     onChange={(e) => handleChange('avgSupplierPaymentPeriod', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -271,7 +271,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.overduePayables ?? 180000}
                     onChange={(e) => handleChange('overduePayables', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-rose-500 font-semibold">{formatINR(Number(formData.overduePayables || 0))}</span>
                 </div>
@@ -282,7 +282,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.upcomingPaymentObligations ?? 350000}
                     onChange={(e) => handleChange('upcomingPaymentObligations', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -299,7 +299,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.totalInventoryValue ?? 850000}
                     onChange={(e) => handleChange('totalInventoryValue', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.totalInventoryValue || 0))}</span>
                 </div>
@@ -310,7 +310,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.skuCount ?? 1240}
                     onChange={(e) => handleChange('skuCount', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -322,7 +322,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.avgStockLevel ?? '85% of optimal'}
                     onChange={(e) => handleChange('avgStockLevel', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -332,7 +332,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.lowStockThreshold ?? 150}
                     onChange={(e) => handleChange('lowStockThreshold', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -344,7 +344,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.warehouseCount ?? 2}
                     onChange={(e) => handleChange('warehouseCount', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -354,7 +354,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.monthlyInventoryMovement ?? '₹4,80,000 / month'}
                     onChange={(e) => handleChange('monthlyInventoryMovement', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -371,7 +371,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.monthlyCapacity ?? '50,000 units'}
                     onChange={(e) => handleChange('monthlyCapacity', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -381,7 +381,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.currentMonthlyProduction ?? '42,500 units'}
                     onChange={(e) => handleChange('currentMonthlyProduction', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -393,7 +393,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.activeProductionOrders ?? 18}
                     onChange={(e) => handleChange('activeProductionOrders', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -403,7 +403,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.utilizationPercent ?? 85}
                     onChange={(e) => handleChange('utilizationPercent', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -415,7 +415,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.rawMaterialCost ?? 380000}
                     onChange={(e) => handleChange('rawMaterialCost', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.rawMaterialCost || 0))}</span>
                 </div>
@@ -426,7 +426,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.avgProductionCost ?? '₹68 / unit'}
                     onChange={(e) => handleChange('avgProductionCost', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -443,7 +443,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.totalEmployees ?? 24}
                     onChange={(e) => handleChange('totalEmployees', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -453,7 +453,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.fullTimeEmployees ?? 18}
                     onChange={(e) => handleChange('fullTimeEmployees', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -463,7 +463,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.contractEmployees ?? 6}
                     onChange={(e) => handleChange('contractEmployees', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -475,7 +475,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyPayroll ?? 480000}
                     onChange={(e) => handleChange('monthlyPayroll', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.monthlyPayroll || 0))}</span>
                 </div>
@@ -486,7 +486,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.avgSalary ?? 20000}
                     onChange={(e) => handleChange('avgSalary', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -497,7 +497,7 @@ export default function OperationConfigModal({
                   type="text"
                   value={formData.nextPayrollDate ?? '01 Sep 2026'}
                   onChange={(e) => handleChange('nextPayrollDate', e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                 />
               </div>
             </div>
@@ -513,7 +513,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.assetCount ?? 14}
                     onChange={(e) => handleChange('assetCount', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -523,7 +523,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.totalAssetValue ?? 3200000}
                     onChange={(e) => handleChange('totalAssetValue', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.totalAssetValue || 0))}</span>
                 </div>
@@ -536,7 +536,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyDepreciation ?? 35000}
                     onChange={(e) => handleChange('monthlyDepreciation', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -546,7 +546,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyMaintenanceCost ?? 28000}
                     onChange={(e) => handleChange('monthlyMaintenanceCost', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -557,7 +557,7 @@ export default function OperationConfigModal({
                   type="text"
                   value={formData.nextMajorMaintenanceDate ?? '15 Oct 2026'}
                   onChange={(e) => handleChange('nextMajorMaintenanceDate', e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                 />
               </div>
             </div>
@@ -573,7 +573,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.activeProjects ?? 6}
                     onChange={(e) => handleChange('activeProjects', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -583,7 +583,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.totalContractValue ?? 4500000}
                     onChange={(e) => handleChange('totalContractValue', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.totalContractValue || 0))}</span>
                 </div>
@@ -596,7 +596,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.unbilledAmount ?? 820000}
                     onChange={(e) => handleChange('unbilledAmount', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -606,7 +606,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyProjectCost ?? 540000}
                     onChange={(e) => handleChange('monthlyProjectCost', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -618,7 +618,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.expectedCompletion ?? 'Nov 2026'}
                     onChange={(e) => handleChange('expectedCompletion', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -628,7 +628,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.avgProjectMargin ?? 22}
                     onChange={(e) => handleChange('avgProjectMargin', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -841,7 +841,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.activeLoans ?? 2}
                     onChange={(e) => handleChange('activeLoans', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -851,7 +851,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.outstandingPrincipal ?? 1250000}
                     onChange={(e) => handleChange('outstandingPrincipal', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.outstandingPrincipal || 0))}</span>
                 </div>
@@ -864,7 +864,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyEmi ?? 80000}
                     onChange={(e) => handleChange('monthlyEmi', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.monthlyEmi || 0))}</span>
                 </div>
@@ -875,7 +875,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.interestRate ?? '9.25% p.a.'}
                     onChange={(e) => handleChange('interestRate', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -887,7 +887,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.nextPaymentDate ?? '05 Sep 2026'}
                     onChange={(e) => handleChange('nextPaymentDate', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -897,7 +897,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.creditFacilityLimit ?? 2500000}
                     onChange={(e) => handleChange('creditFacilityLimit', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -914,7 +914,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.bankAccountsCount ?? 3}
                     onChange={(e) => handleChange('bankAccountsCount', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -924,7 +924,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.totalBankBalance ?? 1485000}
                     onChange={(e) => handleChange('totalBankBalance', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.totalBankBalance || 0))}</span>
                 </div>
@@ -937,7 +937,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyBankInflow ?? 930000}
                     onChange={(e) => handleChange('monthlyBankInflow', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -947,7 +947,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyBankOutflow ?? 720000}
                     onChange={(e) => handleChange('monthlyBankOutflow', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -958,7 +958,7 @@ export default function OperationConfigModal({
                   type="text"
                   value={formData.reconciliationStatus ?? 'Reconciled (up to yesterday)'}
                   onChange={(e) => handleChange('reconciliationStatus', e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                 />
               </div>
             </div>
@@ -974,7 +974,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyFuelExpense ?? 185000}
                     onChange={(e) => handleChange('monthlyFuelExpense', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.monthlyFuelExpense || 0))}</span>
                 </div>
@@ -985,7 +985,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyOperatingExpenses ?? 340000}
                     onChange={(e) => handleChange('monthlyOperatingExpenses', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -997,7 +997,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.avgExpensePerTrip ?? 440}
                     onChange={(e) => handleChange('avgExpensePerTrip', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -1007,7 +1007,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.tollExpense ?? 32000}
                     onChange={(e) => handleChange('tollExpense', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -1017,7 +1017,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.otherRecurringExpenses ?? 65000}
                     onChange={(e) => handleChange('otherRecurringExpenses', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -1034,7 +1034,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyMaintenanceCost ?? 52000}
                     onChange={(e) => handleChange('monthlyMaintenanceCost', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.monthlyMaintenanceCost || 0))}</span>
                 </div>
@@ -1045,7 +1045,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.activeMaintenanceJobs ?? 3}
                     onChange={(e) => handleChange('activeMaintenanceJobs', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -1057,7 +1057,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.avgRepairCost ?? 14500}
                     onChange={(e) => handleChange('avgRepairCost', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -1067,7 +1067,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.nextMaintenanceDue ?? '12 Sep 2026'}
                     onChange={(e) => handleChange('nextMaintenanceDue', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -1077,7 +1077,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.maintenanceReserve ?? 150000}
                     onChange={(e) => handleChange('maintenanceReserve', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
               </div>
@@ -1094,7 +1094,7 @@ export default function OperationConfigModal({
                     type="text"
                     value={formData.customOpName ?? 'Custom Operations'}
                     onChange={(e) => handleChange('customOpName', e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                 </div>
 
@@ -1104,7 +1104,7 @@ export default function OperationConfigModal({
                     type="number"
                     value={formData.monthlyValueCost ?? 50000}
                     onChange={(e) => handleChange('monthlyValueCost', Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-bold text-slate-900 outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-bold text-slate-900 outline-none"
                   />
                   <span className="text-[10px] text-slate-500">{formatINR(Number(formData.monthlyValueCost || 0))}</span>
                 </div>
@@ -1116,7 +1116,7 @@ export default function OperationConfigModal({
                   rows={2}
                   value={formData.description ?? 'General operational commitments and miscellaneous services'}
                   onChange={(e) => handleChange('description', e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-medium text-slate-900 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-medium text-slate-900 outline-none"
                 />
               </div>
 
@@ -1126,7 +1126,7 @@ export default function OperationConfigModal({
                   rows={2}
                   value={formData.notes ?? 'Configured for specialized workflow management.'}
                   onChange={(e) => handleChange('notes', e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 text-xs font-medium text-slate-900 outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 text-xs font-medium text-slate-900 outline-none"
                 />
               </div>
             </div>
@@ -1159,7 +1159,7 @@ export default function OperationConfigModal({
             <button
               type="submit"
               form="op-config-form"
-              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
             >
               Save Changes
             </button>

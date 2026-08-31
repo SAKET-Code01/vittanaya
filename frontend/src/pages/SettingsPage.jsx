@@ -137,7 +137,7 @@ export default function SettingsPage({ onNavigateHome }) {
             <button
               type="button"
               onClick={() => onNavigateHome ? onNavigateHome() : setActiveNavId('dashboard')}
-              className="hover:text-emerald-600 transition-colors flex items-center gap-1 cursor-pointer"
+              className="hover:text-blue-600 transition-colors flex items-center gap-1 cursor-pointer"
             >
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -153,7 +153,7 @@ export default function SettingsPage({ onNavigateHome }) {
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Settings
             </h1>
-            <span className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-xs shadow-xs animate-spin-slow">
+            <span className="w-6 h-6 rounded-full bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center text-xs shadow-xs animate-spin-slow">
               ⚙️
             </span>
           </div>
@@ -163,17 +163,17 @@ export default function SettingsPage({ onNavigateHome }) {
           </p>
 
           {/* Decorative Green Line Indicator */}
-          <div className="w-10 h-1 rounded-full bg-emerald-500 pt-0.5" />
+          <div className="w-10 h-1 rounded-full bg-blue-600 pt-0.5" />
         </div>
 
         {/* 3D Floating Gears Illustration (Top Right Graphic matching reference) */}
         <div className="hidden sm:flex items-center justify-end pointer-events-none relative pr-4">
           <div className="relative w-44 h-24 flex items-center justify-center">
             {/* Background glowing gradient orb */}
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-100/50 via-cyan-100/40 to-blue-100/30 rounded-full blur-xl animate-pulse" />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-blue-100/30 rounded-full blur-xl animate-pulse" />
             
             {/* Primary Gear */}
-            <div className="relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-0.5 shadow-lg shadow-teal-500/20 transform -rotate-12 flex items-center justify-center">
+            <div className="relative z-10 w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-500 p-0.5 shadow-lg shadow-blue-500/20 transform -rotate-12 flex items-center justify-center">
               <div className="w-full h-full rounded-[14px] bg-white/10 backdrop-blur-xs flex items-center justify-center text-white text-2xl font-black">
                 ⚙️
               </div>
@@ -194,7 +194,7 @@ export default function SettingsPage({ onNavigateHome }) {
       {/* Toast Alert */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl bg-slate-900 text-white text-xs font-bold shadow-2xl flex items-center space-x-2.5 animate-slideUp">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -265,7 +265,7 @@ export default function SettingsPage({ onNavigateHome }) {
                   </div>
 
                   {/* Verified Check Badge */}
-                  <div className="absolute -bottom-1 -right-1 z-20 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black shadow-md border-2 border-white">
+                  <div className="absolute -bottom-1 -right-1 z-20 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-md border-2 border-white">
                     ✓
                   </div>
                 </div>
@@ -323,7 +323,7 @@ export default function SettingsPage({ onNavigateHome }) {
                     type="button"
                     onClick={() => handleToggle('compactMode')}
                     className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer ${
-                      appPreferences.compactMode ? 'bg-emerald-500' : 'bg-slate-300'
+                      appPreferences.compactMode ? 'bg-blue-600' : 'bg-slate-300'
                     }`}
                   >
                     <div
@@ -344,7 +344,7 @@ export default function SettingsPage({ onNavigateHome }) {
                     type="button"
                     onClick={() => handleToggle('autoRefresh')}
                     className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer ${
-                      appPreferences.autoRefresh !== false ? 'bg-emerald-500' : 'bg-slate-300'
+                      appPreferences.autoRefresh !== false ? 'bg-blue-600' : 'bg-slate-300'
                     }`}
                   >
                     <div
@@ -566,7 +566,7 @@ export default function SettingsPage({ onNavigateHome }) {
                     ☁️
                   </div>
                   {/* Green & Blue Sync Arrows */}
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black shadow-md border-2 border-white">
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black shadow-md border-2 border-white">
                     ⇅
                   </div>
                 </div>
@@ -574,7 +574,7 @@ export default function SettingsPage({ onNavigateHome }) {
                 {/* 3 Floating Mini Badges */}
                 <div className="flex items-center space-x-1.5 pt-1">
                   <div className="px-2 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">🏛️</div>
-                  <div className="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">🔄</div>
+                  <div className="px-2 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">🔄</div>
                   <div className="px-2 py-1 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-700 text-[10px] font-bold">📊</div>
                 </div>
               </div>
@@ -772,7 +772,7 @@ export default function SettingsPage({ onNavigateHome }) {
 
                 <div className="space-y-1">
                   <span className="text-xs font-bold text-slate-700 block">Version 1.0.0</span>
-                  <span className="inline-block px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                  <span className="inline-block px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold">
                     Up to date
                   </span>
                 </div>
@@ -789,11 +789,11 @@ export default function SettingsPage({ onNavigateHome }) {
         {/* ----------------------------------------------------------------------- */}
         {/* CARD 8: 8. DATA PRIVACY (EMERALD/GREEN ACCENT)                          */}
         {/* ----------------------------------------------------------------------- */}
-        <div className="dash-card p-6 flex flex-col justify-between space-y-4 hover:border-emerald-300 transition-all group">
+        <div className="dash-card p-6 flex flex-col justify-between space-y-4 hover:border-blue-300 transition-all group">
           <div className="space-y-4">
             {/* Header */}
             <div className="flex items-start space-x-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20 flex-shrink-0">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
@@ -822,9 +822,9 @@ export default function SettingsPage({ onNavigateHome }) {
                     key={idx}
                     type="button"
                     onClick={() => setActiveModal(item.id)}
-                    className="w-full flex items-center space-x-2 text-slate-700 hover:text-emerald-600 font-semibold transition-colors py-1 group/btn cursor-pointer text-left"
+                    className="w-full flex items-center space-x-2 text-slate-700 hover:text-blue-600 font-semibold transition-colors py-1 group/btn cursor-pointer text-left"
                   >
-                    <span className="text-emerald-500 font-bold group-hover/btn:translate-x-0.5 transition-transform">➜</span>
+                    <span className="text-blue-600 font-bold group-hover/btn:translate-x-0.5 transition-transform">➜</span>
                     <span className="group-hover/btn:underline">{item.label}</span>
                   </button>
                 ))}
@@ -833,11 +833,11 @@ export default function SettingsPage({ onNavigateHome }) {
               {/* Right Glowing Green Shield Graphic */}
               <div className="sm:col-span-5 flex items-center justify-center p-2 relative">
                 <div className="relative w-28 h-28 flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border border-emerald-200/60 opacity-60" />
+                  <div className="absolute inset-0 rounded-full border border-blue-200/60 opacity-60" />
                   <div className="absolute inset-3 rounded-full border border-teal-200/50" />
 
                   {/* 3D Green Shield with Silhouette */}
-                  <div className="relative z-10 w-16 h-20 bg-gradient-to-b from-emerald-400 to-teal-600 rounded-b-3xl rounded-t-lg shadow-xl shadow-emerald-500/25 flex items-center justify-center text-white text-2xl border-t-2 border-emerald-200">
+                  <div className="relative z-10 w-16 h-20 bg-gradient-to-b from-blue-500 to-blue-700 rounded-b-3xl rounded-t-lg shadow-xl shadow-blue-500/25 flex items-center justify-center text-white text-2xl border-t-2 border-blue-200">
                     👤
                   </div>
 
@@ -980,7 +980,7 @@ export default function SettingsPage({ onNavigateHome }) {
 
             <div className="space-y-3.5 text-xs">
               <div className="flex items-center space-x-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/80">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
                   {userName.charAt(0)}
                 </div>
                 <div>
@@ -1072,7 +1072,7 @@ export default function SettingsPage({ onNavigateHome }) {
                 <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 space-y-2">
                   <span className="font-extrabold text-blue-900 block">Authenticator App (TOTP)</span>
                   <p className="text-blue-700 text-xs">Two-factor authentication adds an extra layer of security to your CFO console.</p>
-                  <span className="inline-block px-2.5 py-1 rounded-lg bg-emerald-500 text-white font-bold text-[10px]">Active & Verified</span>
+                  <span className="inline-block px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold text-[10px]">Active & Verified</span>
                 </div>
               )}
 
@@ -1083,7 +1083,7 @@ export default function SettingsPage({ onNavigateHome }) {
                       <span className="font-bold text-slate-900 block">Windows PC • Chrome</span>
                       <span className="text-[10px] text-slate-500">Current Session • India</span>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Active</span>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">Active</span>
                   </div>
                 </div>
               )}
@@ -1105,7 +1105,7 @@ export default function SettingsPage({ onNavigateHome }) {
                 <div className="space-y-2">
                   <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                     <span className="font-bold text-slate-900">Google Workspace ({userEmail})</span>
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px]">Linked</span>
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold text-[10px]">Linked</span>
                   </div>
                 </div>
               )}
@@ -1308,7 +1308,7 @@ export default function SettingsPage({ onNavigateHome }) {
                       <span className="text-[10px] text-slate-500">{acc.type} • Auto Sync Active</span>
                     </div>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">Connected</span>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold">Connected</span>
                 </div>
               ))}
 
@@ -1466,9 +1466,9 @@ export default function SettingsPage({ onNavigateHome }) {
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100 space-y-1">
-                <span className="font-extrabold text-emerald-900 block">End-to-End Encryption</span>
-                <p className="text-emerald-700 text-[11px]">All financial records and ledger caches are encrypted using AES-256-GCM standards.</p>
+              <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-1">
+                <span className="font-extrabold text-blue-900 block">End-to-End Encryption</span>
+                <p className="text-blue-700 text-[11px]">All financial records and ledger caches are encrypted using AES-256-GCM standards.</p>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
@@ -1481,7 +1481,7 @@ export default function SettingsPage({ onNavigateHome }) {
                       showToast('Privacy preference updated.');
                     }}
                     className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                      appPreferences.privacy?.dataSharing ? 'bg-emerald-500' : 'bg-slate-300'
+                      appPreferences.privacy?.dataSharing ? 'bg-blue-600' : 'bg-slate-300'
                     }`}
                   >
                     <div className={`bg-white w-4 h-4 rounded-full shadow-xs transform transition-transform ${
@@ -1514,7 +1514,7 @@ export default function SettingsPage({ onNavigateHome }) {
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer"
               >
                 Save Preferences
               </button>

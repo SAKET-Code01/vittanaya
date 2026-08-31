@@ -23,7 +23,7 @@ export default function FinancialOutlookCard({
       label: 'Project Cost',
       value: projectCost,
       sub: null,
-      iconBg: 'bg-emerald-50 text-emerald-700',
+      iconBg: 'bg-blue-50 text-blue-700',
       icon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="2" y="7" width="20" height="14" rx="2" />
@@ -61,7 +61,7 @@ export default function FinancialOutlookCard({
       label: 'Outstanding Loan',
       value: outstandingLoan,
       sub: outstandingLoanPct,
-      iconBg: 'bg-emerald-50 text-emerald-700',
+      iconBg: 'bg-blue-50 text-blue-700',
       icon: (
         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25" />
@@ -89,7 +89,7 @@ export default function FinancialOutlookCard({
       label: 'Interest Rate',
       value: interestRate,
       sub: null,
-      iconBg: 'bg-emerald-50 text-emerald-700',
+      iconBg: 'bg-blue-50 text-blue-700',
       icon: <span className="font-extrabold text-sm">%</span>,
     },
   ];
@@ -155,7 +155,7 @@ export default function FinancialOutlookCard({
         <button
           type="button"
           onClick={() => onNavigate && onNavigate('financial-plan')}
-          className="text-xs font-bold text-emerald-700 hover:text-emerald-800 transition-colors flex items-center space-x-1 cursor-pointer"
+          className="text-xs font-bold text-blue-700 hover:text-blue-800 transition-colors flex items-center space-x-1 cursor-pointer"
         >
           <span>View Full Loan & Financial Details</span>
           <span>→</span>

@@ -31,7 +31,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
       <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 text-slate-900 my-auto">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center font-bold">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
@@ -53,7 +53,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Avatar Preview */}
           <div className="flex items-center space-x-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-            <div className="w-14 h-14 rounded-full bg-slate-800 text-emerald-400 font-extrabold text-lg flex items-center justify-center shadow-md">
+            <div className="w-14 h-14 rounded-full bg-slate-800 text-blue-400 font-extrabold text-lg flex items-center justify-center shadow-md">
               {userInitials}
             </div>
             <div>
@@ -69,7 +69,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
               required
               value={formData.user_name}
               onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="e.g. Rahul Sharma"
             />
           </div>
@@ -81,7 +81,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
               required
               value={formData.user_role}
               onChange={(e) => setFormData({ ...formData, user_role: e.target.value })}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               placeholder="e.g. Business Owner"
             />
           </div>
@@ -94,7 +94,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
                 required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 placeholder="+91 XXXXX XXXXX"
               />
             </div>
@@ -105,7 +105,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 placeholder="owner@example.com"
               />
             </div>
@@ -121,7 +121,7 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors cursor-pointer"
+              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer"
             >
               Save Profile Changes
             </button>
@@ -169,7 +169,7 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
       <div className="relative w-full max-w-2xl rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 text-slate-900 my-auto max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center font-bold">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
@@ -376,7 +376,7 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors cursor-pointer"
+              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer"
             >
               Save Details
             </button>
@@ -498,7 +498,7 @@ export function EditOperationsModal({ isOpen, onClose, selectedOps = [], onSave 
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-slate-900">Manage Active Operations</h3>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
                   {currentSelected.length} / {AVAILABLE_OPERATIONS.length} Active
                 </span>
               </div>
@@ -523,7 +523,7 @@ export function EditOperationsModal({ isOpen, onClose, selectedOps = [], onSave 
                 onClick={() => handleToggle(op.id)}
                 className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-2 ${
                   isSelected
-                    ? 'border-emerald-500 bg-emerald-50/50 ring-2 ring-emerald-500/20 shadow-xs'
+                    ? 'border-emerald-500 bg-blue-50/50 ring-2 ring-emerald-500/20 shadow-xs'
                     : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
@@ -532,7 +532,7 @@ export function EditOperationsModal({ isOpen, onClose, selectedOps = [], onSave 
                   <div
                     className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-black transition-colors ${
                       isSelected
-                        ? 'bg-emerald-600 text-white'
+                        ? 'bg-blue-600 text-white'
                         : 'border border-slate-300 bg-white text-transparent'
                     }`}
                   >
@@ -544,7 +544,7 @@ export function EditOperationsModal({ isOpen, onClose, selectedOps = [], onSave 
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{op.category}</span>
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      isSelected ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                      isSelected ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-500'
                     }`}
                   >
                     {isSelected ? 'Active' : 'Enable'}
@@ -559,7 +559,7 @@ export function EditOperationsModal({ isOpen, onClose, selectedOps = [], onSave 
           <button
             type="button"
             onClick={() => setCurrentSelected(AVAILABLE_OPERATIONS.map((o) => o.id))}
-            className="text-xs font-semibold text-emerald-700 hover:underline"
+            className="text-xs font-semibold text-blue-700 hover:underline"
           >
             Select All
           </button>
@@ -575,7 +575,7 @@ export function EditOperationsModal({ isOpen, onClose, selectedOps = [], onSave 
             <button
               type="button"
               onClick={handleSave}
-              className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors cursor-pointer"
+              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer"
             >
               Save Active Operations
             </button>
@@ -642,7 +642,7 @@ export function EditFinancialValuesModal({
       <div className="relative w-full max-w-2xl rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 text-slate-900 my-auto">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center font-bold">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -667,7 +667,7 @@ export function EditFinancialValuesModal({
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                 <span>Cash Available (₹) *</span>
-                <span className="text-[10px] text-emerald-600 font-normal">Primary Liquid Ledger</span>
+                <span className="text-[10px] text-blue-600 font-normal">Primary Liquid Ledger</span>
               </label>
               <input
                 type="number"
@@ -735,7 +735,7 @@ export function EditFinancialValuesModal({
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
                 <span>Expected 30D Inflow (₹) *</span>
-                <span className="text-[10px] text-emerald-600 font-normal">Incoming collections</span>
+                <span className="text-[10px] text-blue-600 font-normal">Incoming collections</span>
               </label>
               <input
                 type="number"
@@ -796,7 +796,7 @@ export function EditFinancialValuesModal({
               </div>
               <div className="p-2 bg-white rounded-xl border border-slate-100 text-center">
                 <span className="text-[10px] text-slate-400 font-bold block">Health Score</span>
-                <span className="text-xs font-extrabold text-emerald-700">
+                <span className="text-xs font-extrabold text-blue-700">
                   {financialSummary?.health_score ?? 84} / 100
                 </span>
               </div>
@@ -822,7 +822,7 @@ export function EditFinancialValuesModal({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors cursor-pointer"
+                className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer"
               >
                 Save Financial Values
               </button>

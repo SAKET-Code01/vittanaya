@@ -8,8 +8,8 @@ export default function SelectedBusinessHeader({
   onOpenChangeBusiness,
   className = '',
 }) {
-  const businessName = currentProfile?.name || currentProfile?.category || 'Transport & Logistics';
-  const locationStr = currentProfile?.location || 'Indore, Madhya Pradesh';
+  const businessName = currentProfile?.businessName || currentProfile?.name || currentProfile?.category || 'Transport & Logistics';
+  const locationStr = currentProfile?.location || ([currentProfile?.city || currentProfile?.locality || currentProfile?.village, currentProfile?.district, currentProfile?.state].filter(Boolean).join(', ') || 'Indore, Madhya Pradesh');
   const investmentRange = currentProfile?.investmentRange || '₹8L – ₹45L';
   const assessmentDate = currentProfile?.assessmentDate || '17 May 2025';
 
@@ -51,7 +51,7 @@ export default function SelectedBusinessHeader({
             <button
               type="button"
               onClick={onOpenChangeBusiness}
-              className="px-2.5 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold transition-colors cursor-pointer border border-emerald-200/60"
+              className="px-2.5 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold transition-colors cursor-pointer border border-blue-200/60"
             >
               Change
             </button>

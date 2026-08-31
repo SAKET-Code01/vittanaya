@@ -30,12 +30,20 @@ export default function AppLayout({
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col overflow-x-hidden relative vt-atmosphere">
+    <div
+      className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col overflow-x-hidden relative"
+      style={{
+        backgroundImage:
+          'radial-gradient(circle at 50% -10%, rgba(219, 234, 254, 0.3) 0%, rgba(248, 250, 252, 0) 60%), radial-gradient(circle at 90% 20%, rgba(224, 231, 255, 0.15) 0%, rgba(248, 250, 252, 0) 50%)',
+        backgroundAttachment: 'fixed',
+      }}
+    >
       <TopNavigation
         activeNavId={activeNavId}
         onSelectNav={onSelectNav}
         currentProfile={currentProfile}
         onOpenProfile={() => onSelectNav('business')}
+        onLogout={onLogout}
       />
       {isDemoMode && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-8 py-2 flex items-center justify-between text-xs text-amber-800 font-medium">

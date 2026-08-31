@@ -34,7 +34,7 @@ const Icon = ({ children, className = '' }) => (
 const Arrow = () => <span aria-hidden="true">→</span>;
 
 const SectionLabel = ({ children }) => (
-  <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-[#00966C]">
+  <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-blue-600">
     {children}
   </p>
 );
@@ -43,7 +43,7 @@ const SmallAction = ({ children, onClick, tone = 'green' }) => {
   const toneClass =
     tone === 'amber'
       ? 'text-[#C88913] hover:bg-[#FFF9EA]'
-      : 'text-[#087E5B] hover:bg-[#F0FBF6]';
+      : 'text-[#1D4ED8] hover:bg-[#EFF6FF]';
 
   return (
     <button
@@ -68,8 +68,8 @@ const SliderRow = ({
 }) => (
   <div>
     <div className="mb-2 flex items-center justify-between gap-4">
-      <span className="text-xs font-bold text-[#607267]">{label}</span>
-      <span className="whitespace-nowrap text-xs font-extrabold text-[#18211D]">
+      <span className="text-xs font-bold text-[#64748B]">{label}</span>
+      <span className="whitespace-nowrap text-xs font-extrabold text-[#0F172A]">
         {displayValue ?? value}
       </span>
     </div>
@@ -82,7 +82,7 @@ const SliderRow = ({
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
       className={`w-full cursor-pointer ${
-        tone === 'amber' ? 'accent-[#D4A343]' : 'accent-[#17875F]'
+        tone === 'amber' ? 'accent-amber-500' : 'accent-blue-600'
       }`}
       aria-label={label}
     />
@@ -102,17 +102,17 @@ const KpiCard = ({
       ? 'bg-[#FFF7E8] text-[#D58A00]'
       : accent === 'purple'
       ? 'bg-[#F5F0FF] text-[#7753C7]'
-      : 'bg-[#EDF9F3] text-[#11865E]';
+      : 'bg-[#EFF6FF] text-[#2563EB]';
 
   const valueClass =
     accent === 'amber'
       ? 'text-[#D49A27]'
       : accent === 'purple'
       ? 'text-[#6C49BC]'
-      : 'text-[#18211D]';
+      : 'text-[#0F172A]';
 
   return (
-    <div className="group flex h-full flex-col rounded-[22px] border border-[#E6EAE7] bg-white p-4 shadow-[0_6px_24px_rgba(25,48,38,0.045)] transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(25,48,38,0.08)]">
+    <div className="group flex h-full flex-col rounded-[22px] border border-[rgba(226, 232, 240, 0.9)] bg-white p-4 shadow-[0_6px_24px_rgba(25,48,38,0.045)] transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(25,48,38,0.08)]">
       <div className="flex items-start justify-between gap-3">
         <div
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg ${iconClass}`}
@@ -123,7 +123,7 @@ const KpiCard = ({
         {action}
       </div>
 
-      <p className="mt-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#738278]">
+      <p className="mt-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#94A3B8]">
         {label}
       </p>
 
@@ -131,7 +131,7 @@ const KpiCard = ({
         {value}
       </p>
 
-      <p className="mt-auto pt-2 text-[11px] font-semibold text-[#607267]">
+      <p className="mt-auto pt-2 text-[11px] font-semibold text-[#64748B]">
         {subtitle}
       </p>
     </div>
@@ -157,6 +157,8 @@ export default function FinancialPlanPage({
   const [showStressTest, setShowStressTest] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [stressMode, setStressMode] = useState(false);
+
+  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
 
   const navigateBack = onNavigateHome || (() => window.history.back());
 
@@ -261,14 +263,14 @@ export default function FinancialPlanPage({
   };
 
   return (
-    <div className="w-full bg-[#F7F9F8] pb-12 pt-1 text-[#18211D]">
+    <div className="w-full bg-[#F7F9F8] pb-12 pt-1 text-[#0F172A]">
       <div className="space-y-5">
         {/* -------------------------------------------------------
             PAGE HEADER
         -------------------------------------------------------- */}
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-[#607267]">
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-[#64748B]">
               <button
                 type="button"
                 onClick={navigateBack}
@@ -277,17 +279,19 @@ export default function FinancialPlanPage({
                 Dashboard
               </button>
               <span>/</span>
-              <span className="font-extrabold text-[#18211D]">
+              <span className="font-extrabold text-[#0F172A]">
                 Financial Plan
               </span>
             </div>
 
             <h1 className="text-[26px] font-black tracking-tight text-[#17201C] sm:text-[30px]">
-              Financial Structuring &amp; Capital Allocation
+              {isEstablished ? 'Working Capital Structuring & Expansion Financing' : 'Financial Structuring & Capital Allocation'}
             </h1>
 
-            <p className="mt-1 max-w-3xl text-xs leading-5 text-[#607267] sm:text-sm">
-              DPR-ready Capex, Margin capital, and Working capital models for{' '}
+            <p className="mt-1 max-w-3xl text-xs leading-5 text-[#64748B] sm:text-sm">
+              {isEstablished
+                ? 'Cash flow velocity, working capital requirement, debt serviceability, and expansion affordability for '
+                : 'DPR-ready Capex, Margin capital, and Working capital models for '}
               <strong>
                 {currentProfile?.name || 'Your Enterprise'}
               </strong>{' '}
@@ -310,9 +314,9 @@ export default function FinancialPlanPage({
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
           <KpiCard
             icon="◔"
-            label="Project Cost"
+            label={isEstablished ? 'Target Financing / Facility' : 'Project Cost'}
             value={formatINR(projectCostInput)}
-            subtitle="Total CapEx + Initial Working Capital"
+            subtitle={isEstablished ? 'Working Capital + Upgradation' : 'Total CapEx + Initial Working Capital'}
             action={
               <SmallAction
                 onClick={() => setShowBreakdown((v) => !v)}
@@ -324,7 +328,7 @@ export default function FinancialPlanPage({
 
           <KpiCard
             icon="♙"
-            label="Own Margin Capital"
+            label={isEstablished ? 'Promoter Margin Money' : 'Own Margin Capital'}
             value={formatINR(ownMarginCapital)}
             subtitle={`${marginPct}% Promoter Equity Contribution`}
             accent="amber"
@@ -340,22 +344,24 @@ export default function FinancialPlanPage({
 
           <KpiCard
             icon="▥"
-            label="Maximum Loan Amount"
+            label={isEstablished ? 'Bank Credit Facility' : 'Maximum Loan Amount'}
             value={formatINR(loanAmount)}
-            subtitle={`${100 - marginPct}% Bank Financed`}
+            subtitle={isEstablished ? 'Term Loan + Cash Credit OD' : `Subsidized Bank Debt (${loanTenureYears} Years)`}
+            accent="purple"
             action={
               <SmallAction
+                tone="green"
                 onClick={() => setShowLoanCalculation((v) => !v)}
               >
-                How calculated? <Arrow />
+                Calculation <Arrow />
               </SmallAction>
             }
           />
 
           <KpiCard
-            icon="▣"
-            label="Quarterly Repayment"
-            value={formatINR(quarterlyRepayment)}
+            icon="◷"
+            label="Estimated Monthly EMI"
+            value={formatINR(monthlyEmi)}
             subtitle={`${formatINR(monthlyEmi)} / mo · ${loanTenureYears}-Yr Tenure`}
             action={
               <SmallAction
@@ -375,10 +381,10 @@ export default function FinancialPlanPage({
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {showBreakdown && (
               <div className="rounded-2xl border border-[#DCECE4] bg-[#F2FBF7] p-4">
-                <p className="text-xs font-extrabold text-[#087E5B]">
+                <p className="text-xs font-extrabold text-[#1D4ED8]">
                   Project cost logic
                 </p>
-                <p className="mt-1 text-xs leading-5 text-[#607267]">
+                <p className="mt-1 text-xs leading-5 text-[#64748B]">
                   The current project cost is treated as the full capital
                   requirement. The DPR allocation below divides it into
                   machinery, premises, working capital, and contingency.
@@ -391,7 +397,7 @@ export default function FinancialPlanPage({
                 <p className="text-xs font-extrabold text-[#B77A0A]">
                   Why promoter contribution matters
                 </p>
-                <p className="mt-1 text-xs leading-5 text-[#607267]">
+                <p className="mt-1 text-xs leading-5 text-[#64748B]">
                   A higher own contribution reduces the loan requirement and
                   therefore lowers the monthly repayment burden. Use the slider
                   to compare structures before finalising the DPR.
@@ -401,10 +407,10 @@ export default function FinancialPlanPage({
 
             {showLoanCalculation && (
               <div className="rounded-2xl border border-[#DCECE4] bg-[#F8FBFA] p-4">
-                <p className="text-xs font-extrabold text-[#087E5B]">
+                <p className="text-xs font-extrabold text-[#1D4ED8]">
                   Loan calculation
                 </p>
-                <p className="mt-1 text-xs leading-5 text-[#607267]">
+                <p className="mt-1 text-xs leading-5 text-[#64748B]">
                   Maximum loan = Project Cost − Own Margin Capital ={' '}
                   <strong>
                     {formatINR(projectCostInput)} −{' '}
@@ -417,10 +423,10 @@ export default function FinancialPlanPage({
 
             {showAffordability && (
               <div className="rounded-2xl border border-[#DCECE4] bg-[#F2FBF7] p-4">
-                <p className="text-xs font-extrabold text-[#087E5B]">
+                <p className="text-xs font-extrabold text-[#1D4ED8]">
                   Affordability estimate
                 </p>
-                <p className="mt-1 text-xs leading-5 text-[#607267]">
+                <p className="mt-1 text-xs leading-5 text-[#64748B]">
                   Estimated monthly surplus is{' '}
                   <strong>{formatINR(estimatedMonthlySurplus)}</strong>.
                   After the estimated EMI, the planning buffer is{' '}
@@ -443,7 +449,7 @@ export default function FinancialPlanPage({
                 <h2 className="mt-1 text-lg font-black">
                   Interactive Financial Parameters
                 </h2>
-                <p className="mt-1 text-xs text-[#738278]">
+                <p className="mt-1 text-xs text-[#94A3B8]">
                   Change an assumption and the funding structure updates
                   instantly.
                 </p>
@@ -452,7 +458,7 @@ export default function FinancialPlanPage({
               <button
                 type="button"
                 onClick={runStressTest}
-                className="hidden shrink-0 rounded-full border border-[#DDECE5] bg-[#F3FBF7] px-3 py-2 text-[11px] font-extrabold text-[#087E5B] transition hover:bg-[#EAF8F1] sm:block"
+                className="hidden shrink-0 rounded-full border border-[#DDECE5] bg-[#F3FBF7] px-3 py-2 text-[11px] font-extrabold text-[#1D4ED8] transition hover:bg-[#EAF8F1] sm:block"
               >
                 Run Stress Test <Arrow />
               </button>
@@ -548,7 +554,7 @@ export default function FinancialPlanPage({
                   <p className="text-[9px] font-bold uppercase tracking-wider text-[#83928A]">
                     Risk Level
                   </p>
-                  <p className="mt-1 text-xs font-black text-[#087E5B]">
+                  <p className="mt-1 text-xs font-black text-[#1D4ED8]">
                     {cashBufferPct >= 55 ? 'LOW' : cashBufferPct >= 30 ? 'MEDIUM' : 'HIGH'}
                   </p>
                 </div>
@@ -558,7 +564,7 @@ export default function FinancialPlanPage({
             <button
               type="button"
               onClick={runStressTest}
-              className="mt-3 w-full rounded-xl border border-[#DDECE5] bg-white py-2.5 text-xs font-extrabold text-[#087E5B] transition hover:bg-[#F3FBF7] sm:hidden"
+              className="mt-3 w-full rounded-xl border border-[#DDECE5] bg-white py-2.5 text-xs font-extrabold text-[#1D4ED8] transition hover:bg-[#F3FBF7] sm:hidden"
             >
               Run Stress Test <Arrow />
             </button>
@@ -572,7 +578,7 @@ export default function FinancialPlanPage({
                 <h2 className="mt-1 text-lg font-black">
                   Project Cost Breakdown
                 </h2>
-                <p className="mt-1 text-xs text-[#738278]">
+                <p className="mt-1 text-xs text-[#94A3B8]">
                   DPR schedule · automatically scales with project cost
                 </p>
               </div>
@@ -602,9 +608,9 @@ export default function FinancialPlanPage({
               ))}
             </div>
 
-            <div className="mt-auto flex items-center justify-between border-t border-[#E6EAE7] pt-4">
+            <div className="mt-auto flex items-center justify-between border-t border-[rgba(226, 232, 240, 0.9)] pt-4">
               <span className="text-sm font-black">Total Capital Required</span>
-              <span className="text-sm font-black text-[#087E5B]">
+              <span className="text-sm font-black text-[#1D4ED8]">
                 {formatINR(projectCostInput)}
               </span>
             </div>
@@ -612,7 +618,7 @@ export default function FinancialPlanPage({
             <button
               type="button"
               onClick={() => setShowSchedule(true)}
-              className="mt-3 w-full rounded-xl border border-[#CDEBDD] bg-[#F4FCF8] py-2.5 text-xs font-extrabold text-[#087E5B] transition hover:bg-[#ECFAF3]"
+              className="mt-3 w-full rounded-xl border border-[#CDEBDD] bg-[#F4FCF8] py-2.5 text-xs font-extrabold text-[#1D4ED8] transition hover:bg-[#ECFAF3]"
             >
               View Repayment Schedule <Arrow />
             </button>
@@ -660,10 +666,10 @@ export default function FinancialPlanPage({
             </div>
 
             <div className="mt-4 rounded-xl bg-[#EFFAF5] p-3">
-              <p className="text-[11px] font-extrabold text-[#087E5B]">
+              <p className="text-[11px] font-extrabold text-[#1D4ED8]">
                 Suggested starting point
               </p>
-              <p className="mt-1 text-[10px] leading-4 text-[#607267]">
+              <p className="mt-1 text-[10px] leading-4 text-[#64748B]">
                 Keep enough promoter contribution to protect the monthly
                 repayment buffer while retaining working capital.
               </p>
@@ -711,7 +717,7 @@ export default function FinancialPlanPage({
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#789086]">
                   Cash Buffer
                 </p>
-                <p className="mt-0.5 text-sm font-black text-[#087E5B]">
+                <p className="mt-0.5 text-sm font-black text-[#1D4ED8]">
                   {cashBufferPct}%
                 </p>
               </div>
@@ -719,7 +725,7 @@ export default function FinancialPlanPage({
               <span
                 className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
                   cashBufferPct >= 55
-                    ? 'bg-[#DDF5E9] text-[#087E5B]'
+                    ? 'bg-[#DDF5E9] text-[#1D4ED8]'
                     : cashBufferPct >= 30
                     ? 'bg-[#FFF2D3] text-[#B5790C]'
                     : 'bg-[#FFE8E8] text-[#C44242]'
@@ -736,7 +742,7 @@ export default function FinancialPlanPage({
             <button
               type="button"
               onClick={() => setShowAffordability((v) => !v)}
-              className="mt-3 w-full rounded-xl border border-[#D5EBE1] bg-white py-2.5 text-xs font-extrabold text-[#087E5B] transition hover:bg-[#F2FBF7]"
+              className="mt-3 w-full rounded-xl border border-[#D5EBE1] bg-white py-2.5 text-xs font-extrabold text-[#1D4ED8] transition hover:bg-[#F2FBF7]"
             >
               {showAffordability ? 'Hide Details' : 'See Affordability Logic'}{' '}
               <Arrow />
@@ -830,7 +836,7 @@ export default function FinancialPlanPage({
             <button
               type="button"
               onClick={() => setShowSchedule(true)}
-              className="text-left text-[11px] font-extrabold text-[#087E5B] sm:text-right"
+              className="text-left text-[11px] font-extrabold text-[#1D4ED8] sm:text-right"
             >
               View Decision Summary <Arrow />
             </button>
@@ -848,7 +854,7 @@ export default function FinancialPlanPage({
               <p className="mt-1 text-[10px] leading-4 text-[#6D7B73]">
                 Simulate loan, EMI &amp; cash-flow impact.
               </p>
-              <p className="mt-2 text-xs font-black text-[#087E5B]">
+              <p className="mt-2 text-xs font-black text-[#1D4ED8]">
                 <Arrow />
               </p>
             </button>
@@ -914,7 +920,7 @@ export default function FinancialPlanPage({
               <p className="mt-1 text-[10px] leading-4 text-[#6D7B73]">
                 Review affordability and funding logic.
               </p>
-              <p className="mt-2 text-xs font-black text-[#087E5B]">
+              <p className="mt-2 text-xs font-black text-[#1D4ED8]">
                 <Arrow />
               </p>
             </button>

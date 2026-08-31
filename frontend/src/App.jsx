@@ -11,6 +11,7 @@ import HelpSupportPage from './pages/HelpSupportPage';
 import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import SplashScreen from './components/SplashScreen';
 import LoginPage from './pages/Login';
+import { authService } from './services/authService';
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext';
 import { LocaleProvider } from './locale/LocaleContext';
 
@@ -27,9 +28,24 @@ function AppContent() {
     clearNavigationHistory,
   } = useWorkspace();
 
-  // Fresh load / refresh ALWAYS begins with Splash -> Welcome -> Login
+  // Fresh load / refresh respects saved workspace profile & active route
   const [showSplash, setShowSplash] = useState(true);
-  const [appScreen, setAppScreen] = useState('welcome'); // 'welcome' | 'login' | 'steps' | 'workspace'
+  const [appScreen, setAppScreen] = useState(() => {
+    try {
+      const hash = (window.location.hash || '').replace('#', '');
+      if (['dashboard', 'business', 'feasibility', 'financial-plan', 'scheme', 'action-plan', 'settings', 'help'].includes(hash)) {
+        return 'workspace';
+      }
+      const savedProfile = localStorage.getItem('vittanaya_profile_v2');
+      if (savedProfile) {
+        const parsed = JSON.parse(savedProfile);
+        if (parsed && parsed.onboardingCompletedAt) {
+          return 'workspace';
+        }
+      }
+    } catch (e) { }
+    return 'welcome';
+  });
   const [selectedStage, setSelectedStage] = useState(''); // '' | 'new_idea' | 'startup' | 'established'
   const [establishedSubStep, setEstablishedSubStep] = useState(2); // 2: Info | 3: Type | 4: Ops | 5: Prepare
 
@@ -71,44 +87,71 @@ function AppContent() {
   // Native Browser Back / Forward History Listener
   const didInitHistoryRef = useRef(false);
   useEffect(() => {
-    // Fresh session always begins at #welcome (only once — re-running replaceState
-    // on every render would clobber the current navigation hash, e.g. after
-    // onboarding completes and the workspace loads).
     if (!didInitHistoryRef.current) {
       didInitHistoryRef.current = true;
-      window.history.replaceState({ screen: 'welcome' }, '', '#welcome');
+      const hash = (window.location.hash || '').replace('#', '');
+      let initialScreen = 'welcome';
+      let initialHash = '#welcome';
+      let navId = undefined;
+
+      const validWorkspaceRoutes = ['dashboard', 'business', 'feasibility', 'financial-plan', 'scheme', 'action-plan', 'settings', 'help'];
+
+      if (validWorkspaceRoutes.includes(hash)) {
+        initialScreen = 'workspace';
+        initialHash = `#${hash}`;
+        navId = hash;
+        setActiveNavId(hash);
+      } else {
+        try {
+          const saved = localStorage.getItem('vittanaya_profile_v2');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && parsed.onboardingCompletedAt) {
+              initialScreen = 'workspace';
+              initialHash = '#dashboard';
+              navId = 'dashboard';
+            }
+          }
+        } catch (e) { }
+      }
+
+      window.history.replaceState(
+        { screen: initialScreen, ...(navId ? { navId } : {}) },
+        '',
+        initialHash
+      );
     }
 
     const handlePopState = (event) => {
       const state = event.state;
       if (!state || !state.screen) {
-        const hash = (window.location.hash || '').replace('#', '');
-        if (hash === 'login') {
+        const currentHash = (window.location.hash || '').replace('#', '');
+        if (currentHash === 'login') {
           setAppScreen('login');
-        } else if (hash === 'stage-selection') {
+        } else if (currentHash === 'stage-selection') {
           setAppScreen('steps');
           setSelectedStage('');
-        } else if (hash === 'new-idea') {
+        } else if (currentHash === 'new-idea') {
           setAppScreen('steps');
           setSelectedStage('new_idea');
-        } else if (hash === 'startup') {
+        } else if (currentHash === 'startup') {
           setAppScreen('steps');
           setSelectedStage('startup');
-        } else if (hash === 'established-info') {
+        } else if (currentHash === 'established-info') {
           setAppScreen('steps');
           setSelectedStage('established');
           setEstablishedSubStep(2);
-        } else if (hash === 'established-type') {
+        } else if (currentHash === 'established-type') {
           setAppScreen('steps');
           setSelectedStage('established');
           setEstablishedSubStep(3);
-        } else if (hash === 'established-ops') {
+        } else if (currentHash === 'established-ops') {
           setAppScreen('steps');
           setSelectedStage('established');
           setEstablishedSubStep(4);
-        } else if (hash && ['dashboard', 'business', 'feasibility', 'financial-plan', 'scheme', 'action-plan', 'settings', 'help'].includes(hash)) {
+        } else if (currentHash && ['dashboard', 'business', 'feasibility', 'financial-plan', 'scheme', 'action-plan', 'settings', 'help'].includes(currentHash)) {
           setAppScreen('workspace');
-          setActiveNavId(hash);
+          setActiveNavId(currentHash);
         } else {
           setAppScreen('welcome');
         }
@@ -218,11 +261,29 @@ function AppContent() {
     navigate('login');
   };
 
-  // Logout -> Login
+  // Logout / New Session -> Clear Active Session & Return to Onboarding Stage Selection
   const handleLogout = () => {
     if (isDemoMode) exitDemoMode();
+    // 1. Clear authenticated/session profile state
+    setCurrentProfile(null);
+    try {
+      localStorage.removeItem('vittanaya_profile_v2');
+    } catch (e) {}
+
+    // 2. Clear stage and sub-step selections
+    setSelectedStage('');
+    setEstablishedSubStep(2);
+
+    // 3. Clear navigation history
     if (clearNavigationHistory) clearNavigationHistory();
-    navigate('login');
+
+    // 4. Terminate auth session
+    try {
+      authService.logout();
+    } catch (e) {}
+
+    // 5. Navigate to the existing Stage Selection screen in onboarding flow
+    navigate('steps', { stage: '' }, true);
   };
 
   // Primary workspace tab selection

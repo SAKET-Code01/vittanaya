@@ -3,33 +3,6 @@
    Scoped exclusively to WelcomeScreen component
    ========================================================================= */
 
-/* Top-Left Primary Brand Logo */
-.vittanaya-brand-logo {
-  height: 3.25rem; /* 52px on mobile */
-  width: auto;
-  max-width: 240px;
-  object-fit: contain;
-  mix-blend-mode: multiply;
-  filter: contrast(1.04);
-  transition: transform 0.2s ease;
-  display: block;
-}
-
-@media (min-width: 640px) {
-  .vittanaya-brand-logo {
-    height: 3.75rem; /* 60px on tablet */
-    max-width: 300px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .vittanaya-brand-logo {
-    height: 4.5rem; /* 72px on desktop */
-    max-width: 360px;
-  }
-}
-
-
 /* Hyper-Local Business Advisory Animated Pill */
 .hyperlocal-advisory-pill {
   position: relative;

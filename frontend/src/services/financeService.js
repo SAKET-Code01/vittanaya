@@ -6,31 +6,64 @@
 import { apiClient } from './apiClient';
 
 export const financeService = {
-  async getDashboardSummary(businessId = 1) {
-    return apiClient.get('/dashboard/summary', { business_id: businessId });
+  /**
+   * Fetch financial summary and KPI payload for the authorized business.
+   */
+  async getDashboardSummary(businessId = null) {
+    const params = businessId ? { business_id: businessId } : {};
+    return apiClient.get('/dashboard/summary', params);
   },
 
-  async getTransactions(businessId = 1, limit = 100) {
-    return apiClient.get('/finance/transactions', { business_id: businessId, limit });
+  /**
+   * Fetch transactions for the authorized business.
+   */
+  async getTransactions(businessId = null, limit = 100) {
+    const params = { limit };
+    if (businessId) params.business_id = businessId;
+    return apiClient.get('/finance/transactions', params);
   },
 
+  /**
+   * Post a new ledger transaction.
+   */
   async createTransaction(data) {
     return apiClient.post('/finance/transactions', data);
   },
 
-  async getReceivables(businessId = 1) {
-    return apiClient.get('/finance/receivables', { business_id: businessId });
+  /**
+   * Fetch receivables (dues to collect).
+   */
+  async getReceivables(businessId = null) {
+    const params = businessId ? { business_id: businessId } : {};
+    return apiClient.get('/finance/receivables', params);
   },
 
+  /**
+   * Create a new receivable entry.
+   */
   async createReceivable(data) {
     return apiClient.post('/finance/receivables', data);
   },
 
-  async getPayables(businessId = 1) {
-    return apiClient.get('/finance/payables', { business_id: businessId });
+  /**
+   * Fetch payables (bills to pay).
+   */
+  async getPayables(businessId = null) {
+    const params = businessId ? { business_id: businessId } : {};
+    return apiClient.get('/finance/payables', params);
   },
 
+  /**
+   * Create a new payable entry.
+   */
   async createPayable(data) {
     return apiClient.post('/finance/payables', data);
+  },
+
+  /**
+   * Calculate project cost, margin money, and institutional loan structure.
+   */
+  async calculateFundingStructure(payload) {
+    return apiClient.post('/finance/funding-structure', payload);
   },
 };

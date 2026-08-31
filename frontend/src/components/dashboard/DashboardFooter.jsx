@@ -9,7 +9,7 @@ export default function DashboardFooter({
 }) {
   return (
     <footer className={`w-full py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-500 font-medium ${className}`}>
-      
+
       {/* Left Disclaimer */}
       <div className="flex items-center space-x-1.5">
         <span className="text-slate-400">ⓘ</span>

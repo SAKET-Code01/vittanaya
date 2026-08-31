@@ -22,34 +22,23 @@ const getTone = (type) => {
   switch (type) {
     case 'amber':
       return {
-        badge: 'bg-[#FEF8E7] text-[#C78A17] border-[#E9CF86]',
-        accent: 'text-[#C78A17]',
-        soft: 'bg-[#FFFBF1]',
+        badge: 'bg-amber-50 text-amber-800 border-amber-200/80',
+        accent: 'text-amber-800',
+        soft: 'bg-amber-50/30',
       };
     case 'blue':
-      return {
-        badge: 'bg-[#EEF6FF] text-[#3978D4] border-[#C8DDF7]',
-        accent: 'text-[#3978D4]',
-        soft: 'bg-[#F7FAFE]',
-      };
-    case 'purple':
-      return {
-        badge: 'bg-[#F5F0FF] text-[#7452C3] border-[#DCCCF7]',
-        accent: 'text-[#7452C3]',
-        soft: 'bg-[#FAF8FF]',
-      };
     default:
       return {
-        badge: 'bg-[#EAF7F0] text-[#277B57] border-[#BFDCCB]',
-        accent: 'text-[#277B57]',
-        soft: 'bg-[#F3FBF7]',
+        badge: 'bg-blue-50 text-blue-700 border-blue-200',
+        accent: 'text-blue-700',
+        soft: 'bg-blue-50/40',
       };
   }
 };
 
 const CheckIcon = ({ className = '' }) => (
   <span
-    className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#E5F5EC] text-[10px] font-black text-[#16835A] ${className}`}
+    className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[10px] font-black text-blue-700 ${className}`}
     aria-hidden="true"
   >
     ✓
@@ -70,7 +59,7 @@ const Chevron = ({ open = false }) => (
 const Arrow = () => <span aria-hidden="true">→</span>;
 
 const SectionLabel = ({ children }) => (
-  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#008F68]">
+  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-blue-600">
     {children}
   </p>
 );
@@ -81,8 +70,8 @@ const FilterButton = ({ children, active, onClick }) => (
     onClick={onClick}
     className={`inline-flex min-h-9 items-center justify-between gap-2 rounded-xl border px-3 text-xs font-extrabold transition-all ${
       active
-        ? 'border-[#B8DDCB] bg-[#F1FBF6] text-[#087E5B]'
-        : 'border-[#E5EAE7] bg-white text-[#2D3933] hover:bg-[#F8FAF9]'
+        ? 'border-blue-300 bg-blue-50 text-blue-700'
+        : 'border-[rgba(226, 232, 240, 0.9)] bg-white text-[#1E293B] hover:bg-[#F8FAF9]'
     }`}
   >
     <span>{children}</span>
@@ -96,11 +85,11 @@ const MetaBox = ({ label, value, emphasis = 'dark' }) => {
       ? 'text-[#217A55]'
       : emphasis === 'amber'
       ? 'text-[#C78A17]'
-      : 'text-[#1A211D]';
+      : 'text-[#0F172A]';
 
   return (
-    <div className="rounded-xl bg-[#FAF8F4] px-3 py-2.5">
-      <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#849189]">
+    <div className="rounded-xl bg-slate-50/80 border border-slate-100 px-3 py-2.5">
+      <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#64748B]">
         {label}
       </p>
       <p className={`mt-1 text-[11px] font-black ${valueClass}`}>{value}</p>
@@ -139,9 +128,11 @@ export default function SchemePage({
   const navigateBack =
     onNavigateHome || (() => window.history.back());
 
-  const [expandedId, setExpandedId] = useState('pmegp');
+  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
+
+  const [expandedId, setExpandedId] = useState(isEstablished ? 'pmegp-expansion' : 'pmegp');
   const [activeTab, setActiveTab] = useState('why');
-  const [selectedIds, setSelectedIds] = useState(['pmegp']);
+  const [selectedIds, setSelectedIds] = useState(isEstablished ? ['pmegp-expansion'] : ['pmegp']);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('fit');
   const [collateralFilter, setCollateralFilter] = useState('all');
@@ -151,14 +142,149 @@ export default function SchemePage({
   const [applyScheme, setApplyScheme] = useState(null);
   const [aiOpen, setAiOpen] = useState(false);
 
-  const schemes = [
+  const establishedSchemes = [
+    {
+      id: 'pmegp-expansion',
+      name: 'PMEGP 2nd Financial Assistance for Upgradation of Existing Units',
+      shortName: 'PMEGP Upgradation',
+      ministry: 'Ministry of MSME',
+      badge: 'EXPANSION MATCH • 98% Fit',
+      badgeType: 'blue',
+      fitScore: 98,
+      eligibility: 'Likely Eligible',
+      category: 'subsidy',
+      subsidy: '15% to 20% Subsidy on Project Cost (up to ₹25 Lakhs)',
+      maxCost: '₹ 1,00,00,000 for Manufacturing / ₹ 25,00,000 for Service',
+      promoterShare: '10%',
+      tenure: '5 to 7 Years with flexible working capital CC/OD',
+      collateral: 'Covered under CGTMSE guarantee',
+      collateralLevel: 'low',
+      features: [
+        'Dedicated expansion capital for successful profit-making MSMEs.',
+        'Supports automation, CNC machinery addition, and secondary shift scaling.',
+        'Subsidized interest rate with government DBT subsidy credit.',
+      ],
+      reasons: [
+        'Existing operational commercial unit with positive operating margins.',
+        'Expansion and technology upgradation matches scheme priority.',
+        'GST and Udyam registrations satisfy statutory pre-requisites.',
+      ],
+      documents: [
+        'Audited Financial Statements (Last 2 Years)',
+        'Detailed Project Report (DPR) for Expansion',
+        'GST Returns (GSTR-3B) & Udyam Certificate',
+        'Bank Account Statements (12 Months)',
+      ],
+      process: [
+        'Prepare Expansion Detailed Project Report.',
+        'Submit online via KVIC PMEGP 2nd Loan Portal.',
+        'Bank appraisal & physical verification by DIC/KVIC.',
+        'Sanction & release of expansion working capital.',
+      ],
+      links: [
+        'Official PMEGP 2nd Loan Portal',
+        'Ministry of MSME Expansion Guidelines',
+      ],
+      isPrimary: true,
+      benefitType: 'subsidy',
+    },
+    {
+      id: 'cgtmse',
+      name: 'CGTMSE (Credit Guarantee Scheme for Micro & Small Enterprises)',
+      shortName: 'CGTMSE Credit Line',
+      ministry: 'Ministry of MSME & SIDBI',
+      badge: 'WORKING CAPITAL • 96% Fit',
+      badgeType: 'blue',
+      fitScore: 96,
+      eligibility: 'Likely Eligible',
+      category: 'collateral',
+      subsidy: 'Credit guarantee coverage up to 85%',
+      maxCost: 'Working Capital Line up to ₹ 2,00,00,000',
+      promoterShare: 'Standard Bank Norms (15% Margin)',
+      tenure: 'Revolving 12-Month Overdraft / CC Facility',
+      collateral: '100% Third-party collateral free',
+      collateralLevel: 'low',
+      features: [
+        'Provides working capital credit line without mortgaging personal real estate.',
+        'Guarantee fee subsidised under MSME Champions programme.',
+      ],
+      reasons: [
+        'Provides revolving liquidity to bridge customer receivables gap.',
+        'Backed by central credit guarantee trust.',
+        'Operational cash flow directly supports debt serviceability.',
+      ],
+      documents: [
+        'Udyam Registration Certificate',
+        '12-Month GST Reconciliation (GSTR-3B)',
+        'Audited Balance Sheet & Profit & Loss',
+        'Sanction Application to Principal Bank',
+      ],
+      process: [
+        'Request CGTMSE coverage through lending bank.',
+        'Submit credit line proposal and GST filings.',
+        'Bank issues sanction letter with CGTMSE endorsement.',
+      ],
+      links: [
+        'CGTMSE Official Portal',
+        'SIDBI MSME Credit Facilitation Desk',
+      ],
+      isPrimary: false,
+      benefitType: 'guarantee',
+    },
+    {
+      id: 'mudra-tarun',
+      name: 'Pradhan Mantri Mudra Yojana (Tarun Category)',
+      shortName: 'MUDRA Tarun',
+      ministry: 'Ministry of Finance',
+      badge: 'GROWTH CREDIT • 92% Fit',
+      badgeType: 'amber',
+      fitScore: 92,
+      eligibility: 'Likely Eligible',
+      category: 'loan',
+      subsidy: 'Interest Subvention on prompt quarterly repayment',
+      maxCost: '₹ 5,00,000 to ₹ 10,00,000',
+      promoterShare: '15%',
+      tenure: '5 Years with flexible cash credit / term loan',
+      collateral: 'Zero collateral required under Mudra guarantee',
+      collateralLevel: 'low',
+      features: [
+        'Instant digital processing with simplified MSME checklist.',
+        'Mudra Card for seamless working capital drawdowns.',
+      ],
+      reasons: [
+        'MSME financing need matches working-capital requirement.',
+        'Commercial operating track record satisfies bank credit criteria.',
+        'Zero-collateral feature preserves promoter assets.',
+      ],
+      documents: [
+        'Identity / KYC documents',
+        'Business proof & GST registration',
+        'Banking details (6 Months)',
+        'Working capital quotation set',
+      ],
+      process: [
+        'Review lender-specific eligibility.',
+        'Prepare KYC and business documents.',
+        'Approach participating public/private bank.',
+        'Complete credit appraisal and limit activation.',
+      ],
+      links: [
+        'MUDRA Official Information Portal',
+        'Participating Public Sector Banks',
+      ],
+      isPrimary: false,
+      benefitType: 'loan',
+    },
+  ];
+
+  const standardSchemes = [
     {
       id: 'pmegp',
       name: 'PMEGP (Prime Minister Employment Generation Programme)',
       shortName: 'PMEGP',
       ministry: 'Ministry of Micro, Small and Medium Enterprises (MSME)',
       badge: 'TOP MATCH • 98% Fit',
-      badgeType: 'emerald',
+      badgeType: 'blue',
       fitScore: 98,
       eligibility: 'Likely Eligible',
       category: 'subsidy',
@@ -293,7 +419,7 @@ export default function SchemePage({
       shortName: 'MUVY',
       ministry: 'Government of Maharashtra',
       badge: 'POTENTIAL MATCH • 72% Fit',
-      badgeType: 'purple',
+      badgeType: 'blue',
       fitScore: 72,
       eligibility: 'Review Required',
       category: 'subsidy',
@@ -331,6 +457,8 @@ export default function SchemePage({
       benefitType: 'subsidy',
     },
   ];
+
+  const schemes = isEstablished ? establishedSchemes : standardSchemes;
 
   const filteredSchemes = useMemo(() => {
     let result = [...schemes];
@@ -408,7 +536,7 @@ export default function SchemePage({
     switch (activeTab) {
       case 'guidelines':
         return (
-          <div className="rounded-2xl border border-[#E5EAE7] bg-[#FBFCFB] p-4">
+          <div className="rounded-2xl border border-[rgba(226, 232, 240, 0.9)] bg-[#FBFCFB] p-4">
             <p className="text-xs font-black text-[#1B2922]">
               Key Scheme Guidelines
             </p>
@@ -429,7 +557,7 @@ export default function SchemePage({
       case 'eligibility':
         return (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-[#D7EBDD] bg-[#F3FBF7] p-4">
+            <div className="rounded-2xl border border-[#D7EBDD] bg-blue-50/40 p-4">
               <p className="text-xs font-black text-[#217954]">
                 Current matching status
               </p>
@@ -464,7 +592,7 @@ export default function SchemePage({
 
       case 'documents':
         return (
-          <div className="rounded-2xl border border-[#E5EAE7] bg-white p-4">
+          <div className="rounded-2xl border border-[rgba(226, 232, 240, 0.9)] bg-white p-4">
             <p className="text-xs font-black text-[#1B2922]">
               Documents to prepare
             </p>
@@ -472,7 +600,7 @@ export default function SchemePage({
               {scheme.documents.map((item, index) => (
                 <div
                   key={item}
-                  className="flex items-center gap-2 rounded-xl bg-[#F7F9F8] px-3 py-2.5"
+                  className="flex items-center gap-2 rounded-xl bg-transparent px-3 py-2.5"
                 >
                   <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white text-[10px] font-black text-[#0C815B]">
                     {index + 1}
@@ -488,7 +616,7 @@ export default function SchemePage({
 
       case 'process':
         return (
-          <div className="rounded-2xl border border-[#E5EAE7] bg-white p-4">
+          <div className="rounded-2xl border border-[rgba(226, 232, 240, 0.9)] bg-white p-4">
             <p className="text-xs font-black text-[#1B2922]">
               Application Process
             </p>
@@ -509,7 +637,7 @@ export default function SchemePage({
 
       case 'links':
         return (
-          <div className="rounded-2xl border border-[#E5EAE7] bg-white p-4">
+          <div className="rounded-2xl border border-[rgba(226, 232, 240, 0.9)] bg-white p-4">
             <p className="text-xs font-black text-[#1B2922]">
               Important Links
             </p>
@@ -517,7 +645,7 @@ export default function SchemePage({
               {scheme.links.map((item) => (
                 <div
                   key={item}
-                  className="flex items-center justify-between rounded-xl bg-[#F7F9F8] px-3 py-2.5"
+                  className="flex items-center justify-between rounded-xl bg-transparent px-3 py-2.5"
                 >
                   <span className="text-[10px] font-bold text-[#526158]">
                     {item}
@@ -534,8 +662,8 @@ export default function SchemePage({
       default:
         return (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.05fr_1fr]">
-            <div className="rounded-2xl border border-[#D6EBDD] bg-[#F3FBF7] p-4">
-              <p className="text-xs font-black text-[#087E5B]">
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4">
+              <p className="text-xs font-black text-blue-700">
                 Why VITTANAYA matched this scheme
               </p>
 
@@ -555,7 +683,7 @@ export default function SchemePage({
                 <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#7D8D84]">
                   Match confidence
                 </p>
-                <p className="mt-1 text-sm font-black text-[#0B7D59]">
+                <p className="mt-1 text-sm font-black text-blue-700">
                   {scheme.fitScore >= 90
                     ? 'High'
                     : scheme.fitScore >= 80
@@ -565,7 +693,7 @@ export default function SchemePage({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#E5EAE7] bg-white p-4">
+            <div className="rounded-2xl border border-[rgba(226, 232, 240, 0.9)] bg-white p-4">
               <p className="text-xs font-black text-[#1B2922]">
                 Key Scheme Guidelines
               </p>
@@ -576,7 +704,7 @@ export default function SchemePage({
                     key={feature}
                     className="flex items-start gap-2 text-[10px] leading-4 text-[#526158]"
                   >
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#23825B]" />
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -588,7 +716,7 @@ export default function SchemePage({
   };
 
   return (
-    <div className="w-full space-y-5 bg-[#F7F9F8] pb-12 text-[#18211D]">
+    <div className="w-full space-y-5 bg-transparent pb-12 text-[#18211D]">
       {/* HEADER */}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
@@ -632,7 +760,7 @@ export default function SchemePage({
       <section className="rounded-[22px] border border-[#E2E9E5] bg-white p-4 shadow-[0_6px_24px_rgba(25,48,38,0.045)]">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.3fr_0.55fr_0.85fr_0.85fr] md:items-center">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EEF8F3] text-2xl text-[#0A815A]">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-2xl text-blue-700">
               ♧
             </div>
             <div>
@@ -647,15 +775,15 @@ export default function SchemePage({
           </div>
 
           <div className="border-l border-[#E7ECE9] pl-4">
-            <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#849189]">
+            <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#64748B]">
               Top Match
             </p>
-            <p className="mt-1 text-2xl font-black text-[#087E5B]">98%</p>
+            <p className="mt-1 text-2xl font-black text-blue-700">98%</p>
             <p className="text-[10px] text-[#708078]">Best fit score</p>
           </div>
 
           <div className="border-l border-[#E7ECE9] pl-4">
-            <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#849189]">
+            <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#64748B]">
               Low-Collateral Options
             </p>
             <p className="mt-1 text-2xl font-black text-[#1B2922]">
@@ -667,9 +795,9 @@ export default function SchemePage({
           <button
             type="button"
             onClick={() => setAiOpen(true)}
-            className="rounded-2xl border border-[#D8ECE2] bg-[#F2FAF6] px-4 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm"
+            className="rounded-2xl border border-blue-200 bg-blue-50/60 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:shadow-sm"
           >
-            <p className="text-xs font-black text-[#0A815A]">
+            <p className="text-xs font-black text-blue-700">
               Ask AI Advisor <Arrow />
             </p>
             <p className="mt-1 text-[10px] leading-4 text-[#64736B]">
@@ -687,8 +815,8 @@ export default function SchemePage({
             onClick={() => setShowFilters((v) => !v)}
             className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-extrabold transition ${
               showFilters
-                ? 'border-[#B8DDCB] bg-[#F1FBF6] text-[#087E5B]'
-                : 'border-[#E5EAE7] bg-white text-[#2D3933]'
+                ? 'border-blue-300 bg-blue-50 text-blue-700'
+                : 'border-[rgba(226, 232, 240, 0.9)] bg-white text-[#1E293B]'
             }`}
           >
             ⏷ Filter Schemes
@@ -742,7 +870,7 @@ export default function SchemePage({
             onClick={() => setComparisonOpen(true)}
             className={`ml-auto inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-extrabold transition ${
               selectedIds.length >= 2
-                ? 'border-[#BFD9CA] bg-white text-[#087E5B] hover:bg-[#F4FBF7]'
+                ? 'border-[#BFD9CA] bg-white text-blue-700 hover:bg-[#F4FBF7]'
                 : 'cursor-not-allowed border-[#E8ECEA] bg-white text-[#9AA49F]'
             }`}
           >
@@ -751,7 +879,7 @@ export default function SchemePage({
         </div>
 
         {showFilters && (
-          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#E5EAE7] bg-white p-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[rgba(226, 232, 240, 0.9)] bg-white p-3">
             <span className="mr-1 text-[10px] font-extrabold uppercase tracking-wider text-[#7E8B84]">
               Categories
             </span>
@@ -761,7 +889,7 @@ export default function SchemePage({
               onClick={() => setCategoryFilter('subsidy')}
               className={`rounded-lg px-3 py-1.5 text-[10px] font-extrabold ${
                 categoryFilter === 'subsidy'
-                  ? 'bg-[#EAF7F0] text-[#217A55]'
+                  ? 'bg-blue-50 text-[#217A55]'
                   : 'bg-[#F5F7F6] text-[#58665E]'
               }`}
             >
@@ -807,7 +935,7 @@ export default function SchemePage({
             <button
               type="button"
               onClick={resetFilters}
-              className="rounded-lg px-3 py-1.5 text-[10px] font-extrabold text-[#087E5B] hover:bg-[#F2FAF6]"
+              className="rounded-lg px-3 py-1.5 text-[10px] font-extrabold text-blue-700 hover:bg-[#F2FAF6]"
             >
               Clear filters
             </button>
@@ -874,7 +1002,7 @@ export default function SchemePage({
                       <button
                         type="button"
                         onClick={() => toggleExpanded(scheme.id)}
-                        className="mt-2 text-left text-sm font-black leading-5 text-[#17221C] hover:text-[#087E5B] sm:text-base"
+                        className="mt-2 text-left text-sm font-black leading-5 text-[#17221C] hover:text-blue-700 sm:text-base"
                       >
                         {scheme.name}
                       </button>
@@ -918,7 +1046,7 @@ export default function SchemePage({
                       <button
                         type="button"
                         onClick={() => toggleExpanded(scheme.id)}
-                        className="ml-auto mt-0 rounded-full border border-[#E4E9E6] bg-white px-2.5 py-2 text-xs font-black text-[#516059] transition hover:bg-[#F7F9F8] lg:mt-2 lg:block"
+                        className="ml-auto mt-0 rounded-full border border-[#E4E9E6] bg-white px-2.5 py-2 text-xs font-black text-[#516059] transition hover:bg-transparent lg:mt-2 lg:block"
                         aria-label={`${expanded ? 'Collapse' : 'Expand'} ${scheme.name}`}
                       >
                         <Chevron open={expanded} />
@@ -939,7 +1067,7 @@ export default function SchemePage({
                             onClick={() => handleTab(scheme.id, tab.id)}
                             className={`relative pb-3 text-[10px] font-extrabold ${
                               activeTab === tab.id
-                                ? 'text-[#087E5B]'
+                                ? 'text-blue-700'
                                 : 'text-[#68766E] hover:text-[#1D2A24]'
                             }`}
                           >
@@ -965,7 +1093,7 @@ export default function SchemePage({
 
       {/* BOTTOM ACTIONS */}
       <section className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        <div className="rounded-[22px] border border-[#DCEBE3] bg-[#F3FBF7] p-4 sm:p-5">
+        <div className="rounded-[22px] border border-[#DCEBE3] bg-blue-50/40 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-xl text-[#16825A] shadow-sm">
               ⇄
@@ -985,7 +1113,7 @@ export default function SchemePage({
                 onClick={() => setComparisonOpen(true)}
                 className={`mt-3 rounded-xl border px-3.5 py-2 text-[10px] font-extrabold ${
                   selectedIds.length >= 2
-                    ? 'border-[#BBDDCB] bg-white text-[#087E5B]'
+                    ? 'border-[#BBDDCB] bg-white text-blue-700'
                     : 'cursor-not-allowed border-[#DCE6E1] bg-white text-[#99A49E]'
                 }`}
               >
@@ -1012,7 +1140,7 @@ export default function SchemePage({
               <button
                 type="button"
                 onClick={() => setAiOpen(true)}
-                className="mt-3 rounded-xl border border-[#BBDDCB] bg-white px-3.5 py-2 text-[10px] font-extrabold text-[#087E5B]"
+                className="mt-3 rounded-xl border border-[#BBDDCB] bg-white px-3.5 py-2 text-[10px] font-extrabold text-blue-700"
               >
                 Ask AI Advisor <Arrow />
               </button>
@@ -1118,7 +1246,7 @@ export default function SchemePage({
               </button>
             </div>
 
-            <div className="mt-5 overflow-x-auto rounded-2xl border border-[#E5EAE7]">
+            <div className="mt-5 overflow-x-auto rounded-2xl border border-[rgba(226, 232, 240, 0.9)]">
               <table className="min-w-[760px] w-full border-collapse text-left">
                 <thead>
                   <tr className="bg-[#F5F8F6]">
@@ -1164,7 +1292,7 @@ export default function SchemePage({
               </table>
             </div>
 
-            <div className="mt-4 rounded-xl bg-[#F3FBF7] px-3 py-2.5 text-[10px] leading-4 text-[#587064]">
+            <div className="mt-4 rounded-xl bg-blue-50/40 px-3 py-2.5 text-[10px] leading-4 text-[#587064]">
               The comparison is intended to support decisions; final scheme
               terms must be verified from the current official source.
             </div>
@@ -1221,7 +1349,7 @@ export default function SchemePage({
               {schemes.slice(0, 3).map((scheme) => (
                 <div
                   key={scheme.id}
-                  className="rounded-xl border border-[#E5EAE7] bg-white p-3"
+                  className="rounded-xl border border-[rgba(226, 232, 240, 0.9)] bg-white p-3"
                 >
                   <p className="text-[10px] font-black text-[#18211D]">
                     {scheme.shortName}

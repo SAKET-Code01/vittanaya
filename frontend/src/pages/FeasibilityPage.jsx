@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CircularScoreGauge } from '../components/common/JapaneseArtwork';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { formatINR } from '../mocks/dashboardMockData';
@@ -19,7 +19,7 @@ function formatScore(value, max) {
 
 function statusTone(status) {
   const value = String(status || '').toLowerCase();
-  if (value.includes('strong') || value.includes('healthy') || value.includes('complete') || value.includes('low')) return 'emerald';
+  if (value.includes('strong') || value.includes('healthy') || value.includes('complete') || value.includes('low')) return 'blue';
   if (value.includes('moderate') || value.includes('proxy') || value.includes('caution')) return 'amber';
   if (value.includes('high') || value.includes('critical') || value.includes('needs') || value.includes('risk')) return 'rose';
   return 'slate';
@@ -27,7 +27,7 @@ function statusTone(status) {
 
 function TonePill({ tone = 'slate', children, className = '' }) {
   const styles = {
-    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    emerald: 'bg-blue-50 text-blue-700 border-blue-200',
     amber: 'bg-amber-50 text-amber-700 border-amber-200',
     rose: 'bg-rose-50 text-rose-700 border-rose-200',
     blue: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -48,7 +48,7 @@ function SectionHeader({ eyebrow, title, description, action }) {
     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 pb-4 border-b border-slate-100">
       <div className="space-y-1">
         {eyebrow && (
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-600">
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-600">
             {eyebrow}
           </p>
         )}
@@ -62,7 +62,7 @@ function SectionHeader({ eyebrow, title, description, action }) {
   );
 }
 
-function ModalShell({ isOpen, title, description, onClose, tone = 'emerald', children, footer }) {
+function ModalShell({ isOpen, title, description, onClose, tone = 'blue', children, footer }) {
   useEffect(() => {
     if (!isOpen) return undefined;
 
@@ -77,7 +77,7 @@ function ModalShell({ isOpen, title, description, onClose, tone = 'emerald', chi
   if (!isOpen) return null;
 
   const accent = {
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    emerald: 'border-blue-200 bg-blue-50 text-blue-700',
     amber: 'border-amber-200 bg-amber-50 text-amber-700',
     rose: 'border-rose-200 bg-rose-50 text-rose-700',
     blue: 'border-blue-200 bg-blue-50 text-blue-700',
@@ -164,7 +164,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
 
   const profile = propProfile || contextProfile || {};
   const selectedOps = profile.selectedOperations || [];
-  const businessName = profile.name || 'Your Enterprise';
+  const businessName = profile.businessName || profile.name || 'Your Enterprise';
   const businessLocation =
     profile.location ||
     [profile.village, profile.district, profile.state].filter(Boolean).join(', ') ||
@@ -283,21 +283,31 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
   const dataUpdated = profile.lastUpdatedAt || profile.onboardingCompletedAt || null;
   const sourceCount = [
     profile.name,
-    businessLocation !== 'Awaiting analysis',
+        businessLocation !== 'Awaiting analysis',
     financialHealth !== null,
     selectedOps.length > 0,
     isDemoMode,
   ].filter(Boolean).length;
+  const isEstablished = (profile?.stage || '').toUpperCase() === 'ESTABLISHED';
 
   const decisionLabel = useMemo(() => {
+    if (isEstablished) {
+      if (overallScore >= 70) return 'SUSTAINABLE — OPTIMIZATION RECOMMENDED';
+      if (overallScore >= 55) return 'VIABLE COMMERCIAL OPERATION';
+      return 'HEALTH AUDIT IN PROGRESS';
+    }
     if (overallConfidence < 55) return 'DECISION PENDING DATA VALIDATION';
     if (overallScore >= 75 && overallConfidence >= 65) return 'PROCEED WITH CAUTION';
     if (overallScore >= 60) return 'REVIEW BEFORE PROCEEDING';
     return 'DECISION PENDING DATA VALIDATION';
-  }, [overallConfidence, overallScore]);
+  }, [isEstablished, overallConfidence, overallScore]);
 
   const feasibilityStatus =
-    decisionLabel === 'PROCEED WITH CAUTION'
+    decisionLabel === 'SUSTAINABLE — OPTIMIZATION RECOMMENDED'
+      ? 'Sustainable & Healthy'
+      : decisionLabel === 'VIABLE COMMERCIAL OPERATION'
+      ? 'Viable Commercial Operation'
+      : decisionLabel === 'PROCEED WITH CAUTION'
       ? 'Proceed with caution'
       : decisionLabel === 'REVIEW BEFORE PROCEEDING'
         ? 'Review before proceeding'
@@ -501,23 +511,25 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             </div>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-600">
-                  Business Decision Intelligence
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-600">
+                  {isEstablished ? 'Enterprise Health & Sustainability Audit' : 'Business Decision Intelligence'}
                 </p>
                 <h1 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950">
-                  Hyper-Local Business Feasibility Analysis
+                  {isEstablished ? 'Enterprise Sustainability & Business Health Audit' : 'Hyper-Local Business Feasibility Analysis'}
                 </h1>
                 <p className="mt-1 text-xs sm:text-sm text-slate-500 max-w-3xl">
-                  5–10 km catchment assessment for {businessName} in {businessLocation}
+                  {isEstablished
+                    ? `Operational viability, market positioning, and growth capacity for ${businessName} in ${businessLocation}`
+                    : `5–10 km catchment assessment for ${businessName} in ${businessLocation}`}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <TonePill tone="emerald">{businessName}</TonePill>
+            <TonePill tone="blue">{businessName}</TonePill>
             <TonePill tone="slate">{businessLocation}</TonePill>
-            <TonePill tone="emerald">Catchment: {catchmentLabel}</TonePill>
+            <TonePill tone="blue">Catchment: {catchmentLabel}</TonePill>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
@@ -544,7 +556,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             <button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-[0_4px_14px_rgba(15,23,42,0.05)] hover:-translate-y-0.5 hover:shadow-md transition-all">
               <span>⇩</span><span>Download Report</span>
             </button>
-            <button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-2.5 text-xs font-bold text-emerald-700 hover:-translate-y-0.5 hover:bg-emerald-100 hover:shadow-md transition-all">
+            <button type="button" className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-700 hover:-translate-y-0.5 hover:bg-blue-100 hover:shadow-md transition-all">
               <span>♡</span><span>Save Analysis</span>
             </button>
           </div>
@@ -554,20 +566,20 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
 
       {/* Main score + supporting cards */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
-        <div className="xl:col-span-4 rounded-[26px] border border-emerald-950/40 bg-[#062d20] p-5 sm:p-6 text-white shadow-[0_16px_40px_rgba(4,47,38,0.18)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(4,47,38,0.24)]">
+        <div className="xl:col-span-4 rounded-[26px] border border-blue-500/25 bg-gradient-to-br from-[#060D1D] via-[#0B1736] to-[#0A1128] p-5 sm:p-6 text-white shadow-[0_16px_40px_rgba(6,13,29,0.35)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(11,23,54,0.45)]">
           <div className="h-full flex flex-col">
             <div className="flex items-center justify-center gap-2 text-center">
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-100/80">Overall Feasibility Index</p>
-              <span className="text-xs text-emerald-100/60" title="Composite feasibility score">ⓘ</span>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-200/80">Overall Feasibility Index</p>
+              <span className="text-xs text-blue-200/60" title="Composite feasibility score">ⓘ</span>
             </div>
 
             <div className="flex-1 flex flex-col items-center justify-center py-4">
-              <CircularScoreGauge score={clamp(overallScore, 0, 100)} size={150} strokeWidth={10} />
+              <CircularScoreGauge score={clamp(overallScore, 0, 100)} size={150} strokeWidth={10} stroke="#3B82F6" />
               <div className="mt-2 text-center">
-                <div className="text-2xl sm:text-3xl font-black text-emerald-400">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400">
                   {overallScore >= 75 ? 'Good Potential' : overallScore >= 60 ? 'Review Required' : 'Needs Validation'}
                 </div>
-                <p className="mt-2 max-w-md text-xs leading-relaxed text-emerald-50/75">
+                <p className="mt-2 max-w-md text-xs leading-relaxed text-blue-100/75">
                   Business fundamentals and available local evidence currently support this feasibility position.
                 </p>
               </div>
@@ -575,11 +587,11 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
 
             <div className="grid grid-cols-2 gap-2.5">
               <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-100/60">Confidence</p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-blue-200/60">Confidence</p>
                 <p className="mt-1 text-sm font-extrabold text-white">{isDemoMode ? 'Demo' : confidenceDisplay}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-emerald-100/60">Factors</p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-blue-200/60">Factors</p>
                 <p className="mt-1 text-sm font-extrabold text-white">{factorCount}</p>
               </div>
             </div>
@@ -587,7 +599,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             <button
               type="button"
               onClick={() => setActiveModal('score')}
-              className="mt-3 inline-flex items-center justify-between rounded-2xl border border-emerald-400/45 bg-emerald-400/10 px-4 py-3 text-xs font-bold text-emerald-100 hover:bg-emerald-400/15 transition-all"
+              className="mt-3 inline-flex items-center justify-between rounded-2xl border border-blue-400/40 bg-blue-500/15 px-4 py-3 text-xs font-bold text-blue-200 hover:bg-blue-500/25 transition-all cursor-pointer"
             >
               <span>Why this score?</span><span>→</span>
             </button>
@@ -600,19 +612,19 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             <div>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Market Fit</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">Market Fit</p>
                   <h2 className="mt-1 text-base font-bold text-slate-900">Demand and catchment</h2>
                 </div>
-                <TonePill tone="emerald">{isDemoMode ? '92%' : formatScore(marketFitScore, 30)}</TonePill>
+                <TonePill tone="blue">{isDemoMode ? '92%' : formatScore(marketFitScore, 30)}</TonePill>
               </div>
               <div className="mt-4 space-y-3">
                 <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-slate-500">Demand</span>
-                    <span className="text-sm font-extrabold text-emerald-700">{marketDemandLabel}</span>
+                    <span className="text-sm font-extrabold text-blue-700">{marketDemandLabel}</span>
                   </div>
                   <div className="mt-2 h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${isDemoMode ? 92 : clamp((marketFitScore || 0) / 30 * 100, 0, 100)}%` }} />
+                    <div className="h-full rounded-full bg-blue-600" style={{ width: `${isDemoMode ? 92 : clamp((marketFitScore || 0) / 30 * 100, 0, 100)}%` }} />
                   </div>
                 </div>
                 <p className="text-xs leading-relaxed text-slate-500">
@@ -622,7 +634,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
                 </p>
               </div>
             </div>
-            <button type="button" onClick={() => setActiveModal('market')} className="mt-4 inline-flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors">
+            <button type="button" onClick={() => setActiveModal('market')} className="mt-4 inline-flex items-center justify-between rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors">
               <span>View Evidence</span><span>→</span>
             </button>
           </div>
@@ -654,7 +666,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             <div>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Risk Exposure</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">Risk Exposure</p>
                   <h2 className="mt-1 text-base font-bold text-slate-900">Operating risk profile</h2>
                 </div>
                 <TonePill tone={statusTone(riskLabel)}>{isDemoMode ? '18%' : riskLabel}</TonePill>
@@ -676,7 +688,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
                 </div>
               </div>
             </div>
-            <button type="button" onClick={() => setActiveModal('risk')} className="mt-4 inline-flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors">
+            <button type="button" onClick={() => setActiveModal('risk')} className="mt-4 inline-flex items-center justify-between rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors">
               <span>View Risk Factors</span><span>→</span>
             </button>
           </div>
@@ -691,7 +703,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             title="SWOT Analysis"
             description="A compact view of the business position; open the score/explanations for detail."
             action={
-              <button type="button" onClick={() => setActiveModal('score')} className="text-xs font-bold text-emerald-700 hover:text-emerald-800">
+              <button type="button" onClick={() => setActiveModal('score')} className="text-xs font-bold text-blue-700 hover:text-blue-800">
                 View Full SWOT →
               </button>
             }
@@ -705,7 +717,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
               { label: 'Competitor dataset', evidence: hasLocation ? 'Competition remains a proxy until connected.' : null },
               { label: 'Pricing evidence', evidence: isDemoMode ? 'Demo pricing context only.' : 'Pricing inputs not available yet.' },
             ]} />
-            <SWOTCard title="Opportunities" tone="emerald" badge="O" items={[
+            <SWOTCard title="Opportunities" tone="blue" badge="O" items={[
               { label: 'Financial simulation', evidence: 'Refine capital and loan decisions.', action: () => navigateTo('financial-plan') },
               { label: 'Scheme matching', evidence: 'Check available financing support.', action: () => navigateTo('scheme') },
             ]} />
@@ -719,7 +731,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">Next Steps</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-600">Next Steps</p>
                 <h3 className="mt-1 text-sm font-extrabold text-slate-900">Recommended Next Steps</h3>
                 <p className="mt-1 text-[11px] text-slate-500">
                   Turn the current feasibility findings into practical actions.
@@ -774,7 +786,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
                 <div className="mt-4">
                   <div className="relative aspect-[1.65] rounded-2xl border border-slate-200 bg-white overflow-hidden">
                     <div className="absolute inset-0 grid grid-cols-2 grid-rows-2">
-                      <div className="bg-emerald-50/70 border-r border-b border-slate-200 p-2"><span className="text-[9px] font-black uppercase tracking-widest text-emerald-700">Best Opportunity</span></div>
+                      <div className="bg-blue-50/70 border-r border-b border-slate-200 p-2"><span className="text-[9px] font-black uppercase tracking-widest text-blue-700">Best Opportunity</span></div>
                       <div className="bg-rose-50/55 border-b border-slate-200 p-2 text-right"><span className="text-[9px] font-black uppercase tracking-widest text-rose-600">Saturated</span></div>
                       <div className="bg-amber-50/45 border-r border-slate-200 p-2 flex items-end"><span className="text-[9px] font-black uppercase tracking-widest text-amber-700">Niche</span></div>
                       <div className="bg-slate-50 p-2 flex items-end justify-end"><span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Low Potential</span></div>
@@ -788,10 +800,10 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
                     {canPlot && (
                       <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left, top }}>
                         <div className="relative">
-                          <div className="absolute -inset-2 rounded-full bg-emerald-400/20 animate-pulse" />
-                          <div className="relative h-8 w-8 rounded-full bg-emerald-600 border-4 border-white shadow-lg" />
-                          <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-lg border border-emerald-200 bg-white px-2 py-1 shadow-md">
-                            <p className="text-[9px] font-black text-emerald-700">YOUR BUSINESS</p>
+                          <div className="absolute -inset-2 rounded-full bg-blue-400/20 animate-pulse" />
+                          <div className="relative h-8 w-8 rounded-full bg-blue-600 border-4 border-white shadow-lg" />
+                          <div className="absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded-lg border border-blue-200 bg-white px-2 py-1 shadow-md">
+                            <p className="text-[9px] font-black text-blue-700">YOUR BUSINESS</p>
                           </div>
                         </div>
                       </div>
@@ -804,7 +816,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
                 </div>
               );
             })()}
-            <button type="button" onClick={() => navigateTo('dashboard')} className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors">
+            <button type="button" onClick={() => navigateTo('dashboard')} className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors">
               View Full Market Analysis →
             </button>
           </div>
@@ -826,8 +838,8 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
                 </div>
                 <div className="mt-4">
                   <div className="relative h-2 rounded-full bg-slate-100">
-                    <div className="absolute left-0 top-0 h-2 w-2/3 rounded-full bg-emerald-200" />
-                    <div className="absolute left-[42%] top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-white bg-emerald-600 shadow" />
+                    <div className="absolute left-0 top-0 h-2 w-2/3 rounded-full bg-blue-200" />
+                    <div className="absolute left-[42%] top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-white bg-blue-600 shadow" />
                   </div>
                   <div className="mt-2 flex justify-between text-[10px] font-semibold text-slate-400">
                     <span>Lower</span><span>Average</span><span>Premium</span>
@@ -837,7 +849,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             ) : (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">Pricing data not available yet.</div>
             )}
-            <button type="button" onClick={() => setActiveModal('pricing')} className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors">
+            <button type="button" onClick={() => setActiveModal('pricing')} className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors">
               View Pricing Benchmark →
             </button>
           </div>
@@ -848,10 +860,10 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
       <div className="dash-card p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">Quick Access</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">Quick Access</p>
             <h2 className="text-sm sm:text-base font-bold text-slate-900">Other Key Intelligence</h2>
           </div>
-          <button type="button" onClick={() => setActiveModal('decision')} className="text-xs font-bold text-emerald-700 hover:text-emerald-800">
+          <button type="button" onClick={() => setActiveModal('decision')} className="text-xs font-bold text-blue-700 hover:text-blue-800">
             View Decision Summary →
           </button>
         </div>
@@ -871,8 +883,8 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-2">
               {factorBreakdown.map((item) => <DataRow key={item.key} label={item.key} value={formatScore(item.score, item.max)} />)}
             </div>
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Current result</p>
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">Current result</p>
               <p className="mt-2 text-4xl font-black text-slate-900">{overallScore}<span className="text-lg text-slate-400">/100</span></p>
               <p className="mt-2 text-xs leading-relaxed text-slate-600">This score combines the available market, financial, location, competition and risk inputs.</p>
             </div>
@@ -942,7 +954,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
 
       {activeModal === 'decision' && (
         <ModalShell isOpen title="Decision summary" description="A concise explanation of the current recommendation." onClose={() => setActiveModal(null)} tone="emerald">
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
             <div className="flex flex-wrap items-center gap-2">
               <TonePill tone={statusTone(decisionLabel)}>{decisionLabel}</TonePill>
               <TonePill tone="slate">Score: {overallScore}/100</TonePill>
@@ -950,12 +962,12 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             </div>
             <ul className="mt-4 space-y-2 text-xs text-slate-600">
               {decisionReasons.map((reason) => (
-                <li key={reason} className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" /><span>{reason}</span></li>
+                <li key={reason} className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-600" /><span>{reason}</span></li>
               ))}
             </ul>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" onClick={() => navigateTo('financial-plan')} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700">Run Financial Simulation →</button>
+            <button type="button" onClick={() => navigateTo('financial-plan')} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700">Run Financial Simulation →</button>
             <button type="button" onClick={openAIExplanation} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">Explain this decision →</button>
           </div>
         </ModalShell>
@@ -972,14 +984,14 @@ function RecommendedNextStep({ number, title, text, cta, onClick }) {
       onClick={onClick}
       className="group flex w-full items-center gap-3 rounded-2xl border border-white bg-white px-3.5 py-3 text-left shadow-[0_2px_8px_rgba(15,23,42,0.03)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
     >
-      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-[10px] font-black text-emerald-700">
+      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[10px] font-black text-blue-700">
         {number}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-xs font-extrabold text-slate-900">{title}</span>
         <span className="mt-0.5 block text-[10px] leading-relaxed text-slate-500">{text}</span>
       </span>
-      <span className="flex flex-shrink-0 items-center gap-1 text-[10px] font-bold text-emerald-700">
+      <span className="flex flex-shrink-0 items-center gap-1 text-[10px] font-bold text-blue-700">
         {cta}
         <span className="transition-transform duration-200 group-hover:translate-x-0.5">→</span>
       </span>
@@ -987,9 +999,9 @@ function RecommendedNextStep({ number, title, text, cta, onClick }) {
   );
 }
 
-function QuickAccessCard({ title, text, tone = 'emerald', onClick }) {
+function QuickAccessCard({ title, text, tone = 'blue', onClick }) {
   const tones = {
-    emerald: 'bg-emerald-50/70 border-emerald-100 text-emerald-700',
+    emerald: 'bg-blue-50/70 border-blue-100 text-blue-700',
     amber: 'bg-amber-50/70 border-amber-100 text-amber-700',
     violet: 'bg-violet-50/70 border-violet-100 text-violet-700',
     blue: 'bg-blue-50/70 border-blue-100 text-blue-700',
@@ -1011,7 +1023,7 @@ function QuickAccessCard({ title, text, tone = 'emerald', onClick }) {
 
 function SWOTCard({ title, tone, badge, items = [] }) {
   const styles = {
-    emerald: 'bg-emerald-50 border-emerald-100 text-emerald-700',
+    emerald: 'bg-blue-50 border-blue-100 text-blue-700',
     amber: 'bg-amber-50 border-amber-100 text-amber-700',
     rose: 'bg-rose-50 border-rose-100 text-rose-700',
   };
@@ -1038,7 +1050,7 @@ function SWOTCard({ title, tone, badge, items = [] }) {
                 <button
                   type="button"
                   onClick={item.action}
-                  className="text-[10px] font-bold text-emerald-700 hover:text-emerald-800 whitespace-nowrap"
+                  className="text-[10px] font-bold text-blue-700 hover:text-blue-800 whitespace-nowrap"
                 >
                   Evidence -&gt;
                 </button>

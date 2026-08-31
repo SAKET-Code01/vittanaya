@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import VittanayaLogo from '../common/VittanayaLogo';
+import SearchableLocationSelect from '../common/SearchableLocationSelect';
+import locationService from '../../services/locationService';
 
 const STARTUP_CATEGORIES = [
   { id: 'manufacturing', label: 'Manufacturing & Fabrication', icon: '⚙️' },
@@ -23,13 +25,12 @@ const STAGES = [
  * StartupIntakeScreen Component (SIH26091 Phase A)
  * 
  * 2-minute structured intake for emerging startups:
- * - Business / Idea name
- * - Category & Stage
- * - Location (Village, Block, District, State)
- * - Own Capital & Already Invested
- * - Optional readiness indicators (Premises, Machinery, Existing Sales)
- * 
- * Persists all state in parent draft store to ensure zero data loss on navigation.
+ * - SECTION 1: Startup Identity & Category (Business / Venture Name *, Category *, Specific Activity)
+ * - SECTION 2: Current Venture Stage
+ * - SECTION 3: Location (Operating Catchment: State * -> District * -> Block / Tehsil -> Village / Town *)
+ * - SECTION 4: Capital Structure & Equity (Available Own Margin Capital *, Capital Already Invested)
+ * - Optional Readiness Details (Premises, Machinery, Existing Monthly Sales, Customer Commitments)
+ * - Beneficiary & Area Classification for Government Schemes
  */
 export default function StartupIntakeScreen({
   draft = {},
@@ -40,30 +41,37 @@ export default function StartupIntakeScreen({
   canGoForward = false,
   onHome,
 }) {
-  const businessName = draft.businessName || '';
+  // Section 1: Identity & Category
+  const businessName = draft.businessName || draft.name || '';
   const category = draft.category || '';
   const specificActivity = draft.specificActivity || '';
+
+  // Section 2: Stage
   const stage = draft.stage || 'setup';
 
-  // Location
-  const village = draft.village || '';
-  const block = draft.block || '';
-  const district = draft.district || '';
+  // Section 3: Hierarchical Location
   const state = draft.state || '';
+  const stateId = draft.stateId || '';
+  const district = draft.district || '';
+  const districtId = draft.districtId || '';
+  const block = draft.block || '';
+  const blockId = draft.blockId || '';
+  const village = draft.village || draft.locality || '';
+  const villageId = draft.villageId || draft.localityId || '';
   const pin = draft.pin || '';
 
-  // Capital
+  // Section 4: Capital
   const ownCapital = draft.ownCapital ?? '';
   const alreadyInvested = draft.alreadyInvested ?? '';
 
-  // Optional Readiness
+  // Optional Readiness Details
   const [showOptional, setShowOptional] = useState(false);
   const hasPremises = draft.hasPremises || 'yes';
   const hasEquipment = draft.hasEquipment || 'partial';
   const existingMonthlySales = draft.existingMonthlySales ?? 0;
   const customerCount = draft.customerCount ?? 0;
 
-  // Beneficiary
+  // Scheme Classification
   const socialCategory = draft.socialCategory || '';
   const areaType = draft.areaType || '';
 
@@ -78,17 +86,163 @@ export default function StartupIntakeScreen({
     }
   };
 
+  // Location Loading Callbacks
+  const loadStates = useCallback(async () => {
+    return locationService.getStates();
+  }, []);
+
+  const loadDistricts = useCallback(async () => {
+    if (!stateId && !state) return [];
+    let sId = stateId;
+    if (!sId && state) {
+      const states = await locationService.getStates();
+      const match = states.find((s) => s.name.toLowerCase() === state.toLowerCase());
+      sId = match?.id || 'OD';
+    }
+    return locationService.getDistricts(sId || 'OD');
+  }, [stateId, state]);
+
+  const loadBlocks = useCallback(async () => {
+    if (!districtId && !district) return [];
+    const dId = districtId || `${stateId || 'OD'}_DIST`;
+    return locationService.getBlocks(dId);
+  }, [districtId, district, stateId]);
+
+  const loadVillages = useCallback(async () => {
+    if (!blockId && !block) return [];
+    const bId = blockId || `${districtId || 'OD_KH'}_BLK1`;
+    return locationService.getLocalities(bId);
+  }, [blockId, block, districtId]);
+
+  // Hierarchical Cascading Location Handlers with Parent Clears
+  const handleStateChange = (stateObj) => {
+    if (setDraft) {
+      setDraft((prev) => ({
+        ...prev,
+        state: stateObj.name,
+        stateId: stateObj.id,
+        // Clear all downstream children
+        district: '',
+        districtId: '',
+        block: '',
+        blockId: '',
+        village: '',
+        villageId: '',
+      }));
+    }
+    setErrors((prev) => ({ ...prev, state: null, district: null, village: null }));
+  };
+
+  const handleStateClear = () => {
+    if (setDraft) {
+      setDraft((prev) => ({
+        ...prev,
+        state: '',
+        stateId: '',
+        district: '',
+        districtId: '',
+        block: '',
+        blockId: '',
+        village: '',
+        villageId: '',
+      }));
+    }
+  };
+
+  const handleDistrictChange = (districtObj) => {
+    if (setDraft) {
+      setDraft((prev) => ({
+        ...prev,
+        district: districtObj.name,
+        districtId: districtObj.id,
+        // Clear downstream children
+        block: '',
+        blockId: '',
+        village: '',
+        villageId: '',
+      }));
+    }
+    setErrors((prev) => ({ ...prev, district: null, village: null }));
+  };
+
+  const handleDistrictClear = () => {
+    if (setDraft) {
+      setDraft((prev) => ({
+        ...prev,
+        district: '',
+        districtId: '',
+        block: '',
+        blockId: '',
+        village: '',
+        villageId: '',
+      }));
+    }
+  };
+
+  const handleBlockChange = (blockObj) => {
+    if (setDraft) {
+      setDraft((prev) => ({
+        ...prev,
+        block: blockObj.name,
+        blockId: blockObj.id,
+        // Clear downstream children
+        village: '',
+        villageId: '',
+      }));
+    }
+  };
+
+  const handleBlockClear = () => {
+    if (setDraft) {
+      setDraft((prev) => ({
+        ...prev,
+        block: '',
+        blockId: '',
+        village: '',
+        villageId: '',
+      }));
+    }
+  };
+
+  const handleVillageChange = (villageObj) => {
+    if (setDraft) {
+      setDraft((prev) => ({
+        ...prev,
+        village: villageObj.name,
+        villageId: villageObj.id,
+      }));
+    }
+    setErrors((prev) => ({ ...prev, village: null }));
+  };
+
+  const handleVillageClear = () => {
+    if (setDraft) {
+      setDraft((prev) => ({
+        ...prev,
+        village: '',
+        villageId: '',
+      }));
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const newErrors = {};
 
-    if (!businessName.toString().trim()) newErrors.businessName = 'Venture name is required';
-    if (!category) newErrors.category = 'Primary sector / category is required';
-    if (!village.toString().trim()) newErrors.village = 'Village / Area is required';
-    if (!district.toString().trim()) newErrors.district = 'District is required';
-    if (!state.toString().trim()) newErrors.state = 'State is required';
-    if (!pin.toString().trim() || !/^\d{6}$/.test(pin.toString().trim())) {
-      newErrors.pin = 'Valid 6-digit PIN code required';
+    if (!businessName.toString().trim()) {
+      newErrors.businessName = 'Business / Venture name is required';
+    }
+    if (!category) {
+      newErrors.category = 'Primary sector / category is required';
+    }
+    if (!state.toString().trim()) {
+      newErrors.state = 'State is required';
+    }
+    if (!district.toString().trim()) {
+      newErrors.district = 'District is required';
+    }
+    if (!village.toString().trim()) {
+      newErrors.village = 'Village / Town is required';
     }
     if (!ownCapital || Number(ownCapital) < 10000) {
       newErrors.ownCapital = 'Minimum own capital amount is ₹ 10,000';
@@ -106,11 +260,14 @@ export default function StartupIntakeScreen({
     }
 
     const matchedCat = STARTUP_CATEGORIES.find((c) => c.id === category) || { label: 'Startup Enterprise' };
-    const locationString = [village, block, district, state, pin].filter(Boolean).join(', ');
+    const locationParts = [village, block, district, state].filter(Boolean);
+    if (pin) locationParts.push(pin);
+    const locationString = locationParts.join(', ');
 
     onComplete({
       stage: 'startup',
       businessName: businessName.toString().trim(),
+      name: businessName.toString().trim(),
       category: matchedCat.label,
       industry: specificActivity || matchedCat.label,
       businessType: category === 'services' || category === 'tech_services' ? 'services' : category === 'retail' ? 'retail' : 'manufacturing',
@@ -118,18 +275,22 @@ export default function StartupIntakeScreen({
       block: block.trim(),
       district: district.trim(),
       state: state.trim(),
-      pin: pin.trim(),
+      pin: pin ? pin.trim() : '',
+      stateId,
+      districtId,
+      blockId,
+      villageId,
       location: locationString,
       locationData: {
         village: village.trim(),
         block: block.trim(),
         district: district.trim(),
         state: state.trim(),
-        pin: pin.trim(),
-        state_code: null,
-        district_code: null,
-        block_code: null,
-        village_code: null,
+        pin: pin ? pin.trim() : '',
+        state_code: stateId || null,
+        district_code: districtId || null,
+        block_code: blockId || null,
+        village_code: villageId || null,
         gram_panchayat_code: null,
         latitude: null,
         longitude: null,
@@ -146,8 +307,8 @@ export default function StartupIntakeScreen({
         existingMonthlySales: Number(existingMonthlySales || 0),
         customerCount: Number(customerCount || 0),
       },
-      selectedOps: stage === 'early_traction' ? ['sales', 'purchases', 'inventory', 'banking'] : ['sales', 'purchases', 'banking'],
-      description: `${businessName.trim()} — ${stage === 'early_traction' ? 'Operating early-stage' : 'Pre-launch startup'} in ${matchedCat.label}, ${locationString}. Margin capital: ₹${Number(ownCapital).toLocaleString('en-IN')}.`,
+      selectedOps: stage === 'early_revenue' ? ['sales', 'purchases', 'inventory', 'banking'] : ['sales', 'purchases', 'banking'],
+      description: `${businessName.trim()} — ${stage === 'early_revenue' ? 'Operating early-stage' : 'Pre-launch startup'} in ${matchedCat.label}, ${locationString}. Margin capital: ₹${Number(ownCapital).toLocaleString('en-IN')}.`,
     });
   };
 
@@ -258,60 +419,74 @@ export default function StartupIntakeScreen({
 
           <div className="border-t border-slate-100" />
 
-          {/* Section 3: Geographic Location */}
+          {/* Section 3: Geographic Location (Hierarchical Cascading: State -> District -> Block/Tehsil -> Village/Town) */}
           <div className="space-y-3">
             <label className="text-xs font-extrabold text-slate-900 tracking-tight flex items-center space-x-1.5">
               <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-black flex items-center justify-center">3</span>
               <span>Location (Operating Catchment)</span>
             </label>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">Village / Town *</label>
-                <input
-                  type="text"
-                  value={village}
-                  onChange={(e) => updateField('village', e.target.value)}
-                  placeholder="Enter village or town"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
-                />
-                {errors.village && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.village}</p>}
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Level 1: State * */}
+              <SearchableLocationSelect
+                label="State"
+                required
+                value={state}
+                placeholder="Select state"
+                loadOptions={loadStates}
+                parentSelected={true}
+                onChange={handleStateChange}
+                onClear={handleStateClear}
+                error={errors.state}
+                helperText="State / UT"
+              />
 
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">Block / Tehsil</label>
-                <input
-                  type="text"
-                  value={block}
-                  onChange={(e) => updateField('block', e.target.value)}
-                  placeholder="e.g. Kuarmunda Block"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
-                />
-              </div>
+              {/* Level 2: District * */}
+              <SearchableLocationSelect
+                label="District"
+                required
+                value={district}
+                placeholder={state ? "Select district" : "Select state first"}
+                loadOptions={loadDistricts}
+                parentSelected={Boolean(state || stateId)}
+                parentName="State"
+                disabled={!state && !stateId}
+                onChange={handleDistrictChange}
+                onClear={handleDistrictClear}
+                error={errors.district}
+                helperText="Administrative district"
+              />
 
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">District *</label>
-                <input
-                  type="text"
-                  value={district}
-                  onChange={(e) => updateField('district', e.target.value)}
-                  placeholder="Enter district"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
-                />
-                {errors.district && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.district}</p>}
-              </div>
+              {/* Level 3: Block / Tehsil */}
+              <SearchableLocationSelect
+                label="Block / Tehsil"
+                value={block}
+                placeholder={district ? "Select or enter block" : "Select district first"}
+                loadOptions={loadBlocks}
+                parentSelected={Boolean(district || districtId)}
+                parentName="District"
+                disabled={!district && !districtId}
+                onChange={handleBlockChange}
+                onClear={handleBlockClear}
+                error={errors.block}
+                helperText="Sub-division / Block"
+              />
 
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">State *</label>
-                <input
-                  type="text"
-                  value={state}
-                  onChange={(e) => updateField('state', e.target.value)}
-                  placeholder="Enter state"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-blue-500"
-                />
-                {errors.state && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.state}</p>}
-              </div>
+              {/* Level 4: Village / Town * */}
+              <SearchableLocationSelect
+                label="Village / Town"
+                required
+                value={village}
+                placeholder={district ? "Select or enter village/town" : "Select district first"}
+                loadOptions={loadVillages}
+                parentSelected={Boolean(district || districtId)}
+                parentName="District"
+                disabled={!district && !districtId}
+                onChange={handleVillageChange}
+                onClear={handleVillageClear}
+                error={errors.village}
+                helperText="Operating village / town"
+              />
             </div>
           </div>
 

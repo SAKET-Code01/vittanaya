@@ -187,7 +187,12 @@ export default function OnboardingFlow({
       description: newIdeaData.description,
       ownerName: 'Entrepreneur',
     });
-    setPendingPreparedWorkspace(workspace);
+    setPendingPreparedWorkspace(null);
+    setSelectedStage('');
+    setStep(1);
+    if (onComplete) {
+      onComplete(workspace);
+    }
   };
 
   // Completion handler for Startup intake
@@ -220,7 +225,7 @@ export default function OnboardingFlow({
 
   // Completion handler for Established Business path
   const handleCompleteEstablishedWorkspace = () => {
-    const locationString = [formData.village, formData.district, formData.state].filter(Boolean).join(', ') || 'India';
+    const locationString = [formData.village, formData.block, formData.district, formData.state].filter(Boolean).join(', ') || 'India';
     const workspace = buildAdaptiveWorkspace({
       stage: 'established',
       businessName: formData.businessName || 'My MSME Business',
@@ -228,6 +233,7 @@ export default function OnboardingFlow({
       email: formData.email || '',
       description: formData.businessDescription || '',
       village: formData.village || '',
+      block: formData.block || formData.city || '',
       district: formData.district || '',
       state: formData.state || '',
       pin: formData.pin || '',
@@ -236,14 +242,14 @@ export default function OnboardingFlow({
       location: locationString,
       locationData: {
         village: formData.village || '',
-        block: '',
+        block: formData.block || formData.city || '',
         district: formData.district || '',
         state: formData.state || '',
         pin: formData.pin || '',
-        state_code: null,
-        district_code: null,
-        block_code: null,
-        village_code: null,
+        state_code: formData.stateId || null,
+        district_code: formData.districtId || null,
+        block_code: formData.blockId || null,
+        village_code: formData.villageId || null,
         gram_panchayat_code: null,
         latitude: null,
         longitude: null,
@@ -252,10 +258,9 @@ export default function OnboardingFlow({
       available_margin_capital: 220000,
       existingInvestment: 500000,
     });
-    onComplete(workspace);
-    setSelectedStage('');
-    setEstablishedSubStep(2);
-    setStep(1);
+    if (onComplete) {
+      onComplete(workspace);
+    }
   };
 
   if (!isOpen) return null;
@@ -346,9 +351,9 @@ export default function OnboardingFlow({
               onComplete={() => {
                 const ws = pendingPreparedWorkspace;
                 setPendingPreparedWorkspace(null);
-                setSelectedStage('');
-                setStep(1);
-                onComplete(ws);
+                if (onComplete) {
+                  onComplete(ws);
+                }
               }}
             />
           </div>

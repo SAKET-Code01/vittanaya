@@ -118,15 +118,15 @@ function LocalMarketMap({
 
   return (
     <div className="relative w-full rounded-3xl overflow-hidden border border-slate-700/80 bg-[#0F172A] shadow-2xl flex flex-col justify-between select-none">
-      
+
       {/* 1. Sleek Modern Header Bar */}
       <div className="relative z-20 px-4 py-3 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
-        
+
         {/* Left: Active Location & Catchment Pills */}
         <div className="flex items-center space-x-2.5 flex-wrap gap-y-2">
           {/* Location Badge */}
           <div className="flex items-center space-x-2 px-3 py-1 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-100">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
             <span className="truncate max-w-[170px] sm:max-w-[220px]">{locationName}</span>
           </div>
 
@@ -138,11 +138,10 @@ function LocalMarketMap({
                 key={r}
                 type="button"
                 onClick={() => setRadiusFilter(r)}
-                className={`px-2.5 py-0.5 rounded-lg transition-all cursor-pointer ${
-                  radiusFilter === r
-                    ? 'bg-emerald-600 text-white shadow-sm font-extrabold'
+                className={`px-2.5 py-0.5 rounded-lg transition-all cursor-pointer ${radiusFilter === r
+                    ? 'bg-blue-600 text-white shadow-sm font-extrabold'
                     : 'text-slate-400 hover:text-slate-200'
-                }`}
+                  }`}
               >
                 0-{r} km
               </button>
@@ -156,7 +155,7 @@ function LocalMarketMap({
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="bg-slate-950 text-slate-200 text-xs font-bold border border-slate-800 rounded-xl px-3 py-1 focus:outline-none focus:border-emerald-500 cursor-pointer hidden md:block"
+            className="bg-slate-950 text-slate-200 text-xs font-bold border border-slate-800 rounded-xl px-3 py-1 focus:outline-none focus:border-blue-500 cursor-pointer hidden md:block"
           >
             <option value="all">All Market Zones</option>
             <option value="demand">High Demand</option>
@@ -169,11 +168,10 @@ function LocalMarketMap({
             <button
               type="button"
               onClick={() => setViewMode('2d')}
-              className={`px-3 py-1 rounded-lg transition-all flex items-center space-x-1.5 cursor-pointer ${
-                viewMode === '2d'
-                  ? 'bg-emerald-600 text-white shadow-md'
+              className={`px-3 py-1 rounded-lg transition-all flex items-center space-x-1.5 cursor-pointer ${viewMode === '2d'
+                  ? 'bg-blue-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
-              }`}
+                }`}
             >
               <span>🗺️ 2D Flat</span>
             </button>
@@ -181,11 +179,10 @@ function LocalMarketMap({
             <button
               type="button"
               onClick={() => setViewMode('3d')}
-              className={`px-3 py-1 rounded-lg transition-all flex items-center space-x-1.5 cursor-pointer ${
-                viewMode === '3d'
-                  ? 'bg-emerald-600 text-white shadow-md'
+              className={`px-3 py-1 rounded-lg transition-all flex items-center space-x-1.5 cursor-pointer ${viewMode === '3d'
+                  ? 'bg-blue-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
-              }`}
+                }`}
             >
               <span>🧊 3D View</span>
             </button>
@@ -196,7 +193,7 @@ function LocalMarketMap({
 
       {/* 2. Interactive Map Stage Container */}
       <div className="relative w-full h-[350px] sm:h-[390px] overflow-hidden flex items-center justify-center bg-[#0B1329]">
-        
+
         {/* Subtle Ambient Radial Lighting */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900/90 via-[#0B1329] to-[#040814]" />
 
@@ -206,13 +203,13 @@ function LocalMarketMap({
           style={
             viewMode === '3d'
               ? {
-                  transform: 'perspective(900px) rotateX(38deg) rotateZ(-8deg) scale(1.02)',
-                  transformStyle: 'preserve-3d',
-                }
+                transform: 'perspective(900px) rotateX(38deg) rotateZ(-8deg) scale(1.02)',
+                transformStyle: 'preserve-3d',
+              }
               : {
-                  transform: 'scale(1)',
-                  transformStyle: 'flat',
-                }
+                transform: 'scale(1)',
+                transformStyle: 'flat',
+              }
           }
         >
           {/* Cartographic Base Vector Map Canvas */}
@@ -258,168 +255,105 @@ function LocalMarketMap({
               <path d="M 110 0 Q 170 90 225 155 T 280 300" fill="none" />
             </g>
 
-            {/* Catchment Gradient Layer */}
-            <circle cx="225" cy="155" r="130" fill="url(#marketHeatGrad)" />
+            {/* Dynamic Catchment Radius Rings */}
+            <circle cx="225" cy="155" r="45" fill="none" stroke="#0EA5E9" strokeWidth="1.2" strokeDasharray="4 3" opacity="0.6" />
+            <circle cx="225" cy="155" r="90" fill="none" stroke="#3B82F6" strokeWidth="1.2" strokeDasharray="5 4" opacity="0.45" />
+            <circle cx="225" cy="155" r="135" fill="none" stroke="#6366F1" strokeWidth="1.2" strokeDasharray="6 5" opacity="0.3" />
 
-            {/* Catchment Distance Rings */}
-            <circle
-              cx="225"
-              cy="155"
-              r="125"
-              stroke="#10B981"
-              strokeWidth={radiusFilter === '15' ? '2' : '1'}
-              strokeDasharray="4 3"
-              opacity={radiusFilter === '15' ? '0.9' : '0.3'}
-            />
-            <circle
-              cx="225"
-              cy="155"
-              r="85"
-              stroke="#F59E0B"
-              strokeWidth={radiusFilter === '10' ? '2.2' : '1'}
-              strokeDasharray={radiusFilter === '10' ? 'none' : '3 3'}
-              opacity={radiusFilter === '10' ? '0.95' : '0.35'}
-            />
-            <circle
-              cx="225"
-              cy="155"
-              r="48"
-              stroke="#F43F5E"
-              strokeWidth={radiusFilter === '5' ? '2.5' : '1.2'}
-              opacity={radiusFilter === '5' ? '1' : '0.45'}
-            />
-
-            {/* Ring Labels */}
-            <text x="228" y="115" fill="#F43F5E" fontSize="7.5" fontWeight="bold" opacity="0.85">5 km Catchment</text>
-            <text x="228" y="78" fill="#F59E0B" fontSize="7.5" fontWeight="bold" opacity="0.85">10 km Catchment</text>
-            <text x="228" y="38" fill="#10B981" fontSize="7.5" fontWeight="bold" opacity="0.85">15 km Catchment</text>
+            {/* Heatmap Layer */}
+            <circle cx="225" cy="155" r="140" fill="url(#marketHeatGrad)" />
           </svg>
 
-          {/* Enterprise Center Location Pin */}
+          {/* Central Anchor Node (Your Business) */}
           <div
-            className="absolute z-20 flex flex-col items-center transform -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-            style={{ left: 225, top: 155 }}
-            onClick={() => setActivePoi(null)}
+            className="absolute z-20 flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+            style={{
+              left: '225px',
+              top: '155px',
+              transform: viewMode === '3d' ? 'translate(-50%, -50%) rotateZ(8deg) rotateX(-38deg)' : 'translate(-50%, -50%)',
+              transformOrigin: 'bottom center',
+            }}
           >
-            {/* 3D Vertical Light Shaft */}
-            {viewMode === '3d' && (
-              <div className="absolute bottom-3 w-1 h-16 bg-gradient-to-t from-emerald-400 to-transparent opacity-80 blur-[0.5px] animate-pulse" />
-            )}
-
-            <div className="absolute w-9 h-9 rounded-full bg-emerald-500/30 animate-ping" />
-
-            <div className="relative w-8 h-8 rounded-full bg-emerald-600 border-2 border-white shadow-xl flex items-center justify-center text-white text-xs font-black">
-              ★
+            {/* Pulsing Radar Aura */}
+            <div className="absolute w-12 h-12 rounded-full bg-blue-500/30 animate-ping" />
+            <div className="relative w-7 h-7 rounded-full bg-blue-500 border-2 border-white shadow-[0_0_15px_#3B82F6] flex items-center justify-center">
+              <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
             </div>
 
-            <div
-              className="mt-1 px-3 py-0.5 rounded-full bg-emerald-950/95 border border-emerald-400 text-white font-extrabold text-[9.5px] shadow-lg whitespace-nowrap"
-              style={
-                viewMode === '3d'
-                  ? { transform: 'rotateZ(8deg) rotateX(-38deg) translateY(-8px)' }
-                  : undefined
-              }
-            >
-              <span>{locationName} Center</span>
+            {/* Anchor Label */}
+            <div className="mt-1 px-2.5 py-0.5 rounded-md bg-slate-900/90 backdrop-blur-md border border-blue-400 text-[10px] font-black text-blue-200 whitespace-nowrap shadow-lg">
+              📍 {locationName} (HQ)
             </div>
           </div>
 
-          {/* Dynamic POI Markers */}
-          {filteredPois.map((poi) => {
-            const isSelected = activePoi?.id === poi.id;
-
-            return (
-              <div
-                key={poi.id}
-                onClick={() => setActivePoi(poi)}
-                className="absolute z-30 transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group transition-all duration-300"
-                style={{ left: poi.pos2d.x, top: poi.pos2d.y }}
-              >
-                {/* 3D Extruded Cube Structure (in 3D Mode) */}
-                {viewMode === '3d' && (
-                  <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none">
-                    <div
-                      className="w-0.5 opacity-80 group-hover:opacity-100 transition-opacity"
-                      style={{
-                        height: `${poi.height3d + 12}px`,
-                        backgroundImage: `linear-gradient(to top, ${poi.color}, transparent)`,
-                      }}
-                    />
-
-                    <div
-                      className="w-5 border rounded-xs shadow-xl transition-transform group-hover:scale-110"
-                      style={{
-                        height: `${poi.height3d}px`,
-                        borderColor: poi.color,
-                        backgroundColor: `${poi.color}30`,
-                        boxShadow: `0 0 14px ${poi.color}60`,
-                      }}
-                    >
-                      <div
-                        className="w-full h-1 border-b"
-                        style={{ backgroundColor: poi.color, opacity: 0.95 }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Billboarded Pin Badge Card (Counter-rotated in 3D so text stays upright) */}
+          {/* POI Render Pipeline */}
+          {filteredPois.map((poi) => (
+            <div
+              key={poi.id}
+              onClick={() => setActivePoi(poi)}
+              className="absolute z-10 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+              style={{
+                left: `${poi.pos2d.x}px`,
+                top: `${poi.pos2d.y}px`,
+                transform: viewMode === '3d' ? 'translate(-50%, -50%) rotateZ(8deg) rotateX(-38deg)' : 'translate(-50%, -50%)',
+                transformOrigin: 'bottom center',
+              }}
+            >
+              {/* 3D Vertical Extrusion Pillar */}
+              {viewMode === '3d' && (
                 <div
-                  className={`relative px-2.5 py-1 rounded-xl border shadow-lg flex items-center space-x-1.5 transition-all duration-200 ${poi.badgeBg} ${
-                    isSelected ? 'ring-2 ring-white scale-110 z-40' : 'group-hover:scale-105'
-                  }`}
-                  style={
-                    viewMode === '3d'
-                      ? { transform: 'rotateZ(8deg) rotateX(-38deg) translateY(-12px)' }
-                      : undefined
-                  }
-                >
-                  <span className={`w-2 h-2 rounded-full ${poi.dotColor} shadow-xs flex-shrink-0`} />
-                  <span className="text-[10px] font-extrabold whitespace-nowrap leading-none">{poi.name}</span>
-                </div>
+                  className="w-1.5 mx-auto opacity-70 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    height: `${poi.height3d}px`,
+                    background: `linear-gradient(to top, ${poi.color}22, ${poi.color})`,
+                    boxShadow: `0 0 8px ${poi.color}`,
+                  }}
+                />
+              )}
+
+              {/* Billboarded Label Node */}
+              <div
+                className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold border shadow-lg flex items-center space-x-1.5 transition-all duration-200 group-hover:scale-110 ${activePoi?.id === poi.id ? 'ring-2 ring-white scale-110' : ''
+                  } ${poi.badgeBg}`}
+              >
+                <span className={`w-2 h-2 rounded-full ${poi.dotColor} shrink-0`} />
+                <span className="truncate max-w-[90px]">{poi.name}</span>
+                <span className="opacity-75 text-[8px]">({poi.distance}km)</span>
               </div>
-            );
-          })}
+            </div>
+          ))}
 
         </div>
 
-        {/* Interactive POI Detail Tooltip Overlay Card */}
+        {/* 3. Floating Detail Inspector Tooltip */}
         {activePoi && (
-          <div className="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 sm:w-80 z-40 bg-slate-900/95 backdrop-blur-md border border-slate-700 rounded-2xl p-3.5 shadow-2xl text-slate-100 animate-fadeIn">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div className="absolute bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-30 p-3.5 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-slate-700 shadow-2xl animate-fadeIn text-white select-text">
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
               <div className="flex items-center space-x-2">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: activePoi.color }} />
-                <span className="text-xs font-extrabold text-white">{activePoi.name}</span>
+                <span className={`w-2.5 h-2.5 rounded-full ${activePoi.dotColor}`} />
+                <span className="text-xs font-black">{activePoi.name}</span>
               </div>
               <button
                 type="button"
                 onClick={() => setActivePoi(null)}
-                className="text-slate-400 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded-md hover:bg-slate-800 cursor-pointer"
+                className="text-slate-400 hover:text-white text-xs font-bold px-1.5 py-0.5 rounded-lg hover:bg-slate-800 cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 my-2.5 text-[10.5px]">
-              <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[9px] uppercase font-bold">Category</span>
-                <span className="font-extrabold text-slate-200">{activePoi.typeLabel}</span>
+            <div className="grid grid-cols-2 gap-2 my-2 text-[10px]">
+              <div className="bg-slate-950/70 p-1.5 rounded-xl border border-slate-800/80">
+                <span className="text-slate-400 block">Distance from HQ</span>
+                <span className="text-xs font-bold text-white">{activePoi.distance} km</span>
               </div>
-              <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[9px] uppercase font-bold">Distance</span>
-                <span className="font-extrabold text-emerald-400">{activePoi.distance} km</span>
-              </div>
-              <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[9px] uppercase font-bold">Demand Score</span>
-                <span className="font-extrabold text-amber-400">{activePoi.demandScore}</span>
-              </div>
-              <div className="bg-slate-950 p-2 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[9px] uppercase font-bold">Impact</span>
-                <span className="font-extrabold text-rose-400">{activePoi.impact}</span>
+              <div className="bg-slate-950/70 p-1.5 rounded-xl border border-slate-800/80">
+                <span className="text-slate-400 block">Demand Signal</span>
+                <span className="text-xs font-bold text-blue-400">{activePoi.demandScore}</span>
               </div>
             </div>
 
-            <p className="text-[11px] text-slate-300 leading-relaxed bg-slate-950/60 p-2 rounded-xl border border-slate-800/80">
+            <p className="text-[10px] text-slate-300 font-medium leading-snug">
               {activePoi.details}
             </p>
           </div>
@@ -427,34 +361,26 @@ function LocalMarketMap({
 
       </div>
 
-      {/* 3. Bottom Map Legend Footer */}
-      <div className="relative z-20 px-3.5 sm:px-4 py-2.5 bg-slate-900/95 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2.5 text-[11px] font-semibold text-slate-300">
-        <div className="flex items-center space-x-3.5 flex-wrap gap-y-1">
+      {/* 4. Bottom Legend & Live Metrics Bar */}
+      <div className="relative z-20 px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center space-x-4 flex-wrap gap-y-1 text-[10px] font-bold text-slate-300">
           <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs" />
-            <span>High Demand</span>
+            <span className="w-2 h-2 rounded-full bg-rose-400 shadow-[0_0_6px_#F43F5E]" />
+            <span>High Demand Zone</span>
           </div>
           <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-xs" />
-            <span>Industrial Cluster</span>
+            <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_#3B82F6]" />
+            <span>Logistics Terminal</span>
           </div>
           <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-xs" />
-            <span>Logistics Hub</span>
-          </div>
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-xs" />
-            <span>Transport Depot</span>
-          </div>
-          <div className="flex items-center space-x-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#10B981]" />
             <span>Agri Mandi</span>
           </div>
         </div>
 
         <div className="text-[10.5px] text-slate-400 font-bold flex items-center space-x-1.5">
           <span>Mode:</span>
-          <span className="text-emerald-400 uppercase tracking-wide">{viewMode === '3d' ? '3D Perspective' : '2D Flat Map'}</span>
+          <span className="text-blue-400 uppercase tracking-wide">{viewMode === '3d' ? '3D Perspective' : '2D Flat Map'}</span>
         </div>
       </div>
 
@@ -486,47 +412,46 @@ export default function MarketInsightSection({
     'Kuarmunda, Kuarmunda Block, Sundargarh, Odisha';
 
   const categoryName = currentProfile?.category || currentProfile?.business_type || 'Transport & Logistics';
-  const businessName = currentProfile?.name || currentProfile?.businessName || 'Rural Micro-Enterprise';
+  const businessName = currentProfile?.businessName || currentProfile?.name || 'Rural Micro-Enterprise';
 
+  // Deterministic local market opportunity reasons
   const reasons = [
     {
       id: 1,
       icon: (
-        <svg className="w-4 h-4 text-[#2F7757]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="1" y="3" width="15" height="13" />
-          <polygon points="16,8 20,8 23,11 23,16 16,16" />
-          <circle cx="5.5" cy="18.5" r="2.5" />
-          <circle cx="18.5" cy="18.5" r="2.5" />
+        <svg className="w-4 h-4 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
         </svg>
       ),
-      title: 'High logistics & freight demand',
-      desc: 'Expanding industrial belts driving continuous regional cargo & transport demand.',
+      title: 'High regional demand momentum',
+      desc: `Surging requirement for verified ${categoryName} operators in ${locationName} catchment.`,
       impact: 'High Impact',
-      impactType: 'high',
     },
     {
       id: 2,
       icon: (
-        <svg className="w-4 h-4 text-[#2F7757]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.284a2.25 2.25 0 00-2.012 0L2.618 5.721a1.125 1.125 0 00-.618.995v11.85c0 .418.234.8.618.995l4.875 2.437c.318.158.69.158 1.008 0l4.875-2.437a2.25 2.25 0 012.012 0z" />
+        <svg className="w-4 h-4 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v6l4 2" />
         </svg>
       ),
-      title: 'Multimodal arterial highway link',
-      desc: 'Seamless highway connectivity to major state distribution centers.',
-      impact: 'High Impact',
-      impactType: 'high',
+      title: 'Rapid route turnaround times',
+      desc: 'Direct highway connectivity minimizes idle transport hours and fuel burn.',
+      impact: 'Favorable',
     },
     {
       id: 3,
       icon: (
-        <svg className="w-4 h-4 text-[#2F7757]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+        <svg className="w-4 h-4 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 00-3-3.87" />
+          <path d="M16 3.13a4 4 0 010 7.75" />
         </svg>
       ),
-      title: 'Industrial growth corridor',
-      desc: 'Multiple manufacturing clusters generating non-stop freight movement.',
-      impact: 'Medium Impact',
-      impactType: 'medium',
+      title: 'Untapped local buyer base',
+      desc: 'Sparse organized competition provides early mover pricing power and stickiness.',
+      impact: 'High Impact',
     },
   ];
 
@@ -534,9 +459,9 @@ export default function MarketInsightSection({
     {
       id: 4,
       icon: (
-        <svg className="w-4 h-4 text-[#2F7757]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3 3" />
+        <svg className="w-4 h-4 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+          <path d="M13 16V6a1 1 0 00-1-1H4" />
         </svg>
       ),
       title: 'Short fleet turnaround cycles',
@@ -546,7 +471,7 @@ export default function MarketInsightSection({
     {
       id: 5,
       icon: (
-        <svg className="w-4 h-4 text-[#2F7757]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg className="w-4 h-4 text-blue-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
         </svg>
       ),
@@ -557,21 +482,21 @@ export default function MarketInsightSection({
   ];
 
   return (
-    <div className={`bg-white rounded-3xl border border-[#E8E2D5] shadow-card-soft p-5 sm:p-6 flex flex-col justify-between ${className}`}>
-      
+    <div className={`bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 sm:p-6 flex flex-col justify-between ${className}`}>
+
       {/* 1. Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-[#F4EFE6]">
+      <div className="flex items-center justify-between pb-4 border-b border-slate-100">
         <div>
           <div className="flex items-center space-x-2">
-            <h2 className="text-lg font-black text-[#1A211D]">
+            <h2 className="text-lg font-black text-slate-900">
               Hyper-Local Market Insight
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full bg-[#E8F1EC] text-[#2F7757] text-[10px] font-extrabold border border-[#2F7757]/30">
+            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-extrabold border border-blue-200/70">
               Live Map
             </span>
           </div>
-          <div className="flex items-center space-x-1.5 text-xs text-[#607267] font-semibold mt-0.5">
-            <svg className="w-3.5 h-3.5 text-[#2F7757]" viewBox="0 0 24 24" fill="currentColor">
+          <div className="flex items-center space-x-1.5 text-xs text-slate-500 font-semibold mt-0.5">
+            <svg className="w-3.5 h-3.5 text-blue-700" viewBox="0 0 24 24" fill="currentColor">
               <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
             </svg>
             <span className="truncate max-w-[280px] sm:max-w-[400px]">{locationFull}</span>
@@ -581,7 +506,7 @@ export default function MarketInsightSection({
         <button
           type="button"
           onClick={() => onNavigate && onNavigate('feasibility')}
-          className="px-3.5 py-1.5 rounded-xl bg-[#FAF7F2] border border-[#E8E2D5] text-xs font-extrabold text-[#102A1E] hover:bg-[#E8F1EC] transition-colors cursor-pointer flex items-center space-x-1"
+          className="px-3.5 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200 text-xs font-extrabold text-slate-800 hover:bg-blue-50/30 transition-colors cursor-pointer flex items-center space-x-1"
         >
           <span>Feasibility Report</span>
           <span>→</span>
@@ -590,7 +515,7 @@ export default function MarketInsightSection({
 
       {/* 2. Middle Body: Left Live 2D/3D Map + Right Opportunity Drivers */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 my-4 items-start">
-        
+
         {/* Left Sub-Column: Live 2D/3D Market Map (7 cols) */}
         <div className="lg:col-span-7">
           <LocalMarketMap
@@ -602,14 +527,14 @@ export default function MarketInsightSection({
 
         {/* Right Sub-Column: Why This Opportunity? (5 cols) */}
         <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-          
+
           {/* Sub-Header */}
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-[#1A211D]">
+            <h3 className="text-sm font-black text-slate-900">
               Why This Opportunity?
             </h3>
 
-            <span className="px-2.5 py-0.5 rounded-full bg-[#E8F1EC] text-[#2F7757] font-extrabold text-[10px] border border-[#2F7757]/30 flex items-center space-x-1">
+            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-extrabold text-[10px] border border-blue-200/70 flex items-center space-x-1">
               <span>Verified Signals</span>
               <span>✓</span>
             </span>
@@ -618,21 +543,21 @@ export default function MarketInsightSection({
           {/* Opportunity Reason Items */}
           <div className="space-y-3.5">
             {reasons.map((item) => (
-              <div key={item.id} className="flex items-start space-x-3 p-2.5 rounded-2xl bg-[#FAF7F2] border border-[#F4EFE6] hover:bg-[#F4F9F6] transition-colors">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F1EC] text-[#2F7757] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div key={item.id} className="flex items-start space-x-3 p-2.5 rounded-2xl bg-slate-50/70 border border-slate-100 hover:bg-blue-50/30 transition-colors">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0 mt-0.5">
                   {item.icon}
                 </div>
 
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-[#1A211D] leading-tight">
+                    <h4 className="text-xs font-bold text-slate-900 leading-tight">
                       {item.title}
                     </h4>
-                    <span className="px-2 py-0.5 rounded-md bg-[#E8F1EC] text-[#2F7757] font-extrabold text-[10px]">
+                    <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-extrabold text-[10px]">
                       {item.impact}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#607267] font-medium leading-relaxed mt-1">
+                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed mt-1">
                     {item.desc}
                   </p>
                 </div>
@@ -640,18 +565,18 @@ export default function MarketInsightSection({
             ))}
 
             {isExpanded && extraReasons.map((item) => (
-              <div key={item.id} className="flex items-start space-x-3 p-2.5 rounded-2xl bg-[#FAF7F2] border border-[#F4EFE6] hover:bg-[#F4F9F6] transition-colors animate-fadeIn">
-                <div className="w-8 h-8 rounded-xl bg-[#E8F1EC] text-[#2F7757] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div key={item.id} className="flex items-start space-x-3 p-2.5 rounded-2xl bg-slate-50/70 border border-slate-100 hover:bg-blue-50/30 transition-colors animate-fadeIn">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0 mt-0.5">
                   {item.icon}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-[#1A211D] leading-tight">{item.title}</h4>
-                    <span className="px-2 py-0.5 rounded-md bg-[#E8F1EC] text-[#2F7757] font-extrabold text-[10px]">
+                    <h4 className="text-xs font-bold text-slate-900 leading-tight">{item.title}</h4>
+                    <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-extrabold text-[10px]">
                       {item.impact}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#607267] font-medium leading-relaxed mt-1">
+                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed mt-1">
                     {item.desc}
                   </p>
                 </div>
@@ -663,7 +588,7 @@ export default function MarketInsightSection({
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="text-xs font-extrabold text-[#2F7757] hover:text-[#102A1E] transition-colors flex items-center space-x-1 pt-1 cursor-pointer self-start"
+            className="text-xs font-extrabold text-blue-700 hover:text-blue-900 transition-colors flex items-center space-x-1 pt-1 cursor-pointer self-start"
           >
             <span>{isExpanded ? '– Show less' : '+ 2 more opportunity signals'}</span>
             <span className="text-xs">{isExpanded ? '⌃' : '⌄'}</span>

@@ -11,12 +11,38 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  /**
+   * Translates HTTP status codes and error bodies into friendly, actionable messages.
+   */
+  parseError(status, errorBody = {}) {
+    if (errorBody && errorBody.detail) {
+      return errorBody.detail;
+    }
+
+    switch (status) {
+      case 401:
+        return 'Your session has expired. Please sign in again.';
+      case 403:
+        return 'You do not have permission to access this business workspace.';
+      case 404:
+        return "We couldn't find the requested business information.";
+      case 422:
+        return 'Some information needs correction. Please review your entries.';
+      case 500:
+      case 502:
+      case 503:
+        return 'The analytical calculation service is temporarily unavailable. Please try again shortly.';
+      default:
+        return `Unable to complete request (${status}). Please check your connection.`;
+    }
+  }
+
   async request(endpoint, options = {}) {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'Accept-Language': getLocale(),
+      'Accept-Language': getLocale ? getLocale() : 'en',
       ...options.headers,
     };
 
@@ -33,52 +59,66 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        let errorDetail = 'API request failed';
+        let errJson = null;
         try {
-          const errJson = await response.json();
-          errorDetail = errJson.detail || errorDetail;
+          errJson = await response.json();
         } catch {
-          errorDetail = `HTTP ${response.status}: ${response.statusText}`;
+          // Response body was not JSON
         }
-        throw new Error(errorDetail);
+        const errorDetail = this.parseError(response.status, errJson);
+        const error = new Error(errorDetail);
+        error.status = response.status;
+        error.response = errJson;
+        throw error;
       }
 
       return await response.json();
     } catch (error) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('Request timed out. Please verify backend server is reachable.');
+        throw new Error('Request timed out. Please verify the calculation server is reachable.');
+      }
+      if (error.message && error.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to VITTANAYA service. Please check your internet connection.');
       }
       throw error;
     }
   }
 
-  get(endpoint, params = {}) {
-    const query = new URLSearchParams(params).toString();
+  get(endpoint, params = {}, options = {}) {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== null)
+    ).toString();
     const fullEndpoint = query ? `${endpoint}?${query}` : endpoint;
-    return this.request(fullEndpoint, { method: 'GET' });
+    return this.request(fullEndpoint, { ...options, method: 'GET' });
   }
 
-  post(endpoint, body) {
+  post(endpoint, body, options = {}) {
     return this.request(endpoint, {
+      ...options,
       method: 'POST',
       body: JSON.stringify(body),
     });
   }
 
-  patch(endpoint, body, params = {}) {
-    const query = new URLSearchParams(params).toString();
+  patch(endpoint, body, params = {}, options = {}) {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== null)
+    ).toString();
     const fullEndpoint = query ? `${endpoint}?${query}` : endpoint;
     return this.request(fullEndpoint, {
+      ...options,
       method: 'PATCH',
       body: JSON.stringify(body),
     });
   }
 
-  delete(endpoint, params = {}) {
-    const query = new URLSearchParams(params).toString();
+  delete(endpoint, params = {}, options = {}) {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== null)
+    ).toString();
     const fullEndpoint = query ? `${endpoint}?${query}` : endpoint;
-    return this.request(fullEndpoint, { method: 'DELETE' });
+    return this.request(fullEndpoint, { ...options, method: 'DELETE' });
   }
 }
 

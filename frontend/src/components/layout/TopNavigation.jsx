@@ -6,13 +6,14 @@ export default function TopNavigation({
   onSelectNav,
   currentProfile,
   onOpenProfile,
+  onLogout,
 }) {
   return (
     <CleanHeader
       activeNavId={activeNavId}
       onSelectNav={onSelectNav}
       onOpenChangeBusiness={onOpenProfile}
-      onLogout={() => {}}
+      onLogout={onLogout}
       currentProfile={currentProfile}
     />
   );
