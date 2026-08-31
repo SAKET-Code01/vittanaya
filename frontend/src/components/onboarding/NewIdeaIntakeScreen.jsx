@@ -266,6 +266,20 @@ export default function NewIdeaIntakeScreen({
                 />
                 {errors.state && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.state}</p>}
               </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-600 block mb-1">PIN Code *</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={pin}
+                  onChange={(e) => updateField('pin', e.target.value.replace(/\D/g, ''))}
+                  placeholder="6-digit PIN"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-900 focus:outline-none focus:border-emerald-500"
+                />
+                {errors.pin && <p className="text-[10px] font-bold text-rose-500 mt-0.5">{errors.pin}</p>}
+              </div>
             </div>
           </div>
 
