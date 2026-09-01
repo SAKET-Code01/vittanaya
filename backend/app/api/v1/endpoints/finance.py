@@ -1,6 +1,6 @@
-"""Finance and Ledger endpoints for transactions, receivables, payables, and funding structure."""
+"""Finance and Ledger endpoints for transactions, receivables, payables, and funding structure with business validation."""
 
-from typing import Sequence
+from typing import Optional, Sequence
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -15,6 +15,26 @@ from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.ledger_service import LedgerService
 
 router = APIRouter(prefix="/finance", tags=["Finance & Ledger"])
+
+
+def _resolve_business_id(db: Session, business_id: Optional[int]) -> int:
+    """Validate explicit business_id or resolve to first active business; raise 404 if invalid/missing."""
+    biz_service = BusinessService(db)
+    if business_id is not None:
+        if not biz_service.get_business(business_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Business with ID {business_id} does not exist",
+            )
+        return business_id
+
+    businesses = biz_service.list_businesses(limit=1)
+    if not businesses:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No business profile exists in active workspace",
+        )
+    return businesses[0].id
 
 
 @router.post(
@@ -32,13 +52,14 @@ def calculate_funding_structure(
 
 @router.get("/transactions", response_model=list[TransactionResponse], summary="List Transactions")
 def list_transactions(
-    business_id: int = Query(1, description="ID of the business"),
+    business_id: Optional[int] = Query(None, description="ID of the business"),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
 ) -> Sequence[TransactionResponse]:
     """Retrieve transaction history for a business."""
+    target_id = _resolve_business_id(db, business_id)
     service = LedgerService(db)
-    return service.list_transactions(business_id, limit=limit)  # type: ignore
+    return service.list_transactions(target_id, limit=limit)  # type: ignore
 
 
 @router.post(
@@ -52,7 +73,6 @@ def create_transaction(
     db: Session = Depends(get_db),
 ) -> TransactionResponse:
     """Record a new cash inflow or outflow transaction."""
-    # Enforce ownership check: business must exist
     biz_service = BusinessService(db)
     biz = biz_service.get_business(data.business_id)
     if not biz:
@@ -67,12 +87,13 @@ def create_transaction(
 
 @router.get("/receivables", response_model=list[ReceivableResponse], summary="List Receivables")
 def list_receivables(
-    business_id: int = Query(1, description="ID of the business"),
+    business_id: Optional[int] = Query(None, description="ID of the business"),
     db: Session = Depends(get_db),
 ) -> Sequence[ReceivableResponse]:
     """Retrieve outstanding receivables / expected cash inflows."""
+    target_id = _resolve_business_id(db, business_id)
     service = LedgerService(db)
-    return service.list_receivables(business_id)  # type: ignore
+    return service.list_receivables(target_id)  # type: ignore
 
 
 @router.post(
@@ -98,12 +119,13 @@ def create_receivable(
 
 @router.get("/payables", response_model=list[PayableResponse], summary="List Payables")
 def list_payables(
-    business_id: int = Query(1, description="ID of the business"),
+    business_id: Optional[int] = Query(None, description="ID of the business"),
     db: Session = Depends(get_db),
 ) -> Sequence[PayableResponse]:
     """Retrieve upcoming vendor payables / liabilities."""
+    target_id = _resolve_business_id(db, business_id)
     service = LedgerService(db)
-    return service.list_payables(business_id)  # type: ignore
+    return service.list_payables(target_id)  # type: ignore
 
 
 @router.post(

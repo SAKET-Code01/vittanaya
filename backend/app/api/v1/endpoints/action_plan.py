@@ -5,6 +5,7 @@ SIH26091 - Business Execution Roadmap & Bankable DPR Compiler.
 
 import json
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
@@ -73,10 +74,19 @@ DEFAULT_TASKS = [
     summary="Get Action Plan Tasks for Enterprise",
 )
 def get_action_plan(
-    business_id: int = 1,
+    business_id: int,
     db: Session = Depends(get_db),
 ) -> ActionPlanResponse:
     """Retrieve or initialize phased execution roadmap tasks for enterprise."""
+    from backend.app.services.business_service import BusinessService
+
+    biz_service = BusinessService(db)
+    if not biz_service.get_business(business_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Business with ID {business_id} not found",
+        )
+
     tasks = db.query(ActionPlanTask).filter(ActionPlanTask.business_id == business_id).all()
 
     if not tasks:
@@ -118,6 +128,7 @@ def get_action_plan(
 def update_task_status(
     task_id: int,
     payload: TaskUpdateSchema,
+    business_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ) -> TaskItemSchema:
     """Update execution status of a roadmap task ('pending', 'in_progress', 'completed')."""
@@ -126,6 +137,12 @@ def update_task_status(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Task ID {task_id} not found",
+        )
+
+    if business_id is not None and task.business_id != business_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Task ID {task_id} does not belong to business ID {business_id}",
         )
 
     task.status = payload.status
@@ -145,6 +162,14 @@ def export_dpr(
     db: Session = Depends(get_db),
 ) -> DPRExportResponse:
     """Compile bankable Detailed Project Report (DPR) with verified financial structuring."""
+    from backend.app.services.business_service import BusinessService
+
+    biz_service = BusinessService(db)
+    if not biz_service.get_business(payload.business_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Business with ID {payload.business_id} not found for DPR export",
+        )
     now_str = datetime.now().strftime("%d %b %Y, %I:%M %p")
     doc_name = f"DPR_{payload.business_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.json"
 

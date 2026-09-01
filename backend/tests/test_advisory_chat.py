@@ -150,6 +150,11 @@ def test_chat_endpoint_language_parameter(client: TestClient, db_session: Sessio
         json={
             "message": "What are the scheme benefits?",
             "language": "हिन्दी (Hindi)",
+            "business_context": {
+                "business_category": "Poultry",
+                "specific_business": "Commercial Broiler Farming",
+                "location": "Sundargarh, Odisha",
+            },
         },
     )
     assert response.status_code == 200
@@ -165,6 +170,11 @@ def test_chat_endpoint_offline_fallback(client: TestClient, db_session: Session)
             "/api/v1/advisory/chat",
             json={
                 "message": "What should I do next?",
+                "business_context": {
+                    "business_category": "Poultry",
+                    "specific_business": "Commercial Broiler Farming",
+                    "location": "Sundargarh, Odisha",
+                },
             },
         )
         assert response.status_code == 200
@@ -184,4 +194,5 @@ def test_chat_endpoint_missing_business_context(client: TestClient, db_session: 
     )
     assert response.status_code == 200
     data = response.json()
-    assert "answer" in data
+    assert "complete or select a business profile" in data["answer"]
+    assert len(data["recommended_next_steps"]) >= 1

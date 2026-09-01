@@ -534,16 +534,21 @@ export default function ActionPlanPage({
   const [isExportingDPR, setIsExportingDPR] = useState(false);
   const [dprSuccessMsg, setDprSuccessMsg] = useState(null);
 
+  const bizId = currentProfile?.id || null;
+
   useEffect(() => {
     let isMounted = true;
+    if (!bizId) return;
+
     actionPlanService
-      .getActionPlan(currentProfile?.id || 1)
+      .getActionPlan(bizId)
       .then((res) => {
-        if (isMounted && res && res.tasks && res.tasks.length > 0) {
+        const data = res?.data || res;
+        if (isMounted && data && data.tasks && data.tasks.length > 0) {
           // Merge backend tasks into tasks list
           setTasks((prev) =>
             prev.map((t, idx) => {
-              const backendMatch = res.tasks[idx];
+              const backendMatch = data.tasks[idx];
               if (backendMatch) {
                 return {
                   ...t,
@@ -563,19 +568,32 @@ export default function ActionPlanPage({
     return () => {
       isMounted = false;
     };
-  }, [currentProfile?.id]);
+  }, [bizId]);
 
   const handleExportDPR = async () => {
     setIsExportingDPR(true);
     setDprSuccessMsg(null);
     try {
-      const result = await actionPlanService.exportDPRPackage(currentProfile?.id || 1);
-      const jsonStr = JSON.stringify(result.dpr_content || result, null, 2);
+      const dprPayload = {
+        business_id: bizId || 1,
+        business_name: currentProfile?.businessName || currentProfile?.name || 'Rural Micro-Enterprise',
+        business_category: currentProfile?.category || currentProfile?.businessType || 'Retail & Processing',
+        location: currentProfile?.location || currentProfile?.district || 'Odisha',
+        indicative_project_cost: Number(currentProfile?.ownCapital ? currentProfile.ownCapital * 10 : 1000000),
+        own_margin_capital: Number(currentProfile?.ownCapital || 100000),
+        eligible_loan_amount: Number(currentProfile?.ownCapital ? currentProfile.ownCapital * 9 : 900000),
+        estimated_subsidy_amount: 0.0,
+        scheme_name: 'PMEGP / MUDRA',
+      };
+
+      const result = await actionPlanService.exportDPRPackage(dprPayload);
+      const data = result?.data || result;
+      const jsonStr = JSON.stringify(data.dpr_content || data, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = result.document_name || `DPR_${currentProfile?.name || 'Enterprise'}.json`;
+      a.download = data.document_name || `DPR_${currentProfile?.businessName || 'Enterprise'}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -623,14 +641,19 @@ export default function ActionPlanPage({
 
   const toggleTask = (id) => {
     setTasks((previous) =>
-      previous.map((task) =>
-        task.id === id
-          ? {
-              ...task,
-              done: !task.done,
-            }
-          : task
-      )
+      previous.map((task) => {
+        if (task.id === id) {
+          const newDone = !task.done;
+          const newStatus = newDone ? 'completed' : 'pending';
+          if (task.backendId) {
+            actionPlanService.updateTaskStatus(task.backendId, newStatus, bizId).catch((err) => {
+              console.warn('Task status update notice:', err);
+            });
+          }
+          return { ...task, done: newDone };
+        }
+        return task;
+      })
     );
   };
 

@@ -42,10 +42,42 @@ class AdvisoryService:
         lower_msg = raw_msg.lower()
         lang = payload.language or "English"
 
-        # 1. Resolve Business Context (Use defaults if omitted)
-        ctx: BusinessContextInput = payload.business_context or BusinessContextInput()
-        bus_category = ctx.business_category or "Poultry"
-        specific_bus = ctx.specific_business or "Commercial Broiler Farming"
+        # 1. Resolve Business Context
+        ctx: Optional[BusinessContextInput] = payload.business_context
+        if not ctx or (not ctx.specific_business and not ctx.business_category):
+            return ChatResponse(
+                answer=(
+                    "To provide accurate advisory grounding for your enterprise, please complete or select "
+                    "a business profile in your VITTANAYA workspace first. This enables tailored scheme matching, "
+                    "financial structuring, and location risk assessment."
+                ),
+                intent="GENERAL",
+                confidence="HIGH",
+                key_facts=[
+                    KeyFact(
+                        label="Profile Status",
+                        value="Incomplete / Missing Active Business Context",
+                    )
+                ],
+                why_this_result=[
+                    "VITTANAYA requires active business parameters (Category, Activity, Location, Margin Capital) to run grounded decision engines.",
+                    "Please navigate to Business Intake or select your active enterprise profile to proceed.",
+                ],
+                recommended_next_steps=[
+                    "Complete Business Profile Intake",
+                    "Select Active Enterprise Workspace",
+                ],
+                traceability=TraceabilityMetadata(
+                    input={"message": payload.message},
+                    calculation_rule="Grounded context validation check",
+                    source_authority="VITTANAYA Advisory Engine",
+                    source_year="2026",
+                    provenance_priority="SAFETY_GUARD",
+                ),
+            )
+
+        bus_category = ctx.business_category or "General"
+        specific_bus = ctx.specific_business or "General Enterprise"
         loc = ctx.location or "Odisha"
         margin_cap = float(ctx.available_margin_capital or 50000.0)
         social_cat = ctx.social_category or "General"
