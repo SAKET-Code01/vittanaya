@@ -51,17 +51,20 @@ export default function PredictiveMlCard({ currentProfile, projectCost, marginPc
   return (
     <div className="rounded-[22px] border border-[#E4E9E6] bg-white p-5 shadow-[0_6px_24px_rgba(25,48,38,0.045)] space-y-4">
       {/* HEADER */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-purple-700">
-            Scikit-Learn Machine Learning Intelligence
+            Predictive Advisory Signal (ML Layer)
           </p>
           <h3 className="text-lg font-black text-[#17201C]">
-            Predictive Risk &amp; Growth Intelligence
+            Predictive Risk &amp; Growth Trajectory
           </h3>
+          <p className="text-[11px] text-[#64748B]">
+            Scikit-Learn RandomForest Pipeline &bull; Trained on synthetic rural enterprise benchmarks
+          </p>
         </div>
-        <span className="px-2.5 py-1 text-[10px] font-black rounded-full border bg-purple-50 text-purple-900 border-purple-200">
-          ML_PREDICTION
+        <span className="self-start sm:self-auto px-2.5 py-1 text-[10px] font-black rounded-full border bg-purple-50 text-purple-900 border-purple-200">
+          ML PREDICTIVE SIGNAL
         </span>
       </div>
 
@@ -137,6 +140,11 @@ export default function PredictiveMlCard({ currentProfile, projectCost, marginPc
               </div>
             </div>
           )}
+
+          {/* TRANSPARENCY NOTICE */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[10px] text-[#64748B] leading-relaxed">
+            <strong>ML Transparency Note:</strong> Authoritative financial, loan amortization, and cash-flow numbers are computed deterministically by backend core engines. The ML model outputs a predictive advisory signal derived from synthetic development benchmark data for SIH evaluation.
+          </div>
         </>
       )}
     </div>

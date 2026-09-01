@@ -535,6 +535,6 @@ class AdvisoryService:
             return "FEASIBILITY"
         if any(w in lower_msg for w in ["risk", "threat", "danger", "loss", "warning", "fail", "hazard", "seasonality"]):
             return "RISK"
-        if any(w in lower_msg for w in ["action", "next", "do", "step", "apply", "plan", "dpr", "milestone", "roadmap"]):
+        if any(w in lower_msg for w in ["action", "next", "do", "step", "apply", "plan", "dpr", "milestone", "roadmap", "improve", "recommend"]):
             return "ACTION"
         return "GENERAL"

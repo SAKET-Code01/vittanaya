@@ -144,7 +144,7 @@ class PredictiveEngine:
         category = payload.category or "Manufacturing"
         district = payload.district or "Sundargarh"
 
-        margin_pct = (own_cap / proj_cost) * 100.0 if proj_cost > 0 else 20.0
+        margin_pct = min(99.0, max(0.0, (own_cap / proj_cost) * 100.0)) if proj_cost > 0 else 20.0
 
         # 1. Deterministic Financial Plan Engine
         funding_req = FundingStructureRequest(
