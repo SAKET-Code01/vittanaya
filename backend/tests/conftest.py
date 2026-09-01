@@ -9,6 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+import backend.app.models  # noqa: F401
 from backend.app.core.database import Base, get_db
 from backend.app.models.business import Business
 from backend.app.models.user import User

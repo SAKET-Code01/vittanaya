@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
+import { schemeService } from '../services/schemeService';
 
 /**
  * SchemePage — Personalized Government Scheme Matching
@@ -141,6 +142,50 @@ export default function SchemePage({
   const [comparisonOpen, setComparisonOpen] = useState(false);
   const [applyScheme, setApplyScheme] = useState(null);
   const [aiOpen, setAiOpen] = useState(false);
+
+  const [backendSchemes, setBackendSchemes] = useState(null);
+  const [isLoadingSchemes, setIsLoadingSchemes] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingSchemes(true);
+
+    schemeService
+      .matchSchemes({
+        indicative_project_cost: Number(currentProfile?.indicative_project_cost || currentProfile?.estimatedProjectCost || 200000),
+        available_margin_capital: Number(currentProfile?.ownCapital || currentProfile?.available_margin_capital || 50000),
+        business_category: currentProfile?.category || currentProfile?.businessType || 'Retail',
+        specific_business: currentProfile?.businessName || currentProfile?.name || 'General Enterprise',
+        location: currentProfile?.district || currentProfile?.location || 'Odisha',
+        social_category: currentProfile?.socialCategory || 'General',
+        area_type: currentProfile?.areaType || 'Rural',
+      })
+      .then((res) => {
+        if (isMounted) {
+          setBackendSchemes(res);
+          setIsLoadingSchemes(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.warn('Live scheme match notice:', err);
+          setIsLoadingSchemes(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    currentProfile?.category,
+    currentProfile?.businessType,
+    currentProfile?.businessName,
+    currentProfile?.name,
+    currentProfile?.district,
+    currentProfile?.socialCategory,
+    currentProfile?.areaType,
+    currentProfile?.ownCapital,
+  ]);
 
   const establishedSchemes = [
     {

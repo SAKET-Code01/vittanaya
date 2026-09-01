@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from backend.app.core.config import settings
 from backend.app.core.logging import logger
 from backend.app.models.insights import ProjectCostReference, SchemeRule
+from backend.app.models.location import LocationRef
+from backend.app.models.market_data import LocalMarketData
 from backend.app.models.user import User
 
 DEFAULT_SCHEME_RULES = [
@@ -264,8 +266,97 @@ def seed_default_user_if_missing(db: Session) -> None:
         logger.info("Default rural entrepreneur user seeded.")
 
 
+
+DEFAULT_LOCATIONS = [
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Khordha", "block_name": "Jatni", "panchayat_or_village": "Retang", "pincode": "752050", "lgd_code": "3621"},
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Khordha", "block_name": "Bhubaneswar", "panchayat_or_village": "Khurda Town", "pincode": "751001", "lgd_code": "3622"},
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Cuttack", "block_name": "Cuttack Sadar", "panchayat_or_village": "Bidanasi", "pincode": "753014", "lgd_code": "3623"},
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Sundargarh", "block_name": "Rourkela", "panchayat_or_village": "Birmitrapur", "pincode": "770033", "lgd_code": "3624"},
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Puri", "block_name": "Puri Sadar", "panchayat_or_village": "Brahmagiri", "pincode": "752001", "lgd_code": "3625"},
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Ganjam", "block_name": "Berhampur", "panchayat_or_village": "Chhatrapur", "pincode": "760001", "lgd_code": "3626"},
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Sambalpur", "block_name": "Sambalpur Sadar", "panchayat_or_village": "Hirakud", "pincode": "768001", "lgd_code": "3627"},
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Mayurbhanj", "block_name": "Baripada", "panchayat_or_village": "Rairangpur", "pincode": "757001", "lgd_code": "3628"},
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Balasore", "block_name": "Balasore Sadar", "panchayat_or_village": "Remuna", "pincode": "756001", "lgd_code": "3629"},
+    {"state_code": "OD", "state_name": "Odisha", "district_name": "Angul", "block_name": "Banarpal", "panchayat_or_village": "Nalco Nagar", "pincode": "759122", "lgd_code": "3630"},
+]
+
+
+def seed_locations(db: Session) -> int:
+    """Seed locations table with administrative hierarchy data if empty."""
+    existing_count = db.query(LocationRef).count()
+    if existing_count > 0:
+        logger.info(f"locations contains {existing_count} records. Skipping seed.")
+        return existing_count
+
+    records = [LocationRef(**loc) for loc in DEFAULT_LOCATIONS]
+    db.bulk_save_objects(records)
+    db.commit()
+    logger.info(f"Successfully seeded {len(records)} location reference records into database.")
+    return len(records)
+
+
+
+DEFAULT_MARKET_DATA = [
+    {
+        "district_name": "Sundargarh",
+        "block_name": "Rourkela",
+        "sector_category": "poultry",
+        "demand_level": "High",
+        "competitor_count": 4,
+        "avg_price_point": 105.0,
+        "unit_of_measure": "₹/kg live bird",
+        "market_reach_description": "Rourkela urban + Birmitrapur mining Block catchment high-demand fresh broiler market",
+        "opportunity_summary": "Strong protein demand driven by industrial & canteen consumption in Sundargarh block",
+        "swot_json": '{"strengths": ["Quick cash turnover", "Established feed suppliers"], "weaknesses": ["Feed price volatility"], "opportunities": ["Institutional hotel supply"], "threats": ["Heat stress in summer"]}',
+        "base_score": 78.0,
+    },
+    {
+        "district_name": "Puri",
+        "block_name": "Puri Sadar",
+        "sector_category": "dairy",
+        "demand_level": "High",
+        "competitor_count": 3,
+        "avg_price_point": 48.0,
+        "unit_of_measure": "₹/L milk",
+        "market_reach_description": "Puri pilgrim belt & OMFED cooperative collection routes",
+        "opportunity_summary": "Guaranteed daily off-take for unadulterated cow milk and sweet stalls",
+        "swot_json": '{"strengths": ["Daily liquid cash", "OMFED procurement"], "weaknesses": ["Labor intensive"], "opportunities": ["Paneer & Ghee value addition"], "threats": ["Fodder scarcity"]}',
+        "base_score": 88.0,
+    },
+    {
+        "district_name": "Khordha",
+        "block_name": "Jatni",
+        "sector_category": "agro processing",
+        "demand_level": "High",
+        "competitor_count": 2,
+        "avg_price_point": 140.0,
+        "unit_of_measure": "₹/kg processed produce",
+        "market_reach_description": "Jatni Mandi + ORMAS retail SHG outlets",
+        "opportunity_summary": "High value-addition margin for cashew & spice processing in Khordha",
+        "swot_json": '{"strengths": ["35% PM-FME subsidy", "Proximity to raw crops"], "weaknesses": ["Seasonal storage capital"], "opportunities": ["Branded retail packaging"], "threats": ["Weather crop fluctuations"]}',
+        "base_score": 86.0,
+    },
+]
+
+
+def seed_market_data(db: Session) -> int:
+    """Seed local_market_data table with block-level sector benchmarks if empty."""
+    existing_count = db.query(LocalMarketData).count()
+    if existing_count > 0:
+        logger.info(f"local_market_data contains {existing_count} records. Skipping seed.")
+        return existing_count
+
+    records = [LocalMarketData(**m) for m in DEFAULT_MARKET_DATA]
+    db.bulk_save_objects(records)
+    db.commit()
+    logger.info(f"Successfully seeded {len(records)} local market data records into database.")
+    return len(records)
+
+
 def seed_all_reference_data(db: Session) -> None:
     """Convenience function to seed all VITTANAYA reference datasets."""
     seed_default_user_if_missing(db)
     seed_project_cost_references(db)
     seed_scheme_rules(db)
+    seed_locations(db)
+    seed_market_data(db)

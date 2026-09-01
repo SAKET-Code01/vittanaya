@@ -1,12 +1,6 @@
-"""AI Business Advisor Engine for VITTANAYA (SIH26091).
-
-Synthesizes structured intelligence results into simple, accessible language for rural micro-entrepreneurs.
-Strict Mandate:
-- Receives ONLY structured backend results.
-- Must NOT invent costs, scheme rules, market statistics, eligibility, or financial figures.
-- Returns summary, why_this_result, and recommended_next_steps.
-"""
-
+import json
+import os
+import urllib.request
 from typing import Any, Dict, List, Optional
 
 from backend.app.schemas.insights import AdvisorResponse, TraceabilityMetadata
@@ -14,6 +8,32 @@ from backend.app.schemas.insights import AdvisorResponse, TraceabilityMetadata
 
 class AIBusinessAdvisor:
     """Zero-Hallucination AI Advisor explaining structured deterministic findings."""
+
+    def _call_gemini_llm(self, prompt: str) -> Optional[Dict[str, Any]]:
+        """Call Gemini API if GEMINI_API_KEY is configured in environment."""
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            return None
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        headers = {"Content-Type": "application/json"}
+        data = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
+        }
+
+        try:
+            req = urllib.request.Request(
+                url, data=json.dumps(data).encode("utf-8"), headers=headers, method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    res_body = json.loads(resp.read().decode("utf-8"))
+                    text = res_body["candidates"][0]["content"]["parts"][0]["text"]
+                    return json.loads(text)
+        except Exception:
+            pass
+        return None
 
     def generate_advice(
         self,
@@ -24,6 +44,39 @@ class AIBusinessAdvisor:
         what_if: Optional[Dict[str, Any]] = None,
     ) -> AdvisorResponse:
         """Synthesize structured backend results without inventing data."""
+        # Attempt LLM enhancement if key available
+        if os.environ.get("GEMINI_API_KEY"):
+            structured_context = {
+                "opportunity": opportunity,
+                "financial": financial,
+                "schemes": schemes,
+                "risks": risks,
+                "what_if": what_if,
+            }
+            prompt = (
+                "You are VITTANAYA, a hyper-local business advisory assistant for rural micro-entrepreneurs. "
+                "Synthesize the following structured backend data into accessible advice. "
+                "Do NOT invent numbers or scheme rules outside the provided context.\n"
+                f"Context JSON: {json.dumps(structured_context)}\n\n"
+                "Return JSON with keys: 'summary' (string), 'why_this_result' (list of strings), 'recommended_next_steps' (list of strings)."
+            )
+            llm_result = self._call_gemini_llm(prompt)
+            if llm_result and "summary" in llm_result and "why_this_result" in llm_result:
+                traceability = TraceabilityMetadata(
+                    input={"llm_enhanced": True, "provider": "Gemini 1.5 Flash"},
+                    calculation_rule="LLM-enhanced synthesis anchored to verified backend facts.",
+                    source_authority="Gemini 1.5 Flash + VITTANAYA Grounding Engine",
+                    source_year="2026",
+                    provenance_priority="LLM_ENHANCED",
+                    official_source_url=None,
+                )
+                return AdvisorResponse(
+                    summary=llm_result["summary"],
+                    why_this_result=llm_result.get("why_this_result", []),
+                    recommended_next_steps=llm_result.get("recommended_next_steps", []),
+                    traceability=traceability,
+                )
+
         why_list: List[str] = []
         next_steps: List[str] = []
 

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CircularScoreGauge } from '../components/common/JapaneseArtwork';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { formatINR } from '../mocks/dashboardMockData';
+import { feasibilityService } from '../services/feasibilityService';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -197,6 +198,54 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
   const runwayDays = typeof financialSummary?.runway_days === 'number' ? financialSummary.runway_days : null;
   const liquidityGap = typeof financialSummary?.liquidity_gap === 'number' ? financialSummary.liquidity_gap : null;
 
+  const [backendInsights, setBackendInsights] = useState(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [insightsError, setInsightsError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingInsights(true);
+    setInsightsError(null);
+
+    feasibilityService
+      .getUnifiedInsights({
+        available_margin_capital: Number(profile.ownCapital || profile.available_margin_capital || 50000),
+        business_category: profile.category || profile.businessType || 'Retail',
+        specific_business: profile.businessName || profile.name || 'General Enterprise',
+        location: profile.district || profile.location || 'Odisha',
+        social_category: profile.socialCategory || 'General',
+        area_type: profile.areaType || 'Rural',
+      })
+      .then((data) => {
+        if (isMounted) {
+          setBackendInsights(data);
+          setIsLoadingInsights(false);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.warn('Live backend feasibility insights notice:', err);
+          setInsightsError(err.message || 'Backend service unreachable');
+          setIsLoadingInsights(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    profile.ownCapital,
+    profile.available_margin_capital,
+    profile.category,
+    profile.businessType,
+    profile.businessName,
+    profile.name,
+    profile.district,
+    profile.location,
+    profile.socialCategory,
+    profile.areaType,
+  ]);
+
   const factorScores = useMemo(() => {
     const market = Math.min(
       30,
@@ -275,7 +324,8 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
     businessLocation,
   ]);
 
-  const overallScore = factorScores.overall;
+  const overallScore = Math.round(backendInsights?.opportunity?.overall_opportunity_score ?? factorScores.overall);
+  const isDataSufficient = backendInsights?.opportunity?.is_data_sufficient ?? true;
   const overallConfidence = factorScores.confidence;
   const factorBreakdown = factorScores.entries.filter((entry) => typeof entry.score === 'number');
   const factorCount = factorBreakdown.length;

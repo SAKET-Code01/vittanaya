@@ -40,8 +40,9 @@ class DashboardService:
         total_outflow = cf_summary["total_outflow"]
         net_cashflow = cf_summary["net_cashflow"]
 
-        # 2. Derive current cash balance from net cashflow + initial baseline
-        cash_balance = net_cashflow
+        # 2. Derive current cash balance from own capital baseline + net cashflow
+        initial_capital = Decimal(str(business.own_capital or "0.00"))
+        cash_balance = initial_capital + net_cashflow
 
         # 3. Sum pending receivables and payables
         pending_rec_total = sum(

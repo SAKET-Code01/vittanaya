@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
+import { feasibilityService } from '../services/feasibilityService';
 
 /**
  * FinancialPlanPage
@@ -158,109 +159,128 @@ export default function FinancialPlanPage({
   const [showSchedule, setShowSchedule] = useState(false);
   const [stressMode, setStressMode] = useState(false);
 
-  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
+  const [backendCost, setBackendCost] = useState(null);
+  const [backendSimulation, setBackendSimulation] = useState(null);
 
-  const navigateBack = onNavigateHome || (() => window.history.back());
+  useEffect(() => {
+    let isMounted = true;
 
-  const financials = useMemo(() => {
-    const ownMarginCapital = Math.round((projectCostInput * marginPct) / 100);
-    const loanAmount = Math.max(projectCostInput - ownMarginCapital, 0);
-    const totalMonths = loanTenureYears * 12;
-    const monthlyRate = interestRate / 100 / 12;
+    feasibilityService
+      .getProjectCost({
+        business_category: currentProfile?.category || currentProfile?.businessType || 'Retail',
+        specific_business: currentProfile?.businessName || currentProfile?.name || 'General Micro-Enterprise',
+        location: currentProfile?.district || currentProfile?.location || 'Odisha',
+        available_margin_capital: Number(currentProfile?.ownCapital || 50000),
+      })
+      .then((res) => {
+        if (isMounted && res) {
+          setBackendCost(res);
+          if (res.indicative_project_cost && res.indicative_project_cost > 0) {
+            setProjectCostInput(res.indicative_project_cost);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend project cost notice:', err);
+      });
 
-    const monthlyEmi =
-      loanAmount === 0
-        ? 0
-        : Math.round(
-            (loanAmount *
-              monthlyRate *
-              Math.pow(1 + monthlyRate, totalMonths)) /
-              (Math.pow(1 + monthlyRate, totalMonths) - 1)
-          );
-
-    const quarterlyRepayment = monthlyEmi * 3;
-
-    // Simple planning proxies for the screen.
-    // They are intentionally labelled as estimates/proxies rather than
-    // pretending to be a bank underwriting decision.
-    const estimatedMonthlySurplus = Math.max(
-      Math.round(projectCostInput * 0.052),
-      0
-    );
-    const afterEmi = Math.max(estimatedMonthlySurplus - monthlyEmi, 0);
-    const cashBufferPct =
-      estimatedMonthlySurplus > 0
-        ? Math.round((afterEmi / estimatedMonthlySurplus) * 100)
-        : 0;
-
-    const stressMonthlySurplus = Math.max(
-      Math.round(estimatedMonthlySurplus * 0.72 - monthlyEmi * 1.1),
-      0
-    );
-
-    return {
-      ownMarginCapital,
-      loanAmount,
-      totalMonths,
-      monthlyEmi,
-      quarterlyRepayment,
-      estimatedMonthlySurplus,
-      afterEmi,
-      cashBufferPct,
-      stressMonthlySurplus,
+    return () => {
+      isMounted = false;
     };
-  }, [projectCostInput, marginPct, loanTenureYears, interestRate]);
-
-  const {
-    ownMarginCapital,
-    loanAmount,
-    totalMonths,
-    monthlyEmi,
-    quarterlyRepayment,
-    estimatedMonthlySurplus,
-    afterEmi,
-    cashBufferPct,
-    stressMonthlySurplus,
-  } = financials;
-
-  const costItems = [
-    {
-      name: 'Plant & Core Machinery',
-      pct: 55,
-      amount: Math.round(projectCostInput * 0.55),
-    },
-    {
-      name: 'Premises & Electrical Fitments',
-      pct: 15,
-      amount: Math.round(projectCostInput * 0.15),
-    },
-    {
-      name: 'Working Capital (Raw Material & Payroll)',
-      pct: 20,
-      amount: Math.round(projectCostInput * 0.2),
-    },
-    {
-      name: 'Pre-operative & Contingency Buffer',
-      pct: 10,
-      amount: Math.round(projectCostInput * 0.1),
-    },
-  ];
-
-  const scheduleRows = [1, 2, 3, 4, 5, 6].map((year) => ({
-    year,
-    opening: Math.max(
-      Math.round(
-        loanAmount * Math.pow(1 - year / Math.max(loanTenureYears, 1), 1.12)
-      ),
-      0
-    ),
-    payment: quarterlyRepayment * 4,
-  }));
+  }, [currentProfile?.category, currentProfile?.businessType, currentProfile?.businessName, currentProfile?.ownCapital]);
 
   const runStressTest = () => {
     setStressMode(true);
     setShowStressTest(true);
+
+    feasibilityService
+      .runSimulation({
+        baseline_project_cost: projectCostInput,
+        baseline_available_margin: Math.round((projectCostInput * marginPct) / 100),
+        baseline_sales_annual: projectCostInput * 1.25,
+        baseline_operating_cost_annual: projectCostInput * 0.85,
+        sales_change: -15.0,
+        cost_change: 10.0,
+      })
+      .then((res) => {
+        setBackendSimulation(res);
+      })
+      .catch((err) => {
+        console.warn('Backend stress simulation notice:', err);
+      });
   };
+
+  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
+  const navigateBack = onNavigateHome || (() => window.history.back());
+
+  const ownMarginCapital = useMemo(
+    () => Math.round((projectCostInput * marginPct) / 100),
+    [projectCostInput, marginPct]
+  );
+
+  const loanAmount = useMemo(
+    () => Math.max(0, projectCostInput - ownMarginCapital),
+    [projectCostInput, ownMarginCapital]
+  );
+
+  const monthlyEmi = useMemo(() => {
+    if (loanAmount <= 0) return 0;
+    const r = interestRate / 12 / 100;
+    const n = loanTenureYears * 12;
+    const emi = (loanAmount * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    return Math.round(emi);
+  }, [loanAmount, interestRate, loanTenureYears]);
+
+  const estimatedMonthlySurplus = useMemo(
+    () => Math.round((projectCostInput * 0.40) / 12),
+    [projectCostInput]
+  );
+
+  const afterEmi = useMemo(
+    () => Math.max(0, estimatedMonthlySurplus - monthlyEmi),
+    [estimatedMonthlySurplus, monthlyEmi]
+  );
+
+  const cashBufferPct = useMemo(() => {
+    if (estimatedMonthlySurplus <= 0) return 0;
+    return Math.min(100, Math.round((afterEmi / estimatedMonthlySurplus) * 100));
+  }, [afterEmi, estimatedMonthlySurplus]);
+
+  const costItems = useMemo(
+    () => [
+      { name: 'Plant & Machinery / Equipment', amount: Math.round(projectCostInput * 0.55), pct: 55 },
+      { name: 'Premises & Fitments / Infrastructure', amount: Math.round(projectCostInput * 0.15), pct: 15 },
+      { name: 'Working Capital Requirement', amount: Math.round(projectCostInput * 0.20), pct: 20 },
+      { name: 'Contingency Buffer (10%)', amount: Math.round(projectCostInput * 0.10), pct: 10 },
+    ],
+    [projectCostInput]
+  );
+
+  const quarterlyRepayment = useMemo(() => monthlyEmi * 3, [monthlyEmi]);
+  const totalMonths = useMemo(() => loanTenureYears * 12, [loanTenureYears]);
+
+  const scheduleRows = useMemo(() => {
+    const rows = [];
+    let balance = loanAmount;
+    const annualPayment = monthlyEmi * 12;
+    for (let yr = 1; yr <= Math.min(loanTenureYears, 10); yr++) {
+      rows.push({
+        year: yr,
+        opening: Math.round(balance),
+        payment: Math.round(annualPayment),
+      });
+      balance = Math.max(0, balance - annualPayment + balance * (interestRate / 100));
+    }
+    return rows;
+  }, [loanAmount, monthlyEmi, loanTenureYears, interestRate]);
+
+  const stressMonthlySurplus = useMemo(() => {
+    if (backendSimulation && backendSimulation.simulated_annual_surplus) {
+      return Math.round(backendSimulation.simulated_annual_surplus / 12);
+    }
+    const stressedSurplus = estimatedMonthlySurplus * 0.80 - monthlyEmi * 1.10;
+    return Math.round(stressedSurplus);
+  }, [backendSimulation, estimatedMonthlySurplus, monthlyEmi]);
 
   return (
     <div className="w-full bg-[#F7F9F8] pb-12 pt-1 text-[#0F172A]">

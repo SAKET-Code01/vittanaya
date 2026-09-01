@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
+import { actionPlanService } from '../services/actionPlanService';
 
 /*
  * VITTANAYA
@@ -530,6 +531,63 @@ export default function ActionPlanPage({
   const [expandedId, setExpandedId] = useState(isEstablished ? 103 : 4);
   const [phaseFilter, setPhaseFilter] = useState('All');
   const [showPhaseMenu, setShowPhaseMenu] = useState(false);
+  const [isExportingDPR, setIsExportingDPR] = useState(false);
+  const [dprSuccessMsg, setDprSuccessMsg] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    actionPlanService
+      .getActionPlan(currentProfile?.id || 1)
+      .then((res) => {
+        if (isMounted && res && res.tasks && res.tasks.length > 0) {
+          // Merge backend tasks into tasks list
+          setTasks((prev) =>
+            prev.map((t, idx) => {
+              const backendMatch = res.tasks[idx];
+              if (backendMatch) {
+                return {
+                  ...t,
+                  backendId: backendMatch.id,
+                  done: backendMatch.status === 'completed',
+                };
+              }
+              return t;
+            })
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend action plan notice:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentProfile?.id]);
+
+  const handleExportDPR = async () => {
+    setIsExportingDPR(true);
+    setDprSuccessMsg(null);
+    try {
+      const result = await actionPlanService.exportDPRPackage(currentProfile?.id || 1);
+      const jsonStr = JSON.stringify(result.dpr_content || result, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = result.document_name || `DPR_${currentProfile?.name || 'Enterprise'}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setDprSuccessMsg('Detailed Project Report (DPR) downloaded successfully!');
+    } catch (err) {
+      console.warn('DPR export notice:', err);
+      alert('Could not generate DPR package. Please try again.');
+    } finally {
+      setIsExportingDPR(false);
+    }
+  };
 
   const activePhasesList = isEstablished ? establishedPhases : phases;
 
@@ -685,14 +743,26 @@ export default function ActionPlanPage({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={navigateBack}
-              className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 text-xs font-black text-[#23352B] shadow-[0_10px_28px_rgba(25,55,40,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_16px_34px_rgba(37,99,235,0.08)]"
-            >
-              <ArrowLeft size={15} />
-              Back to Dashboard
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleExportDPR}
+                disabled={isExportingDPR}
+                className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-blue-600 border border-blue-700 px-5 py-3.5 text-xs font-black text-white shadow-[0_10px_28px_rgba(37,99,235,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-700 disabled:opacity-50"
+              >
+                <DocumentIcon size={15} />
+                {isExportingDPR ? 'Compiling DPR...' : 'Download Bankable DPR'}
+              </button>
+
+              <button
+                type="button"
+                onClick={navigateBack}
+                className="group inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 text-xs font-black text-[#23352B] shadow-[0_10px_28px_rgba(25,55,40,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-[0_16px_34px_rgba(37,99,235,0.08)]"
+              >
+                <ArrowLeft size={15} />
+                Back to Dashboard
+              </button>
+            </div>
           </div>
 
           {/* Premium execution overview */}

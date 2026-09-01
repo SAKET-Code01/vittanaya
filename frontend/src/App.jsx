@@ -12,6 +12,7 @@ import OnboardingFlow from './components/onboarding/OnboardingFlow';
 import SplashScreen from './components/SplashScreen';
 import LoginPage from './pages/Login';
 import { authService } from './services/authService';
+import { businessService } from './services/businessService';
 import { WorkspaceProvider, useWorkspace } from './context/WorkspaceContext';
 import { LocaleProvider } from './locale/LocaleContext';
 
@@ -243,6 +244,42 @@ function AppContent() {
         cash_balance: profileWithCompletion.ownCapital,
       });
     }
+
+    // Persist real business profile to FastAPI / PostgreSQL backend
+    if (!isDemoMode) {
+      businessService
+        .createBusiness({
+          owner_id: 1,
+          name: profileWithCompletion.businessName || profileWithCompletion.name || 'Rural Micro-Enterprise',
+          type: profileWithCompletion.businessType || profileWithCompletion.category || 'Retail',
+          industry: profileWithCompletion.industry || 'General',
+          stage: profileWithCompletion.stage || 'established',
+          category: profileWithCompletion.category || null,
+          location_village: profileWithCompletion.village || null,
+          location_block: profileWithCompletion.block || null,
+          location_district: profileWithCompletion.district || 'Puri',
+          location_state: profileWithCompletion.state || 'Odisha',
+          location_pin: profileWithCompletion.pin || null,
+          phone: profileWithCompletion.phone || null,
+          email: profileWithCompletion.email || null,
+          description: profileWithCompletion.description || null,
+          own_capital: Number(profileWithCompletion.ownCapital || 0.0),
+          existing_investment: Number(profileWithCompletion.alreadyInvested || 0.0),
+          social_category: profileWithCompletion.socialCategory || 'General',
+          area_type: profileWithCompletion.areaType || 'Rural',
+          monthly_revenue_estimate: Number(profileWithCompletion.monthlyRevenue || 0.0),
+          monthly_expense_estimate: Number(profileWithCompletion.monthlyExpense || 0.0),
+        })
+        .then((savedBiz) => {
+          if (savedBiz && savedBiz.id) {
+            setCurrentProfile((prev) => ({ ...prev, id: savedBiz.id }));
+          }
+        })
+        .catch((err) => {
+          console.warn('Backend business persistence notice:', err);
+        });
+    }
+
     if (clearNavigationHistory) clearNavigationHistory();
     navigate('workspace', { navId: 'dashboard' });
   };

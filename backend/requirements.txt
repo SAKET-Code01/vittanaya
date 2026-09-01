@@ -7,6 +7,7 @@ uvicorn[standard]>=0.30.0,<1.0.0
 
 # Database
 sqlalchemy>=2.0.30,<3.0.0
+psycopg[binary]>=3.1.0,<4.0.0
 
 # Validation & settings
 pydantic>=2.7.0,<3.0.0

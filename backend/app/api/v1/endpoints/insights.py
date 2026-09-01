@@ -177,6 +177,12 @@ def get_advice(
     status_code=status.HTTP_200_OK,
     summary="Unified Insights Analysis Endpoint",
 )
+@router.post(
+    "/analyze",
+    response_model=UnifiedInsightsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Unified Insights Analysis Endpoint Alias",
+)
 def analyze_all_insights(
     payload: UnifiedInsightsRequest,
     db: Session = Depends(get_db),

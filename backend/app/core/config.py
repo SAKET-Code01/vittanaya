@@ -37,7 +37,11 @@ class Settings(BaseSettings):
     # --- Paths ---
     BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {
+        "env_file": [".env", str(Path(__file__).resolve().parent.parent.parent / ".env")],
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
 
 # Singleton instance

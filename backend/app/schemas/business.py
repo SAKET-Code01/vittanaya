@@ -2,9 +2,9 @@
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class BusinessBase(BaseModel):
@@ -29,6 +29,13 @@ class BusinessBase(BaseModel):
     status: Optional[str] = Field(default="active", max_length=50)
     monthly_revenue_estimate: Decimal = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
     monthly_expense_estimate: Decimal = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, v: Any) -> Any:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class BusinessCreate(BusinessBase):
@@ -57,6 +64,13 @@ class BusinessUpdate(BaseModel):
     status: Optional[str] = None
     monthly_revenue_estimate: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
     monthly_expense_estimate: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def empty_email_to_none(cls, v: Any) -> Any:
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
 
 class BusinessResponse(BusinessBase):
