@@ -1,4 +1,4 @@
-"""Finance and Ledger endpoints for transactions, receivables, and payables."""
+"""Finance and Ledger endpoints for transactions, receivables, payables, and funding structure."""
 
 from typing import Sequence
 
@@ -6,13 +6,28 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
+from backend.app.schemas.financial_plan import FundingStructureRequest, FundingStructureResponse
 from backend.app.schemas.payable import PayableCreate, PayableResponse
 from backend.app.schemas.receivable import ReceivableCreate, ReceivableResponse
 from backend.app.schemas.transaction import TransactionCreate, TransactionResponse
 from backend.app.services.business_service import BusinessService
+from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.ledger_service import LedgerService
 
 router = APIRouter(prefix="/finance", tags=["Finance & Ledger"])
+
+
+@router.post(
+    "/funding-structure",
+    response_model=FundingStructureResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Calculate Funding Structure & Amortization Schedule",
+)
+def calculate_funding_structure(
+    data: FundingStructureRequest,
+) -> FundingStructureResponse:
+    """Calculate authoritative loan amount, EMI, totals, and reducing-balance repayment schedule."""
+    return FinancialPlanService.calculate_funding_structure(data)
 
 
 @router.get("/transactions", response_model=list[TransactionResponse], summary="List Transactions")

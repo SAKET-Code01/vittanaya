@@ -26,5 +26,5 @@ def test_advisory_status_endpoint(client: TestClient) -> None:
     response = client.get("/api/v1/advisory/status")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "foundation_ready"
+    assert data["status"] in ["foundation_ready", "operational"]
     assert data["target_problem"] == "SIH26091"

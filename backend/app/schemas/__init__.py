@@ -1,5 +1,13 @@
 """Export all validation schemas."""
 
+from backend.app.schemas.advisory import (
+    BusinessContextInput,
+    ChatMessage,
+    ChatRequest,
+    ChatResponse,
+    KeyFact,
+    SourceInfo,
+)
 from backend.app.schemas.auth import TokenResponse, UserBase, UserCreate, UserResponse
 from backend.app.schemas.business import (
     BusinessBase,
@@ -9,6 +17,11 @@ from backend.app.schemas.business import (
 )
 from backend.app.schemas.dashboard import DashboardSummaryResponse
 from backend.app.schemas.expense import ExpenseBase, ExpenseCreate, ExpenseResponse
+from backend.app.schemas.financial_plan import (
+    FundingStructureRequest,
+    FundingStructureResponse,
+    ScheduleRow,
+)
 from backend.app.schemas.goal import GoalBase, GoalCreate, GoalResponse
 from backend.app.schemas.insights import (
     AdvisorRequest,
@@ -75,4 +88,14 @@ __all__ = [
     "UnifiedInsightsRequest",
     "UnifiedInsightsResponse",
     "TraceabilityMetadata",
+    "ChatMessage",
+    "BusinessContextInput",
+    "ChatRequest",
+    "KeyFact",
+    "SourceInfo",
+    "ChatResponse",
+    "FundingStructureRequest",
+    "FundingStructureResponse",
+    "ScheduleRow",
 ]
+
