@@ -4,6 +4,7 @@ import { feasibilityService } from '../services/feasibilityService';
 import { financeService } from '../services/financeService';
 import CashFlowSection from '../components/dashboard/CashFlowSection';
 import IndustryKpiCard from '../components/dashboard/IndustryKpiCard';
+import PredictiveMlCard from '../components/dashboard/PredictiveMlCard';
 
 /**
  * FinancialPlanPage — Hardened & Backend-Grounded Financial Structuring Page.
@@ -550,6 +551,13 @@ export default function FinancialPlanPage({
 
         {/* INDUSTRY-ADAPTIVE BUSINESS INTELLIGENCE SECTION */}
         <IndustryKpiCard currentProfile={currentProfile} />
+
+        {/* SCIKIT-LEARN PREDICTIVE ML INTELLIGENCE SECTION */}
+        <PredictiveMlCard
+          currentProfile={currentProfile}
+          projectCost={projectCostInput}
+          marginPct={marginPct}
+        />
 
         {/* CASH-FLOW & LIQUIDITY INTELLIGENCE SECTION */}
         <CashFlowSection

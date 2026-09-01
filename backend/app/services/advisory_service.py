@@ -13,6 +13,7 @@ from backend.app.engines.feasibility_engine import FeasibilityEngine
 from backend.app.engines.risk_engine import RiskEngine
 from backend.app.engines.scheme_engine import SchemeEngine
 from backend.app.engines.whatif_engine import WhatIfEngine
+from backend.app.ml.predictive_engine import PredictiveEngine
 from backend.app.repositories.business_repository import BusinessRepository
 from backend.app.schemas.advisory import (
     BusinessContextInput,
@@ -24,6 +25,7 @@ from backend.app.schemas.advisory import (
 from backend.app.schemas.financial_plan import CashFlowForecastRequest, FundingStructureRequest
 from backend.app.schemas.industry import IndustryAnalysisRequest
 from backend.app.schemas.insights import TraceabilityMetadata
+from backend.app.schemas.ml import PredictiveMlRequest
 from backend.app.services.cash_flow_service import MINIMUM_BUFFER_MONTHS_COVERAGE, CashFlowService
 from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.industry_service import IndustryService
@@ -267,6 +269,37 @@ class AdvisoryService:
             else:
                 next_steps.append("Optimize operational throughput and maintain target benchmark ratios.")
 
+        elif intent == "PREDICTIVE_ML":
+            ml_req = PredictiveMlRequest(
+                business_id=active_business_id,
+                project_cost=proj_cost,
+                own_capital=margin_cap,
+                category=bus_category,
+                district=loc,
+            )
+            ml_res = PredictiveEngine.predict(ml_req, db=db)
+
+            answer_text = (
+                f"VITTANAYA Machine Learning Engine predicts a default/distress risk probability of {ml_res.distress_probability_pct:.1f}% "
+                f"({ml_res.distress_tier} Risk Tier) and a 12-month annual growth forecast of {ml_res.predicted_growth_rate_pct:+.1f}%. "
+            )
+            if ml_res.feature_importances:
+                top_driver = ml_res.feature_importances[0]
+                answer_text += f"Primary ML Risk Driver: {top_driver.label} ({top_driver.importance_pct:.1f}% weight)."
+
+            key_facts.append(KeyFact(label="ML Distress Probability", value=f"{ml_res.distress_probability_pct:.1f}% ({ml_res.distress_tier})"))
+            key_facts.append(KeyFact(label="Predicted 12-Month Growth", value=f"{ml_res.predicted_growth_rate_pct:+.1f}%"))
+            if ml_res.feature_importances:
+                key_facts.append(KeyFact(label="Top ML Risk Driver", value=ml_res.feature_importances[0].label))
+
+            why_list.append("Predictive inference executed using Scikit-Learn RandomForest models trained on NABARD/MoSJE rural enterprise risk surveys.")
+            why_list.append(f"Model ensemble confidence score: {ml_res.confidence_score * 100:.0f}%.")
+
+            if ml_res.distress_tier in ["HIGH", "CRITICAL"]:
+                next_steps.append("Address primary risk driver by expanding cash buffer coverage above 45 days.")
+            else:
+                next_steps.append("Maintain current operational margins and debt-service coverage ratio.")
+
         elif intent == "WHAT_IF":
             if proj_cost <= 0.0:
                 answer_text = "I don't have enough financial information to simulate scenarios for this business activity."
@@ -484,6 +517,8 @@ class AdvisoryService:
     @staticmethod
     def _classify_intent(lower_msg: str) -> str:
         """Classify natural language user message into core advisory intent domain."""
+        if any(w in lower_msg for w in ["ml risk", "ml prediction", "predict default", "default risk", "distress risk", "growth forecast", "ml score", "ml model", "predictive"]):
+            return "PREDICTIVE_ML"
         if any(w in lower_msg for w in ["what if", "what-if", "scenario", "sales fall", "sales drop", "sales decline", "cost increase", "revenue drop", "price fall"]):
             return "WHAT_IF"
         if any(w in lower_msg for w in ["food cost", "seat", "inventory turn", "footfall", "fuel cost", "raw material", "capacity util", "client concentration", "sponsorship share", "sponsorship dependency", "creator surplus"]):

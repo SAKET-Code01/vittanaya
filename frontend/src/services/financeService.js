@@ -87,4 +87,18 @@ export const financeService = {
   async getIndustryTemplates() {
     return apiClient.get('/industry/templates');
   },
+
+  /**
+   * Fetch Scikit-Learn ML predictive risk & growth inference.
+   */
+  async getPredictiveMlInsights(payload) {
+    return apiClient.post('/ml/predict', payload);
+  },
+
+  /**
+   * Fetch ML model pipeline metadata.
+   */
+  async getMlMetadata() {
+    return apiClient.get('/ml/metadata');
+  },
 };

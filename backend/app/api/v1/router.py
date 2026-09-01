@@ -12,6 +12,7 @@ from backend.app.api.v1.endpoints.health import router as health_router
 from backend.app.api.v1.endpoints.industry import router as industry_router
 from backend.app.api.v1.endpoints.insights import router as insights_router
 from backend.app.api.v1.endpoints.location import router as location_router
+from backend.app.api.v1.endpoints.ml import router as ml_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
@@ -25,3 +26,4 @@ api_v1_router.include_router(insights_router)
 api_v1_router.include_router(action_plan_router)
 api_v1_router.include_router(location_router)
 api_v1_router.include_router(industry_router)
+api_v1_router.include_router(ml_router)
