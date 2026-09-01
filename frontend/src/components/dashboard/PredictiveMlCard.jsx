@@ -142,8 +142,16 @@ export default function PredictiveMlCard({ currentProfile, projectCost, marginPc
           )}
 
           {/* TRANSPARENCY NOTICE */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[10px] text-[#64748B] leading-relaxed">
-            <strong>ML Transparency Note:</strong> Authoritative financial, loan amortization, and cash-flow numbers are computed deterministically by backend core engines. The ML model outputs a predictive advisory signal derived from synthetic development benchmark data for SIH evaluation.
+          <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-3 text-[11px] text-[#475569] leading-relaxed space-y-1">
+            <p className="font-extrabold text-purple-900 uppercase text-[10px] tracking-wider">
+              ML Model Status &amp; Data Provenance Disclosure
+            </p>
+            <p>
+              <strong>Status:</strong> Predictive Advisory MVP &bull; <strong>Training Data:</strong> Synthetic rural development benchmarks &bull; <strong>Purpose:</strong> Supplementary risk &amp; growth signal.
+            </p>
+            <p className="text-[10px] text-[#64748B] font-medium">
+              <em>Note: Deterministic core engines compute authoritative financial &amp; loan values. This ML prediction provides supplementary advisory insights and is not bank-grade credit underwriting.</em>
+            </p>
           </div>
         </>
       )}
