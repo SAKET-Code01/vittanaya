@@ -3,6 +3,7 @@ import { useWorkspace } from '../context/WorkspaceContext';
 import { feasibilityService } from '../services/feasibilityService';
 import { financeService } from '../services/financeService';
 import CashFlowSection from '../components/dashboard/CashFlowSection';
+import IndustryKpiCard from '../components/dashboard/IndustryKpiCard';
 
 /**
  * FinancialPlanPage — Hardened & Backend-Grounded Financial Structuring Page.
@@ -546,6 +547,9 @@ export default function FinancialPlanPage({
             )}
           </div>
         )}
+
+        {/* INDUSTRY-ADAPTIVE BUSINESS INTELLIGENCE SECTION */}
+        <IndustryKpiCard currentProfile={currentProfile} />
 
         {/* CASH-FLOW & LIQUIDITY INTELLIGENCE SECTION */}
         <CashFlowSection

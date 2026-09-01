@@ -73,4 +73,18 @@ export const financeService = {
   async getCashFlowForecast(payload) {
     return apiClient.post('/finance/cash-flow', payload);
   },
+
+  /**
+   * Analyze industry-specific variables and return calculated sector KPIs.
+   */
+  async analyzeIndustry(payload) {
+    return apiClient.post('/industry/analyze', payload);
+  },
+
+  /**
+   * Fetch supported industry input field templates.
+   */
+  async getIndustryTemplates() {
+    return apiClient.get('/industry/templates');
+  },
 };

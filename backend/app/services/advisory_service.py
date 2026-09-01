@@ -22,9 +22,11 @@ from backend.app.schemas.advisory import (
     SourceInfo,
 )
 from backend.app.schemas.financial_plan import CashFlowForecastRequest, FundingStructureRequest
+from backend.app.schemas.industry import IndustryAnalysisRequest
 from backend.app.schemas.insights import TraceabilityMetadata
 from backend.app.services.cash_flow_service import MINIMUM_BUFFER_MONTHS_COVERAGE, CashFlowService
 from backend.app.services.financial_plan_service import FinancialPlanService
+from backend.app.services.industry_service import IndustryService
 
 
 class AdvisoryService:
@@ -236,6 +238,34 @@ class AdvisoryService:
                     next_steps.append(f"Month {f.affected_month}: {f.recommended_action}")
             else:
                 next_steps.append("Maintain 45-day working capital buffer in liquid bank account.")
+
+        elif intent == "INDUSTRY":
+            ind_code = IndustryService._map_category_to_code(bus_category)
+            ind_req = IndustryAnalysisRequest(
+                business_id=active_business_id,
+                industry_code=ind_code,
+                variables={},
+            )
+            ind_res = IndustryService.analyze(ind_req, db=db)
+
+            kpi_summary = "; ".join([f"{k.label}: {k.formatted_value}" for k in ind_res.kpis[:3]])
+            answer_text = (
+                f"For your {ind_res.display_name} enterprise in {loc}, VITTANAYA Industry Intelligence evaluates: {kpi_summary}."
+            )
+            if ind_res.risk_signals:
+                answer_text += f" Primary Risk Alert: {ind_res.risk_signals[0].risk_name} — {ind_res.risk_signals[0].reason}"
+
+            for k in ind_res.kpis[:4]:
+                key_facts.append(KeyFact(label=k.label, value=k.formatted_value))
+
+            why_list.append(f"Sector KPIs calculated by IndustryService using empirical {ind_res.display_name} benchmarks.")
+            why_list.append(f"Revenue & Expense baseline normalized to ₹{ind_res.normalized_monthly_revenue:,.0f} and ₹{ind_res.normalized_monthly_expense:,.0f} per month.")
+
+            if ind_res.risk_signals:
+                for r in ind_res.risk_signals[:2]:
+                    next_steps.append(f"Mitigate {r.risk_name}: {r.recommendation}")
+            else:
+                next_steps.append("Optimize operational throughput and maintain target benchmark ratios.")
 
         elif intent == "WHAT_IF":
             if proj_cost <= 0.0:
@@ -456,6 +486,8 @@ class AdvisoryService:
         """Classify natural language user message into core advisory intent domain."""
         if any(w in lower_msg for w in ["what if", "what-if", "scenario", "sales fall", "sales drop", "sales decline", "cost increase", "revenue drop", "price fall"]):
             return "WHAT_IF"
+        if any(w in lower_msg for w in ["food cost", "seat", "inventory turn", "footfall", "fuel cost", "raw material", "capacity util", "client concentration", "sponsorship share", "sponsorship dependency", "creator surplus"]):
+            return "INDUSTRY"
         if any(w in lower_msg for w in ["cash", "liquidity", "runway", "shortage", "enough cash", "cash buffer", "working capital", "working-capital"]):
             return "CASH_FLOW"
         if any(w in lower_msg for w in ["scheme", "pmegp", "mudra", "subsidy", "grant", "government", "stand-up", "benefit", "eligible"]):
