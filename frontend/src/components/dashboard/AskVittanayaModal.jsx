@@ -19,24 +19,34 @@ export default function AskVittanayaModal({
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const businessName = currentProfile?.businessName || currentProfile?.name || 'Commercial Broiler Farming';
-  const businessLocation = currentProfile?.district || currentProfile?.location || 'Sundargarh, Odisha';
-  const businessCategory = currentProfile?.category || currentProfile?.businessType || 'Poultry';
-  const ownCapital = Number(currentProfile?.ownCapital || financialSummary?.cash_balance || 50000);
+  const businessName = currentProfile?.businessName || currentProfile?.name || '';
+  const businessCategory = currentProfile?.category || currentProfile?.businessType || currentProfile?.type || '';
+  const businessLocation = currentProfile?.location_district
+    ? `${currentProfile.location_district}, ${currentProfile.location_state || 'Odisha'}`
+    : (currentProfile?.district || currentProfile?.location || '');
+  const ownCapital = Number(currentProfile?.available_margin_capital || currentProfile?.ownCapital || financialSummary?.cash_balance || 0);
+
+  // Reset conversation context whenever the active business profile changes
+  useEffect(() => {
+    setMessages([]);
+  }, [currentProfile?.id, currentProfile?.name]);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
+      const isProfileValid = Boolean(businessName && businessCategory);
       setMessages([
         {
           id: 1,
           sender: 'ai',
-          text: `Hello ${currentProfile?.user_name || 'Entrepreneur'}! I am VITTANAYA AI Advisor. Based on your business profile (${businessName} in ${businessLocation}), I am connected to real-time NABARD unit benchmarks, PMEGP/MUDRA scheme entitlement rules, and local risk calculators. What would you like to explore today?`,
+          text: isProfileValid
+            ? `Hello ${currentProfile?.user_name || 'Entrepreneur'}! I am VITTANAYA AI Advisor. Based on your business profile (${businessName} in ${businessLocation || 'Odisha'}), I am connected to real-time NABARD unit benchmarks, PMEGP/MUDRA scheme entitlement rules, and local risk calculators. What would you like to explore today?`
+            : `Hello ${currentProfile?.user_name || 'Entrepreneur'}! I am VITTANAYA AI Advisor. Please select or complete your active business profile so I can provide grounded financial structuring, scheme matching, and feasibility analysis for your enterprise.`,
           time: 'Just now',
           details: null,
         },
       ]);
     }
-  }, [isOpen, businessName, businessLocation, currentProfile?.user_name, messages.length]);
+  }, [isOpen, businessName, businessLocation, businessCategory, currentProfile?.user_name, messages.length]);
 
   const languages = [
     'English',
@@ -102,18 +112,18 @@ export default function AskVittanayaModal({
       // Call real backend API chatbot endpoint
       const response = await advisoryService.sendChatMessage({
         message: text,
-        business_id: currentProfile?.id || null,
+        business_id: currentProfile?.id ? String(currentProfile.id) : null,
         language: selectedLanguage,
-        business_context: {
-          business_id: currentProfile?.id || null,
-          business_category: businessCategory,
-          specific_business: businessName,
-          location: businessLocation,
+        business_context: (businessName || currentProfile?.id) ? {
+          business_id: currentProfile?.id ? String(currentProfile.id) : null,
+          business_category: businessCategory || 'General',
+          specific_business: businessName || 'Enterprise',
+          location: businessLocation || 'Odisha',
           available_margin_capital: ownCapital,
           social_category: currentProfile?.socialCategory || 'General',
           area_type: currentProfile?.areaType || 'Rural',
           scale: currentProfile?.scale || null,
-        },
+        } : null,
         history: historyPayload,
       });
 
