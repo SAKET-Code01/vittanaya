@@ -43,11 +43,47 @@ export const formatDate = (dateString) => {
 };
 
 /**
- * Formats a percentage value.
+ * Formats a percentage value safely.
  */
 export const formatPercentage = (val, decimals = 1) => {
-  const num = Number(val) || 0;
+  const num = Number(val);
+  if (isNaN(num) || !isFinite(num)) return '0%';
   return `${num.toFixed(decimals)}%`;
+};
+
+/**
+ * Safe numeric normalizer preventing NaN, null, undefined, or Infinity.
+ */
+export const safeNumber = (val, defaultVal = 0) => {
+  const num = Number(val);
+  if (val === null || val === undefined || isNaN(num) || !isFinite(num)) {
+    return defaultVal;
+  }
+  return num;
+};
+
+/**
+ * Safe string normalizer.
+ */
+export const safeString = (val, fallback = '—') => {
+  if (val === null || val === undefined || String(val).trim() === '') {
+    return fallback;
+  }
+  return String(val);
+};
+
+/**
+ * Safe array normalizer.
+ */
+export const safeArray = (val) => {
+  return Array.isArray(val) ? val : [];
+};
+
+/**
+ * Safe object normalizer.
+ */
+export const safeObject = (val) => {
+  return val && typeof val === 'object' && !Array.isArray(val) ? val : {};
 };
 
 /**

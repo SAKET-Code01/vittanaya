@@ -249,24 +249,32 @@ export default function FinancialPlanPage({
   const handleCostChange = (newCost) => {
     const val = Math.max(10000, newCost);
     setProjectCostInput(val);
+    setBackendSimulation(null);
+    setStressMode(false);
     recalculateFundingStructure(val, marginPct, interestRate, loanTenureYears);
   };
 
   const handleMarginChange = (newMargin) => {
     const val = Math.max(0, Math.min(100, newMargin));
     setMarginPct(val);
+    setBackendSimulation(null);
+    setStressMode(false);
     recalculateFundingStructure(projectCostInput, val, interestRate, loanTenureYears);
   };
 
   const handleTenureChange = (newTenure) => {
     const val = Math.max(1, newTenure);
     setLoanTenureYears(val);
+    setBackendSimulation(null);
+    setStressMode(false);
     recalculateFundingStructure(projectCostInput, marginPct, interestRate, val);
   };
 
   const handleRateChange = (newRate) => {
     const val = Math.max(0, newRate);
     setInterestRate(val);
+    setBackendSimulation(null);
+    setStressMode(false);
     recalculateFundingStructure(projectCostInput, marginPct, val, loanTenureYears);
   };
 

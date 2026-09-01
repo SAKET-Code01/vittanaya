@@ -16,10 +16,22 @@ class ApiClient {
    */
   parseError(status, errorBody = {}) {
     if (errorBody && errorBody.detail) {
-      return errorBody.detail;
+      if (typeof errorBody.detail === 'string') {
+        return errorBody.detail;
+      }
+      if (Array.isArray(errorBody.detail)) {
+        return errorBody.detail
+          .map((e) => (typeof e === 'string' ? e : `${e.loc?.filter((l) => l !== 'body').join('.') || 'Field'}: ${e.msg || 'invalid entry'}`))
+          .join('; ');
+      }
+      if (typeof errorBody.detail === 'object' && errorBody.detail.message) {
+        return errorBody.detail.message;
+      }
     }
 
     switch (status) {
+      case 400:
+        return 'The calculation request parameters were invalid. Please check your entries.';
       case 401:
         return 'Your session has expired. Please sign in again.';
       case 403:
@@ -27,7 +39,7 @@ class ApiClient {
       case 404:
         return "We couldn't find the requested business information.";
       case 422:
-        return 'Some information needs correction. Please review your entries.';
+        return 'Some required information needs correction. Please review your entries.';
       case 500:
       case 502:
       case 503:

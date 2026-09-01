@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { schemeService } from '../services/schemeService';
 
@@ -145,10 +145,13 @@ export default function SchemePage({
 
   const [backendSchemes, setBackendSchemes] = useState(null);
   const [isLoadingSchemes, setIsLoadingSchemes] = useState(false);
+  const [schemeError, setSchemeError] = useState(null);
 
-  useEffect(() => {
+  const fetchSchemes = useCallback(() => {
     let isMounted = true;
     setIsLoadingSchemes(true);
+    setSchemeError(null);
+    setBackendSchemes(null);
 
     schemeService
       .matchSchemes({
@@ -169,6 +172,7 @@ export default function SchemePage({
       .catch((err) => {
         if (isMounted) {
           console.warn('Live scheme match notice:', err);
+          setSchemeError(err.message || 'Unable to connect to scheme matching engine.');
           setIsLoadingSchemes(false);
         }
       });
@@ -185,7 +189,13 @@ export default function SchemePage({
     currentProfile?.socialCategory,
     currentProfile?.areaType,
     currentProfile?.ownCapital,
+    currentProfile?.indicative_project_cost,
+    currentProfile?.estimatedProjectCost,
   ]);
+
+  useEffect(() => {
+    fetchSchemes();
+  }, [fetchSchemes]);
 
   const establishedSchemes = [
     {
@@ -762,6 +772,24 @@ export default function SchemePage({
 
   return (
     <div className="w-full space-y-5 bg-transparent pb-12 text-[#18211D]">
+      {schemeError && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800 flex items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-rose-600 font-bold text-sm">!</span>
+            <div>
+              <p className="text-xs font-bold">{schemeError}</p>
+              <p className="text-[11px] text-rose-600">Deterministic scheme entitlement rules remain available below.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={fetchSchemes}
+            className="rounded-xl bg-white border border-rose-300 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors shadow-xs shrink-0"
+          >
+            Retry Scheme Match
+          </button>
+        </div>
+      )}
       {/* HEADER */}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>

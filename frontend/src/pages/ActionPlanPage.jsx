@@ -570,12 +570,21 @@ export default function ActionPlanPage({
     };
   }, [bizId]);
 
+  const [updatingTaskId, setUpdatingTaskId] = useState(null);
+
   const handleExportDPR = async () => {
+    if (isExportingDPR) return;
+
+    if (!bizId) {
+      alert('Please complete or select an active business profile before generating a DPR package.');
+      return;
+    }
+
     setIsExportingDPR(true);
     setDprSuccessMsg(null);
     try {
       const dprPayload = {
-        business_id: bizId || 1,
+        business_id: bizId,
         business_name: currentProfile?.businessName || currentProfile?.name || 'Rural Micro-Enterprise',
         business_category: currentProfile?.category || currentProfile?.businessType || 'Retail & Processing',
         location: currentProfile?.location || currentProfile?.district || 'Odisha',
@@ -601,7 +610,7 @@ export default function ActionPlanPage({
       setDprSuccessMsg('Detailed Project Report (DPR) downloaded successfully!');
     } catch (err) {
       console.warn('DPR export notice:', err);
-      alert('Could not generate DPR package. Please try again.');
+      alert(err.message || 'Could not generate DPR package. Please try again.');
     } finally {
       setIsExportingDPR(false);
     }
@@ -639,22 +648,35 @@ export default function ActionPlanPage({
     return tasks.filter((task) => task.phase === phaseFilter);
   }, [tasks, phaseFilter]);
 
-  const toggleTask = (id) => {
+  const toggleTask = async (id) => {
+    if (updatingTaskId === id) return;
+
+    const targetTask = tasks.find((t) => t.id === id);
+    if (!targetTask) return;
+
+    const newDone = !targetTask.done;
+    const newStatus = newDone ? 'completed' : 'pending';
+
+    // Optimistically update UI
     setTasks((previous) =>
-      previous.map((task) => {
-        if (task.id === id) {
-          const newDone = !task.done;
-          const newStatus = newDone ? 'completed' : 'pending';
-          if (task.backendId) {
-            actionPlanService.updateTaskStatus(task.backendId, newStatus, bizId).catch((err) => {
-              console.warn('Task status update notice:', err);
-            });
-          }
-          return { ...task, done: newDone };
-        }
-        return task;
-      })
+      previous.map((task) => (task.id === id ? { ...task, done: newDone } : task))
     );
+
+    if (targetTask.backendId && bizId) {
+      setUpdatingTaskId(id);
+      try {
+        await actionPlanService.updateTaskStatus(targetTask.backendId, newStatus, bizId);
+      } catch (err) {
+        console.warn('Task status update error, rolling back:', err);
+        // Rollback task state on backend failure
+        setTasks((previous) =>
+          previous.map((task) => (task.id === id ? { ...task, done: targetTask.done } : task))
+        );
+        alert(err.message || 'Could not update task status on server. Rolled back.');
+      } finally {
+        setUpdatingTaskId(null);
+      }
+    }
   };
 
   const toggleExpanded = (id) => {

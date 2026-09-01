@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { CircularScoreGauge } from '../components/common/JapaneseArtwork';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { formatINR } from '../mocks/dashboardMockData';
@@ -202,10 +202,11 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [insightsError, setInsightsError] = useState(null);
 
-  useEffect(() => {
+  const fetchInsights = useCallback(() => {
     let isMounted = true;
     setIsLoadingInsights(true);
     setInsightsError(null);
+    setBackendInsights(null);
 
     feasibilityService
       .getUnifiedInsights({
@@ -225,7 +226,7 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
       .catch((err) => {
         if (isMounted) {
           console.warn('Live backend feasibility insights notice:', err);
-          setInsightsError(err.message || 'Backend service unreachable');
+          setInsightsError(err.message || 'Unable to connect to feasibility analysis service.');
           setIsLoadingInsights(false);
         }
       });
@@ -245,6 +246,10 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
     profile.socialCategory,
     profile.areaType,
   ]);
+
+  useEffect(() => {
+    fetchInsights();
+  }, [fetchInsights]);
 
   const factorScores = useMemo(() => {
     const market = Math.min(
@@ -550,6 +555,25 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-5 pb-12 text-slate-900">
+      {insightsError && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800 flex items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-rose-600 font-bold text-sm">!</span>
+            <div>
+              <p className="text-xs font-bold">{insightsError}</p>
+              <p className="text-[11px] text-rose-600">Deterministic decision rules are active as offline fallback.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={fetchInsights}
+            className="rounded-xl bg-white border border-rose-300 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 transition-colors shadow-xs shrink-0"
+          >
+            Retry Calculation
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
         <div className="min-w-0 space-y-3">

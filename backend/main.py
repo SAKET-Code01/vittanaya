@@ -3,8 +3,11 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 import backend.app.models  # noqa: F401 - Register all SQLAlchemy models
@@ -51,6 +54,49 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc: HTTPException):
+    """Normalize FastAPI HTTPExceptions into predictable JSON error contract."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail if isinstance(exc.detail, (str, list, dict)) else str(exc.detail),
+            "status_code": exc.status_code,
+        },
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc: RequestValidationError):
+    """Format Pydantic 422 validation errors into human-readable detail strings."""
+    errors = exc.errors()
+    formatted_detail = ", ".join(
+        [f"{'.'.join(str(loc) for loc in err.get('loc', []))}: {err.get('msg', 'invalid')}" for err in errors]
+    )
+    return JSONResponse(
+        status_code=422,
+        content=jsonable_encoder({
+            "detail": f"Validation Error: {formatted_detail}",
+            "status_code": 422,
+            "errors": errors,
+        }),
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request, exc: Exception):
+    """Catch unhandled server errors without exposing raw internal tracebacks."""
+    logger.error(f"Unhandled server exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "An internal server error occurred while processing your request. Please try again later.",
+            "status_code": 500,
+        },
+    )
+
 
 # Mount API v1 Router
 app.include_router(api_v1_router)

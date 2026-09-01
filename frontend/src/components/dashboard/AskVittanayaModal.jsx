@@ -76,7 +76,7 @@ export default function AskVittanayaModal({
 
   const handleSendMessage = async (textToSend) => {
     const text = textToSend || inputText;
-    if (!text.trim()) return;
+    if (!text.trim() || isTyping) return;
 
     const userMsg = {
       id: Date.now(),
@@ -130,15 +130,24 @@ export default function AskVittanayaModal({
         },
       ]);
     } catch (err) {
-      console.warn('AI Advisor fallback handler:', err);
+      console.warn('AI Advisor error notice:', err);
+      // Retain message history and display clear error message with deterministic fallback
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
           sender: 'ai',
-          text: `Based on your profile for ${businessName} in ${businessLocation}, your available capital of ₹${ownCapital.toLocaleString('en-IN')} qualifies for government credit-linked subsidies under PMEGP and MUDRA. For detailed breakdown, check the Feasibility and Financial Plan modules.`,
+          text: `[Service Notice: ${err.message || 'Backend advisory server unreachable'}]\n\nOffline Guidance: For ${businessName} in ${businessLocation}, your available capital of ₹${ownCapital.toLocaleString('en-IN')} qualifies for credit-linked subsidies under PMEGP and MUDRA.`,
           time: 'Just now',
-          details: null,
+          error: true,
+          details: {
+            answer: `Based on your profile for ${businessName} in ${businessLocation}, your available capital of ₹${ownCapital.toLocaleString('en-IN')} qualifies for government credit-linked subsidies under PMEGP and MUDRA.`,
+            confidence: 'MEDIUM',
+            data_status: 'OFFLINE_DETERMINISTIC',
+            why_this_result: ['Service connection temporary fallback', 'NABARD benchmark rules applied'],
+            recommended_next_steps: ['Check Feasibility Module', 'Explore Scheme entitlement'],
+            sources: [{ name: 'VITTANAYA Offline Rules Engine', authority: 'VITTANAYA System' }],
+          },
         },
       ]);
     } finally {
@@ -342,7 +351,7 @@ export default function AskVittanayaModal({
           />
           <button
             type="submit"
-            disabled={!inputText.trim()}
+            disabled={!inputText.trim() || isTyping}
             className="px-5 py-2.5 rounded-2xl bg-[#102A1E] hover:bg-[#153928] disabled:opacity-40 text-white font-bold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center space-x-1.5"
           >
             <span>Send</span>
