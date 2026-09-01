@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { feasibilityService } from '../services/feasibilityService';
 import { financeService } from '../services/financeService';
+import CashFlowSection from '../components/dashboard/CashFlowSection';
 
 /**
  * FinancialPlanPage — Hardened & Backend-Grounded Financial Structuring Page.
@@ -545,6 +546,15 @@ export default function FinancialPlanPage({
             )}
           </div>
         )}
+
+        {/* CASH-FLOW & LIQUIDITY INTELLIGENCE SECTION */}
+        <CashFlowSection
+          currentProfile={currentProfile}
+          projectCost={projectCostInput}
+          marginPct={marginPct}
+          interestRate={interestRate}
+          loanTenureYears={loanTenureYears}
+        />
 
         {/* MAIN SIMULATOR */}
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-12 items-stretch">

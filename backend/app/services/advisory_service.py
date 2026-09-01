@@ -21,8 +21,9 @@ from backend.app.schemas.advisory import (
     KeyFact,
     SourceInfo,
 )
-from backend.app.schemas.financial_plan import FundingStructureRequest
+from backend.app.schemas.financial_plan import CashFlowForecastRequest, FundingStructureRequest
 from backend.app.schemas.insights import TraceabilityMetadata
+from backend.app.services.cash_flow_service import MINIMUM_BUFFER_MONTHS_COVERAGE, CashFlowService
 from backend.app.services.financial_plan_service import FinancialPlanService
 
 
@@ -202,6 +203,39 @@ class AdvisoryService:
                 why_list.append(f"Project cost reference ₹{proj_cost:,.0f} is sourced from official NABARD PLP district benchmarks for {loc}.")
                 why_list.append("Reducing-balance loan amortization calculated at 9.5% p.a. over 60 monthly payments.")
                 next_steps.append("Maintain proof of promoter margin deposit (FD/Bank Statement) for loan appraisal.")
+
+        elif intent == "CASH_FLOW":
+            cf_req = CashFlowForecastRequest(
+                business_id=active_business_id,
+                project_cost=proj_cost if proj_cost > 0 else 500000.0,
+                available_margin_capital=margin_cap,
+                apply_seasonality=True,
+            )
+            cf_res = CashFlowService.generate_forecast(cf_req, db=db)
+            summary = cf_res.summary
+
+            answer_text = (
+                f"For your enterprise in {loc}, VITTANAYA Cash-Flow Engine projects a minimum closing cash balance of "
+                f"₹{summary.minimum_projected_cash:,.0f} over 12 months (Operating Coverage: {summary.months_of_coverage:.1f} months). "
+                f"Estimated working capital requirement is ₹{summary.working_capital_required:,.0f} with a target cash buffer of ₹{summary.minimum_recommended_buffer:,.0f}. "
+                f"Overall Liquidity Risk: {summary.liquidity_risk_level}."
+            )
+            if summary.critical_months:
+                answer_text += f" Pay close attention to liquidity pressure in {', '.join(summary.critical_months[:3])}."
+
+            key_facts.append(KeyFact(label="Min Projected Cash", value=f"₹{summary.minimum_projected_cash:,.0f}"))
+            key_facts.append(KeyFact(label="Working Capital Required", value=f"₹{summary.working_capital_required:,.0f}"))
+            key_facts.append(KeyFact(label="Recommended Buffer", value=f"₹{summary.minimum_recommended_buffer:,.0f}"))
+            key_facts.append(KeyFact(label="Liquidity Risk Level", value=summary.liquidity_risk_level))
+
+            why_list.append("12-month roll-forward calculated by CashFlowService using NABARD benchmarks & EMI debt service.")
+            why_list.append(f"Target cash buffer is set at {MINIMUM_BUFFER_MONTHS_COVERAGE}x monthly operating expenses.")
+
+            if cf_res.liquidity_flags:
+                for f in cf_res.liquidity_flags[:2]:
+                    next_steps.append(f"Month {f.affected_month}: {f.recommended_action}")
+            else:
+                next_steps.append("Maintain 45-day working capital buffer in liquid bank account.")
 
         elif intent == "WHAT_IF":
             if proj_cost <= 0.0:
@@ -406,6 +440,8 @@ class AdvisoryService:
         """Classify natural language user message into core advisory intent domain."""
         if any(w in lower_msg for w in ["what if", "what-if", "scenario", "sales fall", "sales drop", "sales decline", "cost increase", "revenue drop", "price fall"]):
             return "WHAT_IF"
+        if any(w in lower_msg for w in ["cash", "liquidity", "runway", "shortage", "enough cash", "cash buffer", "working capital", "working-capital"]):
+            return "CASH_FLOW"
         if any(w in lower_msg for w in ["scheme", "pmegp", "mudra", "subsidy", "grant", "government", "stand-up", "benefit", "eligible"]):
             return "SCHEME"
         if any(w in lower_msg for w in ["afford", "cost", "money", "capital", "fund", "financing", "loan", "repay", "emi", "budget", "borrow", "interest"]):

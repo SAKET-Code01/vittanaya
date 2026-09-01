@@ -66,4 +66,11 @@ export const financeService = {
   async calculateFundingStructure(payload) {
     return apiClient.post('/finance/funding-structure', payload);
   },
+
+  /**
+   * Fetch 12-month deterministic cash-flow & liquidity forecast.
+   */
+  async getCashFlowForecast(payload) {
+    return apiClient.post('/finance/cash-flow', payload);
+  },
 };

@@ -6,11 +6,17 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
-from backend.app.schemas.financial_plan import FundingStructureRequest, FundingStructureResponse
+from backend.app.schemas.financial_plan import (
+    CashFlowForecastRequest,
+    CashFlowForecastResponse,
+    FundingStructureRequest,
+    FundingStructureResponse,
+)
 from backend.app.schemas.payable import PayableCreate, PayableResponse
 from backend.app.schemas.receivable import ReceivableCreate, ReceivableResponse
 from backend.app.schemas.transaction import TransactionCreate, TransactionResponse
 from backend.app.services.business_service import BusinessService
+from backend.app.services.cash_flow_service import CashFlowService
 from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.ledger_service import LedgerService
 
@@ -48,6 +54,27 @@ def calculate_funding_structure(
 ) -> FundingStructureResponse:
     """Calculate authoritative loan amount, EMI, totals, and reducing-balance repayment schedule."""
     return FinancialPlanService.calculate_funding_structure(data)
+
+
+@router.post(
+    "/cash-flow",
+    response_model=CashFlowForecastResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Generate Cash-Flow & Liquidity Intelligence Forecast",
+)
+def generate_cash_flow_forecast(
+    data: CashFlowForecastRequest,
+    db: Session = Depends(get_db),
+) -> CashFlowForecastResponse:
+    """Generate 12-month deterministic cash-flow forecast, debt service integration, and liquidity risk assessment."""
+    if data.business_id:
+        biz_service = BusinessService(db)
+        if not biz_service.get_business(data.business_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Business with ID {data.business_id} does not exist",
+            )
+    return CashFlowService.generate_forecast(data, db=db)
 
 
 @router.get("/transactions", response_model=list[TransactionResponse], summary="List Transactions")
