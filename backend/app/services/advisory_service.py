@@ -269,14 +269,30 @@ class AdvisoryService:
                 answer_text = (
                     f"Scenario Analysis (Sales {sales_change:+.0f}%): "
                     f"Baseline Surplus = ₹{base.surplus:,.0f} | Simulated Surplus = ₹{sim.surplus:,.0f} | "
-                    f"Net Surplus Change = ₹{diff:,.0f}. Risk Shift: {base.risk} → {sim.risk}. "
-                    f"Reason: Sales reduction decreases available operating cash flow."
+                    f"Net Surplus Change = ₹{diff:,.0f}. Risk Shift: {base.risk} → {sim.risk}."
                 )
+
+                cf_req = CashFlowForecastRequest(
+                    business_id=active_business_id,
+                    project_cost=proj_cost,
+                    available_margin_capital=margin_cap,
+                    stress_sales_change=sales_change,
+                    apply_seasonality=True,
+                )
+                cf_res = CashFlowService.generate_forecast(cf_req, db=db)
+                if cf_res.stress_comparison:
+                    sc = cf_res.stress_comparison
+                    answer_text += (
+                        f" 12-Month Cash Impact: Minimum closing cash drops from ₹{sc.baseline_min_cash:,.0f} to ₹{sc.stress_min_cash:,.0f} "
+                        f"(Cash Delta: ₹{sc.cash_delta:,.0f}). Liquidity Risk Shift: {sc.baseline_risk} → {sc.stress_risk}."
+                    )
 
                 key_facts.append(KeyFact(label="Baseline Annual Surplus", value=f"₹{base.surplus:,.0f}"))
                 key_facts.append(KeyFact(label="Simulated Annual Surplus", value=f"₹{sim.surplus:,.0f}"))
                 key_facts.append(KeyFact(label="Surplus Delta", value=f"₹{diff:,.0f}"))
                 key_facts.append(KeyFact(label="Simulated Risk Level", value=sim.risk))
+                if cf_res.stress_comparison:
+                    key_facts.append(KeyFact(label="Stressed Min Cash", value=f"₹{cf_res.stress_comparison.stress_min_cash:,.0f}"))
 
                 why_list.append(f"Isolated sensitivity model recalculates operating cash surplus under a {sales_change:+.0f}% revenue shock.")
                 why_list.append(f"Base operating margin: {base.operating_margin_pct:.1f}% → Simulated margin: {sim.operating_margin_pct:.1f}%.")
