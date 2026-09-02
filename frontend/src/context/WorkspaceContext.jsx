@@ -379,40 +379,75 @@ export function WorkspaceProvider({ children }) {
       .catch((err) => console.warn('Could not fetch active business profile from backend DB', err));
   }, []);
 
-  // Action: Update user or business identity fields
-  const updateProfile = (fields = {}) => {
-    setCurrentProfile((prev) => {
-      const updated = {
-        ...prev,
-        ...fields,
+  // Action: Update user or business identity fields (Server-Authoritative Save)
+  const updateProfile = async (fields = {}) => {
+    const currentId = currentProfile?.id;
+    if (!currentId) {
+      console.warn("No active business selected for updateProfile");
+      return currentProfile;
+    }
+
+    const payload = {
+      name: fields.name ?? fields.business_name ?? fields.businessName ?? currentProfile.name,
+      type: fields.type ?? fields.businessType ?? currentProfile.type,
+      industry: fields.industry ?? currentProfile.industry,
+      category: fields.category ?? currentProfile.category,
+      location_district: fields.location_district ?? fields.location ?? currentProfile.location_district,
+      location_state: fields.location_state ?? currentProfile.location_state,
+      own_capital: typeof fields.own_capital === 'number' ? fields.own_capital : (fields.own_capital ? parseFloat(fields.own_capital) : currentProfile.own_capital),
+      project_cost: typeof fields.project_cost === 'number' ? fields.project_cost : (fields.project_cost ? parseFloat(fields.project_cost) : currentProfile.project_cost),
+      monthly_revenue_estimate: typeof fields.monthly_revenue === 'number' ? fields.monthly_revenue : (fields.monthly_revenue_estimate !== undefined ? parseFloat(fields.monthly_revenue_estimate) : currentProfile.monthly_revenue),
+      monthly_expense_estimate: typeof fields.monthly_expenses === 'number' ? fields.monthly_expenses : (fields.monthly_expense_estimate !== undefined ? parseFloat(fields.monthly_expense_estimate) : currentProfile.monthly_expenses),
+      social_category: fields.social_category ?? currentProfile.social_category,
+      area_type: fields.area_type ?? currentProfile.area_type,
+      description: fields.description ?? currentProfile.description,
+      phone: fields.phone ?? currentProfile.phone,
+      email: fields.email ?? currentProfile.email,
+    };
+
+    try {
+      const response = await fetch(`/api/v1/business/${currentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to save business profile');
+      }
+
+      const saved = await response.json();
+
+      const normalizedProfile = {
+        ...currentProfile,
+        id: saved.id,
+        name: saved.name,
+        businessName: saved.name,
+        business_name: saved.name,
+        type: saved.type,
+        industry: saved.industry,
+        category: saved.category,
+        location_district: saved.location_district,
+        location_state: saved.location_state,
+        own_capital: Number(saved.own_capital || 0),
+        project_cost: Number(saved.project_cost || 0),
+        monthly_revenue: Number(saved.monthly_revenue_estimate || 0),
+        monthly_expenses: Number(saved.monthly_expense_estimate || 0),
+        social_category: saved.social_category,
+        area_type: saved.area_type,
+        description: saved.description,
+        phone: saved.phone,
+        email: saved.email,
         lastUpdatedAt: getFormattedNow(),
       };
 
-      // Persist profile edits to backend SQLite DB
-      const targetId = updated.id || 1;
-      const apiPayload = {
-        name: updated.name || updated.business_name,
-        type: updated.businessType || updated.type || updated.category || 'Retail',
-        category: updated.category,
-        industry: updated.industry || updated.category || 'General',
-        location_district: updated.location || updated.location_district,
-        own_capital: typeof updated.own_capital === 'number' ? updated.own_capital : (parseFloat(updated.own_capital) || 0.0),
-        project_cost: typeof updated.project_cost === 'number' ? updated.project_cost : (parseFloat(updated.project_cost) || 0.0),
-        monthly_revenue_estimate: typeof updated.monthly_revenue === 'number' ? updated.monthly_revenue : (parseFloat(updated.monthly_revenue) || 0.0),
-        monthly_expense_estimate: typeof updated.monthly_expenses === 'number' ? updated.monthly_expenses : (parseFloat(updated.monthly_expenses) || 0.0),
-        phone: updated.phone,
-        email: updated.email,
-        description: updated.description,
-      };
-
-      fetch(`/api/v1/business/${targetId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiPayload),
-      }).catch((err) => console.warn('Failed to sync business profile to backend DB', err));
-
-      return updated;
-    });
+      setCurrentProfile(normalizedProfile);
+      return normalizedProfile;
+    } catch (err) {
+      console.error('Failed to sync business profile to backend DB', err);
+      throw err;
+    }
   };
 
   // Action: Update Business Type

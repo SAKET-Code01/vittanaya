@@ -75,10 +75,17 @@ class AdvisoryService:
                 if biz:
                     active_business_id = biz.id
                     specific_bus = biz.name
-                    bus_category = getattr(biz, 'category', None) or biz.type or biz.industry
-                    dist = biz.location_district or "Odisha"
-                    st = biz.location_state or "Odisha"
-                    loc = f"{dist}, {st}" if dist != st else dist
+                    bus_category = getattr(biz, 'category', None) or getattr(biz, 'type', None) or getattr(biz, 'industry', None) or biz.name
+                    dist = (getattr(biz, 'location_district', '') or '').strip()
+                    st = (getattr(biz, 'location_state', '') or '').strip()
+                    if dist and st:
+                        loc = f"{dist}, {st}" if dist != st else dist
+                    elif dist:
+                        loc = dist
+                    elif st:
+                        loc = st
+                    else:
+                        loc = "Odisha"
                     margin_cap = float(getattr(biz, 'own_capital', 0.0) or 0.0)
                     db_monthly_rev = float(getattr(biz, 'monthly_revenue_estimate', 0.0) or 0.0)
                     db_monthly_exp = float(getattr(biz, 'monthly_expense_estimate', 0.0) or 0.0)
@@ -184,8 +191,8 @@ class AdvisoryService:
                 pass
 
         if proj_cost <= 0.0 and db:
-            cost_engine = ProjectCostEngine(db)
             try:
+                cost_engine = ProjectCostEngine(db)
                 project_cost_res = cost_engine.get_indicative_cost(
                     business_activity=specific_bus,
                     business_category=bus_category,
