@@ -169,7 +169,16 @@ class BusinessFeasibilityService:
         # ---- Step 1: Match LocalMarketData record and FeasibilityEngine context ----
         market_record = self._match_market_record(bus_category, specific_bus, location_district)
         feas_engine = FeasibilityEngine(self.db)
+        # Note: FeasibilityEngine may return district-specific DB text if matched to wrong district.
+        # We resolve this in _resolve_market_reach() below.
         feas_res = feas_engine.evaluate_feasibility(bus_category, specific_bus, location)
+
+        # Determine if market_record is a district-exact match or a state-level sector fallback
+        _district_exact_match = (
+            market_record is not None
+            and location_district
+            and market_record.district_name.lower() == location_district.lower()
+        )
 
         # ---- Step 2: Derive 5 criterion scores from existing engines ----
         raw_details = []
@@ -328,6 +337,19 @@ class BusinessFeasibilityService:
         )
 
 
+        # ---- Step 4: Resolve market_reach and opportunity with strict district provenance ----
+        # If the matched DB record belongs to a different district (state-level fallback),
+        # use the VERIFIED_ODISHA_BENCHMARKS generic sector description — NOT the DB record's
+        # district-specific reach text (which would constitute location leakage).
+        resolved_market_reach, resolved_opportunity = self._resolve_market_reach(
+            bus_category=bus_category,
+            specific_bus=specific_bus,
+            feas_res=feas_res,
+            market_record=market_record,
+            district_exact_match=_district_exact_match,
+            location_district=location_district,
+        )
+
         return BusinessFeasibilityResult(
             business_id=getattr(business, "id", 0),
             business_name=getattr(business, "name", "Unknown"),
@@ -346,10 +368,56 @@ class BusinessFeasibilityService:
             final_score=score_output["final_score"],
             score_formula=score_output["score_formula"],
             market_benchmark_score=float(market_record.base_score) if market_record else 0.0,
-            market_reach=feas_res.market_reach,
-            opportunity=feas_res.opportunity,
+            market_reach=resolved_market_reach,
+            opportunity=resolved_opportunity,
             competitor_level=feas_res.competitor_level,
         )
+
+    def _resolve_market_reach(
+        self,
+        bus_category: str,
+        specific_bus: str,
+        feas_res: Any,
+        market_record: Optional[LocalMarketData],
+        district_exact_match: bool,
+        location_district: str,
+    ) -> tuple[str, str]:
+        """Return (market_reach, opportunity) with strict district provenance.
+
+        Rules:
+        - District-exact match: use DB record's district-specific description verbatim.
+        - Sector-only match (different district): use VERIFIED_ODISHA_BENCHMARKS generic
+          sector description and prefix it with '[Sector Benchmark]' to make clear it is
+          NOT the business's own district reach.
+        - No match: propagate feas_res values (already generic) or 'Data insufficient'.
+        """
+        if district_exact_match and market_record is not None:
+            # Verified district-level data - use as-is
+            return feas_res.market_reach, feas_res.opportunity
+
+        if market_record is not None and not district_exact_match:
+            # Sector benchmark from a different district - look up generic description
+            cat_lower = bus_category.lower()
+            spec_lower = specific_bus.lower()
+            for key, data in VERIFIED_ODISHA_BENCHMARKS.items():
+                if key in cat_lower or key in spec_lower:
+                    generic_reach = data["market_reach"]
+                    generic_opp = data["opportunity"]
+                    # Label clearly as sector benchmark so it cannot be misread as
+                    # the business's own district distribution network
+                    labeled_reach = (
+                        f"[Sector Benchmark - no {location_district}-specific data available] "
+                        f"{generic_reach}"
+                    )
+                    return labeled_reach, generic_opp
+            # Key not found in benchmarks - return generic fallback
+            return (
+                f"[State-level sector benchmark - {location_district} district data unavailable]",
+                feas_res.opportunity,
+            )
+
+        # No market_record at all - fall through to whatever feas_res produced
+        return feas_res.market_reach, feas_res.opportunity
 
     def _match_market_record(
         self,
