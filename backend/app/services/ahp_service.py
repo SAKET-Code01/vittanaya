@@ -35,8 +35,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Optional
-
+from typing import Any, Dict, List, Optional
 
 # Random Consistency Index for n=5 (Saaty, 1980)
 RANDOM_CONSISTENCY_INDEX: Dict[int, float] = {
@@ -155,10 +154,36 @@ class AHPResult:
 
 
 class AHPService:
-    """Computes AHP feasibility criterion weights from Dataset B."""
+    """Computes AHP feasibility criterion weights from expert pairwise comparisons.
+
+    Architecture: DATA -> CALCULATION -> API -> UI.
+    Data-injectable: pass any valid 10-comparison response dictionary to evaluate.
+    """
 
     N = 5
     RI = RANDOM_CONSISTENCY_INDEX[5]  # 1.12
+
+    def __init__(
+        self,
+        expert_responses: Optional[Dict[str, List[float]]] = None,
+        expert_labels: Optional[List[str]] = None,
+        dataset_name: str = "dataset_b",
+        source_status: str = DATASET_B_SOURCE_STATUS,
+        source_disclaimer: str = DATASET_B_DISCLAIMER,
+    ):
+        self.expert_responses = (
+            {k: list(v) for k, v in expert_responses.items()}
+            if expert_responses is not None
+            else {k: list(v) for k, v in DATASET_B_EXPERT_RESPONSES.items()}
+        )
+        self.expert_labels = (
+            list(expert_labels)
+            if expert_labels is not None
+            else list(DATASET_B_EXPERT_LABELS)
+        )
+        self.dataset_name = dataset_name
+        self.source_status = source_status
+        self.source_disclaimer = source_disclaimer
 
     def _geometric_mean(self, values: List[float]) -> float:
         product = 1.0
@@ -168,7 +193,7 @@ class AHPService:
 
     def _compute_aggregated_pairwise(self) -> Dict[str, float]:
         result: Dict[str, float] = {}
-        for key, responses in DATASET_B_EXPERT_RESPONSES.items():
+        for key, responses in self.expert_responses.items():
             label = key.replace("_vs_", "/")
             result[label] = self._geometric_mean(responses)
         return result
@@ -283,9 +308,9 @@ class AHPService:
 
         return AHPResult(
             criteria_order=CRITERIA_ORDER,
-            expert_dataset="dataset_b",
-            expert_count=len(DATASET_B_EXPERT_LABELS),
-            comparison_count=len(DATASET_B_EXPERT_RESPONSES),
+            expert_dataset=self.dataset_name,
+            expert_count=len(self.expert_labels),
+            comparison_count=len(self.expert_responses),
             aggregation_method="geometric_mean",
             aggregated_pairwise={k: round(v, 10) for k, v in agg_pairwise.items()},
             matrix=[[round(v, 10) for v in row] for row in matrix],
@@ -299,20 +324,75 @@ class AHPService:
             ci=ci,
             cr=cr,
             is_consistent=cr < 0.10,
-            source_status=DATASET_B_SOURCE_STATUS,
-            source_disclaimer=DATASET_B_DISCLAIMER,
+            source_status=self.source_status,
+            source_disclaimer=self.source_disclaimer,
             dataset_a_status=DATASET_A_SOURCE_STATUS,
             dataset_a_visible_gm={k: round(v, 10) for k, v in dataset_a_gm.items()},
             dataset_a_missing=dataset_a_missing,
         )
 
 
-_cached_result: Optional[AHPResult] = None
+def get_ahp_result(expert_responses: Optional[Dict[str, List[float]]] = None) -> AHPResult:
+    """Compute and return AHP result dynamically on each request (no permanent global caching)."""
+    return AHPService(expert_responses=expert_responses).compute()
 
 
-def get_ahp_result() -> AHPResult:
-    """Return cached AHP result, computing on first call."""
-    global _cached_result
-    if _cached_result is None:
-        _cached_result = AHPService().compute()
-    return _cached_result
+def calculate_feasibility_score(
+    raw_scores: Dict[str, float],
+    raw_score_sources: Optional[Dict[str, str]] = None,
+    ahp_result: Optional[AHPResult] = None,
+) -> Dict[str, Any]:
+    """Calculate weighted feasibility score from 5 raw criterion scores (0-100 scale).
+
+    Formula for each criterion:
+        contribution = (raw_score / 100) * dashboard_points
+
+    Final Feasibility Score:
+        final_feasibility_score = sum(all 5 contributions)
+    """
+    ahp = ahp_result or get_ahp_result()
+    dp = ahp.dashboard_points
+    nw = ahp.normalized_weights
+
+    sources = raw_score_sources or {}
+    default_sources = {
+        "market": "Catchment demand, household density, and mandi offtake",
+        "financial": "Financial structuring engine health score & equity coverage",
+        "location": "District logistics, transport corridor, and Gram Panchayat access",
+        "competition": "Catchment competitor density & entry barriers",
+        "risk": "Cash runway, liquidity buffer, and debt coverage",
+    }
+
+    criteria_traces = []
+    total_contribution = 0.0
+
+    for key in CRITERIA_ORDER:
+        raw = float(raw_scores.get(key, 0.0))
+        max_pts = dp[key]
+        weight_pct = nw[key] * 100.0
+        contrib = (raw / 100.0) * max_pts
+        total_contribution += contrib
+        source = sources.get(key, default_sources.get(key, "Verified business parameter"))
+
+        criteria_traces.append({
+            "criterion": key,
+            "label": CRITERIA_LABELS[key],
+            "raw_score": round(raw, 2),
+            "maximum_points": max_pts,
+            "weight_pct": round(weight_pct, 4),
+            "contribution": round(contrib, 4),
+            "data_source": source,
+            "calculation_trace": f"({raw:.2f} / 100) * {max_pts} = {contrib:.3f}",
+        })
+
+    final_score = round(total_contribution, 2)
+
+    return {
+        "final_score": final_score,
+        "score_formula": "final_feasibility_score = sum((raw_score / 100) * dashboard_points)",
+        "ahp_source_status": ahp.source_status,
+        "ahp_cr": ahp.cr,
+        "is_consistent": ahp.is_consistent,
+        "criteria": criteria_traces,
+    }
+

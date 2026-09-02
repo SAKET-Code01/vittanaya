@@ -15,17 +15,13 @@ Test groups:
 12.  Feasibility contribution formula: contribution = (raw/100) * dashboard_points
 """
 
-import math
-import pytest
 
 from backend.app.services.ahp_service import (
     DATASET_A_PARTIAL,
     DATASET_B_EXPERT_RESPONSES,
-    DATASET_B_SOURCE_STATUS,
     AHPService,
     get_ahp_result,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -419,6 +415,7 @@ class TestNoFrontendHardcodedOverride:
 
     def test_endpoint_returns_ahp_weights(self):
         from fastapi.testclient import TestClient
+
         from backend.main import app
         client = TestClient(app)
         response = client.get("/api/v1/ahp/weights")
@@ -429,6 +426,7 @@ class TestNoFrontendHardcodedOverride:
 
     def test_endpoint_dashboard_points_match_service(self):
         from fastapi.testclient import TestClient
+
         from backend.main import app
         client = TestClient(app)
         response = client.get("/api/v1/ahp/weights")
@@ -439,6 +437,7 @@ class TestNoFrontendHardcodedOverride:
 
     def test_endpoint_cr_matches_service(self):
         from fastapi.testclient import TestClient
+
         from backend.main import app
         client = TestClient(app)
         response = client.get("/api/v1/ahp/weights")
@@ -448,6 +447,7 @@ class TestNoFrontendHardcodedOverride:
 
     def test_endpoint_source_status_correct(self):
         from fastapi.testclient import TestClient
+
         from backend.main import app
         client = TestClient(app)
         response = client.get("/api/v1/ahp/weights")
@@ -456,6 +456,7 @@ class TestNoFrontendHardcodedOverride:
 
     def test_criteria_detail_count_is_five(self):
         from fastapi.testclient import TestClient
+
         from backend.main import app
         client = TestClient(app)
         response = client.get("/api/v1/ahp/weights")
@@ -518,9 +519,134 @@ class TestFeasibilityContributionFormula:
     def test_contribution_uses_ahp_dashboard_points(self):
         """Verify formula uses AHP-derived dashboard_points, not hardcoded values."""
         result = get_ahp_result()
-        # If AHP is recalculated with different data, dashboard_points may change.
-        # This test confirms the formula reads from the service, not from constants.
         for key in result.dashboard_points:
             raw = 100.0
             contrib = (raw / 100.0) * result.dashboard_points[key]
             assert contrib == result.dashboard_points[key]  # max contribution = dashboard_points
+
+
+# ---------------------------------------------------------------------------
+# Test Group 13: Dynamic Modified-Dataset Recalculation (Data-Injectability)
+# ---------------------------------------------------------------------------
+
+class TestDynamicDatasetRecalculation:
+    """
+    Verifies that the AHP service is genuinely data-driven and data-injectable:
+    1. Copies Dataset B.
+    2. Changes exactly one pairwise judgment.
+    3. Creates a new AHPService with the modified dataset.
+    4. Computes the result.
+    5. Verifies at least one normalized weight changed.
+    6. Verifies CR was recalculated.
+    7. Verifies dashboard points are recalculated to sum to 100.
+    8. Verifies original Dataset B remains unchanged.
+    """
+
+    def test_dynamic_recalculation_on_modified_dataset(self):
+        # 1. Copy Dataset B
+        modified_dataset = {k: list(v) for k, v in DATASET_B_EXPERT_RESPONSES.items()}
+
+        # 2. Change exactly one pairwise judgment: M_vs_F from [1,1,1,1,3] to [1,1,1,1,5]
+        assert modified_dataset["M_vs_F"] == [1, 1, 1, 1, 3]
+        modified_dataset["M_vs_F"] = [1, 1, 1, 1, 5]
+
+        # 3. Create a new AHPService with the modified dataset
+        dynamic_svc = AHPService(
+            expert_responses=modified_dataset,
+            dataset_name="modified_test_fixture",
+        )
+
+        # 4. Compute result
+        dynamic_result = dynamic_svc.compute()
+        baseline_result = AHPService().compute()
+
+        # 5. Verify at least one normalized weight changed
+        # Market weight should increase because Market was favored more vs Financial (5 vs 3)
+        assert dynamic_result.normalized_weights["market"] != baseline_result.normalized_weights["market"]
+        assert dynamic_result.normalized_weights["market"] > baseline_result.normalized_weights["market"]
+        assert dynamic_result.normalized_weights["financial"] < baseline_result.normalized_weights["financial"]
+
+        # 6. Verify CR was recalculated
+        assert dynamic_result.cr != baseline_result.cr
+        assert dynamic_result.lambda_max != baseline_result.lambda_max
+        assert dynamic_result.is_consistent is True
+
+        # 7. Verify dashboard points sum to 100
+        assert sum(dynamic_result.dashboard_points.values()) == 100
+
+        # 8. Verify original Dataset B remains unchanged
+        assert DATASET_B_EXPERT_RESPONSES["M_vs_F"] == [1, 1, 1, 1, 3]
+
+    def test_extreme_shift_recalculation(self):
+        """Test with an extreme shift in criteria to verify full pipeline reactivity."""
+        modified_dataset = {k: list(v) for k, v in DATASET_B_EXPERT_RESPONSES.items()}
+        # Make Risk overwhelmingly more important than all others (all Risk comparisons = 1/9)
+        modified_dataset["M_vs_R"] = [1/9, 1/9, 1/9, 1/9, 1/9]
+        modified_dataset["F_vs_R"] = [1/9, 1/9, 1/9, 1/9, 1/9]
+        modified_dataset["L_vs_R"] = [1/9, 1/9, 1/9, 1/9, 1/9]
+        modified_dataset["C_vs_R"] = [1/9, 1/9, 1/9, 1/9, 1/9]
+
+        res = AHPService(expert_responses=modified_dataset).compute()
+        # Risk should now have the highest weight
+        assert res.normalized_weights["risk"] > 0.40
+        assert sum(res.dashboard_points.values()) == 100
+        assert res.dashboard_points["risk"] > 40
+
+
+# ---------------------------------------------------------------------------
+# Test Group 14: Feasibility Score Calculation Service & Trace
+# ---------------------------------------------------------------------------
+
+class TestFeasibilityScoreCalculationService:
+    """Verifies calculate_feasibility_score function and trace exposure."""
+
+    def test_calculate_feasibility_score_exact_worked_example(self):
+        from backend.app.services.ahp_service import calculate_feasibility_score
+
+        raw_scores = {
+            "market": 93.33,
+            "financial": 76.0,
+            "location": 100.0,
+            "competition": 53.33,
+            "risk": 53.33,
+        }
+        res = calculate_feasibility_score(raw_scores)
+
+        assert abs(res["final_score"] - 78.0) < 0.2
+        assert len(res["criteria"]) == 5
+        assert res["ahp_source_status"] == "illustrative_dataset"
+        assert res["is_consistent"] is True
+
+        market_crit = next(c for c in res["criteria"] if c["criterion"] == "market")
+        assert market_crit["maximum_points"] == 30
+        assert abs(market_crit["contribution"] - 27.999) < 0.01
+
+        fin_crit = next(c for c in res["criteria"] if c["criterion"] == "financial")
+        assert fin_crit["maximum_points"] == 25
+        assert abs(fin_crit["contribution"] - 19.0) < 0.01
+
+    def test_calculate_feasibility_endpoint(self):
+        from fastapi.testclient import TestClient
+
+        from backend.main import app
+
+        client = TestClient(app)
+        payload = {
+            "raw_scores": {
+                "market": 93.33,
+                "financial": 76.0,
+                "location": 100.0,
+                "competition": 53.33,
+                "risk": 53.33,
+            },
+            "raw_score_sources": {
+                "market": "Verified OMFED route demand in Sundargarh",
+            },
+        }
+        response = client.post("/api/v1/ahp/calculate-feasibility", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert abs(data["final_score"] - 78.0) < 0.2
+        assert len(data["criteria"]) == 5
+        m = next(c for c in data["criteria"] if c["criterion"] == "market")
+        assert m["data_source"] == "Verified OMFED route demand in Sundargarh"

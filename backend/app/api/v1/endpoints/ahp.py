@@ -17,8 +17,16 @@ No hardcoded weight values should exist in the UI.
 
 from fastapi import APIRouter
 
-from backend.app.schemas.ahp import AHPResultSchema
-from backend.app.services.ahp_service import AHPResult, get_ahp_result
+from backend.app.schemas.ahp import (
+    AHPResultSchema,
+    FeasibilityCalculationRequest,
+    FeasibilityScoreCalculationResponse,
+)
+from backend.app.services.ahp_service import (
+    AHPResult,
+    calculate_feasibility_score,
+    get_ahp_result,
+)
 
 router = APIRouter(tags=["AHP Methodology"])
 
@@ -81,3 +89,23 @@ def get_ahp_weights() -> AHPResultSchema:
     """Return AHP criterion weights and full methodology audit trail."""
     result = get_ahp_result()
     return _ahp_result_to_schema(result)
+
+
+@router.post(
+    "/ahp/calculate-feasibility",
+    response_model=FeasibilityScoreCalculationResponse,
+    summary="Calculate AHP-Weighted Feasibility Score",
+    description=(
+        "Calculates the final feasibility score and criterion contributions from 5 raw scores (0-100 scale). "
+        "Formula: contribution = (raw_score / 100) * dashboard_points; final_score = sum(contributions)."
+    ),
+)
+def calculate_weighted_feasibility(
+    payload: FeasibilityCalculationRequest,
+) -> FeasibilityScoreCalculationResponse:
+    """Compute deterministic weighted feasibility score using dynamic AHP weights."""
+    trace = calculate_feasibility_score(
+        raw_scores=payload.raw_scores,
+        raw_score_sources=payload.raw_score_sources,
+    )
+    return FeasibilityScoreCalculationResponse(**trace)

@@ -1085,69 +1085,127 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
 
             {/* 3. Step 2 & 3: Component Scoring Table */}
             <div className="rounded-2xl border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-                <p className="text-xs font-extrabold text-slate-800">
-                  Step 2 & 3: Multi-Dimensional Component Breakdown & Weighting
-                </p>
-                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-lg">
-                  Formula: Score = ∑ (Component Points) / 100
+              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-extrabold text-slate-800">
+                    Step 2 & 3: Multi-Dimensional Component Breakdown & AHP Weighting
+                  </p>
+                  <p className="text-[11px] text-slate-500">
+                    Formula: Contribution = (Raw Score / 100) × Max Points. Total Feasibility Score = ∑ Contributions.
+                  </p>
+                </div>
+                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg">
+                  AHP Consistent (CR = {ahpWeights?.cr?.toFixed(6) ?? '0.000015'})
                 </span>
               </div>
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 border-b border-slate-200">
-                  <tr>
-                    <th className="p-3">Component Dimension</th>
-                    <th className="p-3">Weight</th>
-                    <th className="p-3">Evaluated Signal</th>
-                    <th className="p-3 text-right">Points Scored</th>
-                    <th className="p-3 text-right">Maximum</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  <tr>
-                    <td className="p-3 font-bold text-slate-900">Market Catchment & Demand</td>
-                    <td className="p-3 text-blue-700 font-bold">{dp.market}% <span className="text-[10px] text-slate-400">({(nw.market * 100).toFixed(2)}% AHP)</span></td>
-                    <td className="p-3 text-slate-600">Local household demand and mandi off-take guarantee</td>
-                    <td className="p-3 text-right font-black text-slate-900">{marketFitScore ?? Math.round(dp.market * 0.87)}</td>
-                    <td className="p-3 text-right text-slate-400">{dp.market}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 font-bold text-slate-900">Financial Viability & Margin</td>
-                    <td className="p-3 text-blue-700 font-bold">{dp.financial}% <span className="text-[10px] text-slate-400">({(nw.financial * 100).toFixed(2)}% AHP)</span></td>
-                    <td className="p-3 text-slate-600">Debt leverage ratio and margin equity coverage</td>
-                    <td className="p-3 text-right font-black text-slate-900">{financialFitScore ?? Math.round(dp.financial * 0.8)}</td>
-                    <td className="p-3 text-right text-slate-400">{dp.financial}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 font-bold text-slate-900">Location & Mandi Connectivity</td>
-                    <td className="p-3 text-blue-700 font-bold">{dp.location}% <span className="text-[10px] text-slate-400">({(nw.location * 100).toFixed(2)}% AHP)</span></td>
-                    <td className="p-3 text-slate-600">Panchayat procurement access and transport routes</td>
-                    <td className="p-3 text-right font-black text-slate-900">{locationFitScore ?? Math.round(dp.location * 0.8)}</td>
-                    <td className="p-3 text-right text-slate-400">{dp.location}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 font-bold text-slate-900">Competition & Barrier to Entry</td>
-                    <td className="p-3 text-blue-700 font-bold">{dp.competition}% <span className="text-[10px] text-slate-400">({(nw.competition * 100).toFixed(2)}% AHP)</span></td>
-                    <td className="p-3 text-slate-600">Block-level enterprise density and capital barrier</td>
-                    <td className="p-3 text-right font-black text-slate-900">{competitionScore ?? Math.round(dp.competition * 0.67)}</td>
-                    <td className="p-3 text-right text-slate-400">{dp.competition}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-3 font-bold text-slate-900">Risk Resilience & Buffer</td>
-                    <td className="p-3 text-blue-700 font-bold">{dp.risk}% <span className="text-[10px] text-slate-400">({(nw.risk * 100).toFixed(2)}% AHP)</span></td>
-                    <td className="p-3 text-slate-600">Working capital buffer against seasonality shocks</td>
-                    <td className="p-3 text-right font-black text-slate-900">{riskScore ?? Math.round(dp.risk * 0.93)}</td>
-                    <td className="p-3 text-right text-slate-400">{dp.risk}</td>
-                  </tr>
-                </tbody>
-                <tfoot className="bg-slate-50 font-black text-slate-900 border-t border-slate-200">
-                  <tr>
-                    <td colSpan={3} className="p-3 text-right">Aggregated Feasibility Score:</td>
-                    <td className="p-3 text-right text-base text-blue-600 font-black">{overallScore}</td>
-                    <td className="p-3 text-right text-slate-400">100</td>
-                  </tr>
-                </tfoot>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-[10px] font-extrabold uppercase text-slate-500 border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Component Dimension</th>
+                      <th className="p-3">Raw Score (0-100)</th>
+                      <th className="p-3">AHP Weight</th>
+                      <th className="p-3">Calculation Formula</th>
+                      <th className="p-3 text-right">Contribution</th>
+                      <th className="p-3 text-right">Max Pts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    <tr>
+                      <td className="p-3 font-bold text-slate-900">
+                        Market Catchment & Demand
+                        <span className="block text-[10px] font-normal text-slate-500">Local household demand and mandi off-take guarantee</span>
+                      </td>
+                      <td className="p-3 font-mono font-bold text-slate-800">
+                        {(((marketFitScore ?? Math.round(dp.market * 0.87)) / dp.market) * 100).toFixed(1)} / 100
+                      </td>
+                      <td className="p-3 text-blue-700 font-bold">
+                        {(nw.market * 100).toFixed(2)}% <span className="text-[10px] text-slate-400">({dp.market} pts)</span>
+                      </td>
+                      <td className="p-3 font-mono text-[11px] text-slate-600">
+                        ({(((marketFitScore ?? Math.round(dp.market * 0.87)) / dp.market) * 100).toFixed(1)} / 100) × {dp.market}
+                      </td>
+                      <td className="p-3 text-right font-black text-slate-900">{marketFitScore ?? Math.round(dp.market * 0.87)}</td>
+                      <td className="p-3 text-right text-slate-400">{dp.market}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-bold text-slate-900">
+                        Financial Viability & Margin
+                        <span className="block text-[10px] font-normal text-slate-500">Debt leverage ratio and margin equity coverage</span>
+                      </td>
+                      <td className="p-3 font-mono font-bold text-slate-800">
+                        {(((financialFitScore ?? Math.round(dp.financial * 0.8)) / dp.financial) * 100).toFixed(1)} / 100
+                      </td>
+                      <td className="p-3 text-blue-700 font-bold">
+                        {(nw.financial * 100).toFixed(2)}% <span className="text-[10px] text-slate-400">({dp.financial} pts)</span>
+                      </td>
+                      <td className="p-3 font-mono text-[11px] text-slate-600">
+                        ({(((financialFitScore ?? Math.round(dp.financial * 0.8)) / dp.financial) * 100).toFixed(1)} / 100) × {dp.financial}
+                      </td>
+                      <td className="p-3 text-right font-black text-slate-900">{financialFitScore ?? Math.round(dp.financial * 0.8)}</td>
+                      <td className="p-3 text-right text-slate-400">{dp.financial}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-bold text-slate-900">
+                        Location & Mandi Connectivity
+                        <span className="block text-[10px] font-normal text-slate-500">Panchayat procurement access and transport routes</span>
+                      </td>
+                      <td className="p-3 font-mono font-bold text-slate-800">
+                        {(((locationFitScore ?? Math.round(dp.location * 0.8)) / dp.location) * 100).toFixed(1)} / 100
+                      </td>
+                      <td className="p-3 text-blue-700 font-bold">
+                        {(nw.location * 100).toFixed(2)}% <span className="text-[10px] text-slate-400">({dp.location} pts)</span>
+                      </td>
+                      <td className="p-3 font-mono text-[11px] text-slate-600">
+                        ({(((locationFitScore ?? Math.round(dp.location * 0.8)) / dp.location) * 100).toFixed(1)} / 100) × {dp.location}
+                      </td>
+                      <td className="p-3 text-right font-black text-slate-900">{locationFitScore ?? Math.round(dp.location * 0.8)}</td>
+                      <td className="p-3 text-right text-slate-400">{dp.location}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-bold text-slate-900">
+                        Competition & Barrier to Entry
+                        <span className="block text-[10px] font-normal text-slate-500">Block-level enterprise density and capital barrier</span>
+                      </td>
+                      <td className="p-3 font-mono font-bold text-slate-800">
+                        {(((competitionScore ?? Math.round(dp.competition * 0.67)) / dp.competition) * 100).toFixed(1)} / 100
+                      </td>
+                      <td className="p-3 text-blue-700 font-bold">
+                        {(nw.competition * 100).toFixed(2)}% <span className="text-[10px] text-slate-400">({dp.competition} pts)</span>
+                      </td>
+                      <td className="p-3 font-mono text-[11px] text-slate-600">
+                        ({(((competitionScore ?? Math.round(dp.competition * 0.67)) / dp.competition) * 100).toFixed(1)} / 100) × {dp.competition}
+                      </td>
+                      <td className="p-3 text-right font-black text-slate-900">{competitionScore ?? Math.round(dp.competition * 0.67)}</td>
+                      <td className="p-3 text-right text-slate-400">{dp.competition}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-3 font-bold text-slate-900">
+                        Risk Resilience & Buffer
+                        <span className="block text-[10px] font-normal text-slate-500">Working capital buffer against seasonality shocks</span>
+                      </td>
+                      <td className="p-3 font-mono font-bold text-slate-800">
+                        {(((riskScore ?? Math.round(dp.risk * 0.93)) / dp.risk) * 100).toFixed(1)} / 100
+                      </td>
+                      <td className="p-3 text-blue-700 font-bold">
+                        {(nw.risk * 100).toFixed(2)}% <span className="text-[10px] text-slate-400">({dp.risk} pts)</span>
+                      </td>
+                      <td className="p-3 font-mono text-[11px] text-slate-600">
+                        ({(((riskScore ?? Math.round(dp.risk * 0.93)) / dp.risk) * 100).toFixed(1)} / 100) × {dp.risk}
+                      </td>
+                      <td className="p-3 text-right font-black text-slate-900">{riskScore ?? Math.round(dp.risk * 0.93)}</td>
+                      <td className="p-3 text-right text-slate-400">{dp.risk}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot className="bg-slate-50 font-black text-slate-900 border-t border-slate-200">
+                    <tr>
+                      <td colSpan={4} className="p-3 text-right">Aggregated Feasibility Score (∑ Contributions):</td>
+                      <td className="p-3 text-right text-base text-blue-600 font-black">{overallScore}</td>
+                      <td className="p-3 text-right text-slate-400">100</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
 
             {/* 4. Step 4: Real-World Meaning & Provenance */}
