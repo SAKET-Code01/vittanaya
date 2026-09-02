@@ -29,6 +29,7 @@ from backend.app.schemas.industry import IndustryAnalysisRequest
 from backend.app.schemas.insights import TraceabilityMetadata
 from backend.app.schemas.ml import PredictiveMlRequest
 from backend.app.services.ahp_service import get_ahp_result
+from backend.app.services.business_feasibility_service import BusinessFeasibilityService
 from backend.app.services.cash_flow_service import MINIMUM_BUFFER_MONTHS_COVERAGE, CashFlowService
 from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.industry_service import IndustryService
@@ -469,24 +470,49 @@ class AdvisoryService:
                     key_facts.append(KeyFact(label="Scheme Status", value="No Rule Match"))
 
         elif intent == "FEASIBILITY":
-            feas_engine = FeasibilityEngine(db)
-            feas_res = feas_engine.evaluate_feasibility(
-                business_category=bus_category,
-                specific_business=specific_bus,
-                location=loc,
-                scale=scale,
-            )
-            score = feas_res.overall_opportunity_score
-            answer_text = (
-                f"Your local market feasibility score for {specific_bus} in {loc} is evaluated at {score:.0f}/100. "
-                f"Market reach is classified as '{feas_res.market_reach}' with a competitor density level of '{feas_res.competitor_level}'."
-            )
-            key_facts.append(KeyFact(label="Feasibility Score", value=f"{score:.0f} / 100"))
-            key_facts.append(KeyFact(label="Market Reach", value=feas_res.market_reach))
-            key_facts.append(KeyFact(label="Competitor Density", value=feas_res.competitor_level))
-            why_list.append(f"Feasibility model integrates local demand catchment signals for {loc}.")
-            why_list.append(f"Score components: Market Opportunity ({feas_res.opportunity}), Competition ({feas_res.competitor_level}).")
-            next_steps.append("Perform local buyer survey and lock supplier quotes before capital disbursement.")
+            if db is not None and active_business_id:
+                # Single-source-of-truth: derive AHP-weighted score from real business data
+                bfs = BusinessFeasibilityService(db)
+                bfr = bfs.compute(active_business_id)
+                score = bfr.final_score
+                answer_text = (
+                    f"Your Feasibility Score for **{bus_name}** ({specific_bus}) in {loc} "
+                    f"is **{score:.0f} / 100** (AHP-weighted across 5 dimensions). "
+                    f"Market reach: '{bfr.market_reach}'. Competitor density: '{bfr.competitor_level}'."
+                )
+                key_facts.append(KeyFact(label="Feasibility Score", value=f"{score:.0f} / 100"))
+                key_facts.append(KeyFact(label="Market Reach", value=bfr.market_reach))
+                key_facts.append(KeyFact(label="Competitor Density", value=bfr.competitor_level))
+                key_facts.append(KeyFact(label="Market Benchmark", value=f"{bfr.market_benchmark_score:.0f} / 100 (sector)"))
+                why_list.append(
+                    f"Score derived by BusinessFeasibilityService: "
+                    f"market={bfr.raw_scores.get('market', 0):.1f}, "
+                    f"financial={bfr.raw_scores.get('financial', 0):.1f}, "
+                    f"location={bfr.raw_scores.get('location', 0):.1f}, "
+                    f"competition={bfr.raw_scores.get('competition', 0):.1f}, "
+                    f"risk={bfr.raw_scores.get('risk', 0):.1f} (all on 0-100 scale)."
+                )
+                why_list.append(f"AHP CR = {bfr.ahp_cr:.6f} (< 0.10 — consistent). {bfr.ahp_source_status}.")
+                next_steps.append("Review the 'Why This Score?' modal on the Feasibility dashboard for full AHP lineage.")
+            else:
+                # Fallback: no business_id — return sector benchmark
+                feas_engine = FeasibilityEngine(db)
+                feas_res = feas_engine.evaluate_feasibility(
+                    business_category=bus_category,
+                    specific_business=specific_bus,
+                    location=loc,
+                    scale=scale,
+                )
+                score = feas_res.overall_opportunity_score
+                answer_text = (
+                    f"Your local market feasibility score for {specific_bus} in {loc} is evaluated at "
+                    f"{score:.0f}/100 (NABARD PLP sector reference). Market reach: '{feas_res.market_reach}'. "
+                    f"For your personalised AHP-weighted score, please open your business profile."
+                )
+                key_facts.append(KeyFact(label="Feasibility Score", value=f"{score:.0f} / 100"))
+                key_facts.append(KeyFact(label="Market Reach", value=feas_res.market_reach))
+                why_list.append("Sector benchmark from NABARD Odisha PLP district data.")
+                next_steps.append("Perform local buyer survey and lock supplier quotes before capital disbursement.")
 
 
         elif intent == "RISK":
@@ -563,42 +589,63 @@ class AdvisoryService:
             next_steps.append("Track monthly receivables and payables in the Cash Flow section to optimize cash runways.")
 
         elif intent == "EXPLANATION":
-            # Fetch live AHP weights from the single source of truth (never hardcoded)
-            ahp = get_ahp_result()
-            dp = ahp.dashboard_points  # e.g. {"market": 30, "financial": 25, ...}
-            nw = ahp.normalized_weights  # e.g. {"market": 0.3024, ...}
+            if db is not None and active_business_id:
+                # Single-source-of-truth: derive AHP-weighted score from real business data
+                bfs = BusinessFeasibilityService(db)
+                bfr = bfs.compute(active_business_id)
+                score_val = bfr.final_score
+                dp = bfr.ahp_dashboard_points
+                nw = bfr.ahp_normalized_weights
 
-            feas_engine = FeasibilityEngine(db)
-            feas_res = feas_engine.evaluate_feasibility(bus_category, specific_bus, loc)
-            score_val = feas_res.overall_opportunity_score
+                # Build per-criterion breakdown from real data
+                breakdown_lines = []
+                for t in bfr.criteria_traces:
+                    breakdown_lines.append(
+                        f"  • **{t['label']}** ({dp[t['criterion']]} pts / {nw[t['criterion']]:.2%} AHP weight): "
+                        f"Raw = {t['raw_score']:.1f}/100 → Contribution = {t['contribution']:.2f} pts"
+                    )
 
-            answer_text = (
-                f"Your Feasibility Score of **{score_val:.0f}/100** for {specific_bus} in {loc} "
-                f"is derived from the VITTANAYA AHP Multi-Dimensional Scoring Framework "
-                f"(5 experts, 10 pairwise comparisons, Dataset B — illustrative worked example):\n\n"
-                f"1. **Market Catchment & Demand ({dp['market']}% / {nw['market']:.2%} AHP weight)**: {feas_res.opportunity}\n"
-                f"2. **Financial Viability & Margin ({dp['financial']}% / {nw['financial']:.2%} AHP weight)**: "
-                f"Margin equity evaluated against indicative project cost of Rs.{proj_cost:,.0f}.\n"
-                f"3. **Location & Mandi Connectivity ({dp['location']}% / {nw['location']:.2%} AHP weight)**: "
-                f"Procurement routes and mandi connectivity in {loc}.\n"
-                f"4. **Competition & Barrier to Entry ({dp['competition']}% / {nw['competition']:.2%} AHP weight)**: "
-                f"{feas_res.competitor_level}.\n"
-                f"5. **Risk Resilience & Buffer ({dp['risk']}% / {nw['risk']:.2%} AHP weight)**: "
-                f"Working capital buffer against seasonality shocks.\n\n"
-                f"AHP Consistency: CR = {ahp.cr:.6f} (< 0.10 threshold — consistent).\n"
-                f"Dataset status: {ahp.source_status}. {ahp.source_disclaimer}"
-            )
-            key_facts.append(KeyFact(label="Overall Score", value=f"{score_val:.0f} / 100"))
-            key_facts.append(KeyFact(label="AHP Methodology", value=f"{ahp.expert_count} experts, {ahp.comparison_count} comparisons"))
-            key_facts.append(KeyFact(label="Consistency Ratio (CR)", value=f"{ahp.cr:.6f} (< 0.10 acceptable)"))
-            key_facts.append(KeyFact(label="Dataset Status", value=ahp.source_status))
-            why_list.append(
-                f"Weights derived via AHP geometric mean aggregation: "
-                f"Market {nw['market']:.2%}, Financial {nw['financial']:.2%}, "
-                f"Location {nw['location']:.2%}, Competition {nw['competition']:.2%}, Risk {nw['risk']:.2%}."
-            )
-            why_list.append(f"Primary benchmark authority: {feas_res.traceability.source_authority}.")
-            next_steps.append("Review the 'Why This Score?' modal on the Feasibility dashboard for the full AHP audit trail.")
+                answer_text = (
+                    f"Your Feasibility Score of **{score_val:.0f}/100** for {specific_bus} in {loc} "
+                    f"is derived from the VITTANAYA AHP Multi-Dimensional Scoring Framework "
+                    f"(5 experts, 10 pairwise comparisons, Dataset B — illustrative worked example):\n\n"
+                    + "\n".join(breakdown_lines)
+                    + f"\n\nAHP Consistency: CR = {bfr.ahp_cr:.6f} (< 0.10 threshold — consistent). "
+                    + f"Dataset status: {bfr.ahp_source_status}. {bfr.ahp_source_disclaimer}"
+                )
+                key_facts.append(KeyFact(label="Feasibility Score", value=f"{score_val:.0f} / 100"))
+                key_facts.append(KeyFact(label="AHP Methodology", value="5 experts, 10 comparisons"))
+                key_facts.append(KeyFact(label="Consistency Ratio (CR)", value=f"{bfr.ahp_cr:.6f} (< 0.10 acceptable)"))
+                key_facts.append(KeyFact(label="Dataset Status", value=bfr.ahp_source_status))
+                why_list.append(
+                    f"Weights from AHP geometric mean aggregation: "
+                    f"Market {nw['market']:.2%}, Financial {nw['financial']:.2%}, "
+                    f"Location {nw['location']:.2%}, Competition {nw['competition']:.2%}, Risk {nw['risk']:.2%}."
+                )
+                next_steps.append("Review the 'Why This Score?' modal on the Feasibility dashboard for the full AHP audit trail.")
+            else:
+                # Fallback: no business_id — generic AHP explanation
+                ahp = get_ahp_result()
+                dp = ahp.dashboard_points
+                nw = ahp.normalized_weights
+                feas_engine = FeasibilityEngine(db)
+                feas_res = feas_engine.evaluate_feasibility(bus_category, specific_bus, loc)
+                score_val = feas_res.overall_opportunity_score
+                answer_text = (
+                    f"Your Feasibility Score in VITTANAYA is derived using the AHP Multi-Dimensional Framework "
+                    f"(5 experts, 10 pairwise comparisons, Dataset B — illustrative):\n"
+                    f"Market ({dp['market']} pts), Financial ({dp['financial']} pts), "
+                    f"Location ({dp['location']} pts), Competition ({dp['competition']} pts), "
+                    f"Risk ({dp['risk']} pts). Sector baseline: {score_val:.0f}/100. "
+                    f"CR = {ahp.cr:.6f}. Load your business profile to see your personalised score."
+                )
+                key_facts.append(KeyFact(label="Feasibility Score", value=f"{score_val:.0f} / 100"))
+                key_facts.append(KeyFact(label="AHP Methodology", value="5 experts, 10 comparisons"))
+                key_facts.append(KeyFact(label="Consistency Ratio (CR)", value=f"{ahp.cr:.6f} (< 0.10 acceptable)"))
+                key_facts.append(KeyFact(label="Dataset Status", value=ahp.source_status))
+                why_list.append(f"Weights: Market {nw['market']:.2%}, Financial {nw['financial']:.2%}, Location {nw['location']:.2%}, Competition {nw['competition']:.2%}, Risk {nw['risk']:.2%}.")
+                why_list.append("Evaluated using local NABARD PLP district data and AHP multi-criteria weighting.")
+                next_steps.append("Open your business profile to compute your personalised AHP feasibility score.")
 
         else:
             # General Query Handling

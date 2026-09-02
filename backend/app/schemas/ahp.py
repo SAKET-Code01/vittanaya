@@ -104,3 +104,67 @@ class FeasibilityScoreCalculationResponse(BaseModel):
     ahp_cr: float
     is_consistent: bool
     criteria: List[CriterionCalculationTraceSchema]
+
+
+class RawCriterionScoreSchema(BaseModel):
+    """Per-criterion raw score with full data lineage."""
+
+    criterion: str
+    label: str
+    raw_score: float = Field(description="Raw score on 0-100 scale")
+    data_source: str = Field(description="Data origin and empirical basis")
+    derivation_formula: str = Field(description="Exact formula used to derive this score")
+
+
+class BusinessFeasibilityResponse(BaseModel):
+    """
+    Authoritative feasibility response for a persisted business.
+
+    Returned by GET /api/v1/ahp/business-feasibility/{business_id}.
+    This is the SINGLE SOURCE OF TRUTH for feasibility scores in VITTANAYA.
+    All consumers (FeasibilityPage, Insights, Advisory chatbot) must use this result.
+
+    Score derivation:
+        Business data → 5 raw criterion scores (0-100 each)
+        → AHP dashboard_points (Dataset B illustrative weights)
+        → contribution = (raw / 100) × dashboard_points  per criterion
+        → final_score = sum(contributions)
+    """
+
+    business_id: int
+    business_name: str
+    business_category: str
+    specific_business: str
+    location: str
+
+    # Five raw criterion scores with full lineage
+    raw_scores: Dict[str, float] = Field(description="Raw scores per criterion (0-100 scale)")
+    raw_score_details: List[RawCriterionScoreSchema]
+
+    # AHP methodology
+    ahp_dashboard_points: Dict[str, int]
+    ahp_normalized_weights: Dict[str, float]
+    ahp_cr: float
+    ahp_is_consistent: bool
+    ahp_source_status: str = Field(
+        description="'illustrative_dataset' until replaced by verified field survey"
+    )
+    ahp_source_disclaimer: str
+
+    # Final score and per-criterion contributions
+    criteria_traces: List[CriterionCalculationTraceSchema]
+    final_score: float = Field(description="AHP-weighted final feasibility score (0-100)")
+    score_formula: str = Field(
+        default="final_feasibility_score = sum((raw_score / 100) * dashboard_points)"
+    )
+
+    # Contextual fields for display (NOT used in AHP calculation)
+    market_benchmark_score: float = Field(
+        description=(
+            "Sector benchmark score from LocalMarketData.base_score — "
+            "contextual market opportunity indicator, NOT the AHP final score"
+        )
+    )
+    market_reach: str
+    opportunity: str
+    competitor_level: str
