@@ -68,11 +68,10 @@ class AdvisoryService:
                 repo = BusinessRepository(db)
                 biz = None
                 if payload.business_id:
-                    biz = repo.get_by_id(int(payload.business_id))
-                if not biz:
-                    user_bizs = repo.get_by_owner(1)
-                    if user_bizs:
-                        biz = user_bizs[0]
+                    try:
+                        biz = repo.get_by_id(int(payload.business_id))
+                    except (ValueError, TypeError):
+                        biz = None
                 if biz:
                     active_business_id = biz.id
                     specific_bus = biz.name
