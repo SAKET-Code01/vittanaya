@@ -488,27 +488,6 @@ class AdvisoryService:
             why_list.append(f"Score components: Market Opportunity ({feas_res.opportunity}), Competition ({feas_res.competitor_level}).")
             next_steps.append("Perform local buyer survey and lock supplier quotes before capital disbursement.")
 
-        elif intent == "EXPLANATION":
-            feas_engine = FeasibilityEngine(db)
-            feas_res = feas_engine.evaluate_feasibility(
-                business_category=bus_category,
-                specific_business=specific_bus,
-                location=loc,
-                scale=scale,
-            )
-            score = feas_res.overall_opportunity_score
-            answer_text = (
-                f"Your Feasibility Score of {score:.0f}/100 is based on four verified engine components: "
-                f"1) Local Market Opportunity ({feas_res.opportunity}); "
-                f"2) Competitor Density ({feas_res.competitor_level}); "
-                f"3) Location Catchment ({loc}); "
-                f"4) Equity Margin Capital Sufficiency (₹{margin_cap:,.0f})."
-            )
-            key_facts.append(KeyFact(label="Feasibility Score", value=f"{score:.0f} / 100"))
-            key_facts.append(KeyFact(label="Market Opportunity", value=feas_res.opportunity))
-            key_facts.append(KeyFact(label="Competition Level", value=feas_res.competitor_level))
-            why_list.append(f"Evaluated using local NABARD PLP district data for {loc}.")
-            why_list.append("Weights are anchored to empirical rural market benchmarks without subjective assumptions.")
 
         elif intent == "RISK":
             risk_engine = RiskEngine(db)
@@ -594,7 +573,7 @@ class AdvisoryService:
             score_val = feas_res.overall_opportunity_score
 
             answer_text = (
-                f"Your Feasibility & Market Opportunity Score of **{score_val:.0f}/100** for {specific_bus} in {loc} "
+                f"Your Feasibility Score of **{score_val:.0f}/100** for {specific_bus} in {loc} "
                 f"is derived from the VITTANAYA AHP Multi-Dimensional Scoring Framework "
                 f"(5 experts, 10 pairwise comparisons, Dataset B — illustrative worked example):\n\n"
                 f"1. **Market Catchment & Demand ({dp['market']}% / {nw['market']:.2%} AHP weight)**: {feas_res.opportunity}\n"
