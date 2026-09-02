@@ -24,7 +24,6 @@ from backend.app.schemas.ml import (
     PredictiveMlRequest,
     PredictiveMlResponse,
 )
-from backend.app.services.cash_flow_service import CashFlowService
 from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.industry_service import IndustryService
 
@@ -138,11 +137,27 @@ class PredictiveEngine:
         payload: PredictiveMlRequest,
         db: Optional[Session] = None,
     ) -> Dict[str, float]:
-        """Extract authoritative inputs from deterministic engines."""
+        """Extract authoritative inputs from deterministic engines and stored DB business profile."""
         proj_cost = payload.project_cost if payload.project_cost and payload.project_cost > 0 else 100000.0
         own_cap = payload.own_capital if payload.own_capital and payload.own_capital > 0 else 20000.0
         category = payload.category or "Manufacturing"
         district = payload.district or "Sundargarh"
+
+        monthly_rev = 0.0
+        monthly_exp = 0.0
+
+        if db and payload.business_id:
+            try:
+                biz_repo = BusinessRepository(db)
+                b = biz_repo.get_by_id(int(payload.business_id))
+                if b:
+                    own_cap = float(b.own_capital or own_cap)
+                    category = b.type or getattr(b, 'category', None) or b.industry or category
+                    district = b.location_district or district
+                    monthly_rev = float(b.monthly_revenue_estimate or 0.0)
+                    monthly_exp = float(b.monthly_expense_estimate or 0.0)
+            except Exception:
+                pass
 
         margin_pct = min(99.0, max(0.0, (own_cap / proj_cost) * 100.0)) if proj_cost > 0 else 20.0
 
@@ -156,18 +171,28 @@ class PredictiveEngine:
         fin_plan = FinancialPlanService.calculate_funding_structure(funding_req)
         monthly_emi = float(fin_plan.monthly_emi)
         annual_debt_service = monthly_emi * 12.0
-        estimated_annual_surplus = proj_cost * (0.35 if own_cap / proj_cost >= 0.20 else 0.12)
-        dscr = (estimated_annual_surplus / annual_debt_service) if annual_debt_service > 0 else 2.5
-        operating_margin = 25.0 if estimated_annual_surplus > 0 else 5.0
+
+        if monthly_rev > 0.0:
+            annual_surplus = max(0.0, (monthly_rev - monthly_exp) * 12.0)
+            operating_margin = min(80.0, max(-30.0, ((monthly_rev - monthly_exp) / monthly_rev) * 100.0))
+        else:
+            annual_surplus = proj_cost * (0.35 if own_cap / proj_cost >= 0.20 else 0.12)
+            operating_margin = 25.0 if annual_surplus > 0 else 5.0
+
+        dscr = (annual_surplus / annual_debt_service) if annual_debt_service > 0 else 2.5
 
         # 2. Deterministic Cash Flow Engine
+        from backend.app.services.cash_flow_service import CashFlowService
         cf_req = CashFlowForecastRequest(
+            business_id=payload.business_id,
             project_cost=proj_cost,
             margin_pct=margin_pct,
             interest_rate_annual=payload.interest_rate_pct,
             tenure_years=int(payload.tenure_years),
+            monthly_revenue_estimate=monthly_rev if monthly_rev > 0 else None,
+            monthly_expense_estimate=monthly_exp if monthly_exp > 0 else None,
         )
-        cf_forecast = CashFlowService.generate_forecast(cf_req)
+        cf_forecast = CashFlowService.generate_forecast(cf_req, db=db)
         cash_buffer_months = float(cf_forecast.summary.months_of_coverage)
         working_capital_ratio = min(0.40, float(cf_forecast.summary.working_capital_required) / proj_cost) if proj_cost > 0 else 0.15
 
@@ -185,37 +210,19 @@ class PredictiveEngine:
         seasonality_idx = 2.0
         if db:
             try:
-                biz_repo = BusinessRepository(db)
-                if payload.business_id:
-                    b = biz_repo.get_by_id(payload.business_id)
-                    if b and b.location_district:
-                        district = b.location_district
-                feas_engine = FeasibilityEngine(db)
-                eval_res = feas_engine.evaluate(category, district, own_cap)
-                catchment_score = float(eval_res.overall_score)
-
-                risk_engine = RiskEngine(db)
-                risk_res = risk_engine.analyze_risks(
-                    business_category=category,
-                    specific_business=category,
-                    indicative_project_cost=proj_cost,
-                    available_margin_capital=own_cap,
-                    financing_requirement=proj_cost - own_cap,
-                    location=district,
-                )
-                if risk_res.overall_risk in ["High", "CRITICAL"]:
-                    seasonality_idx = 4.2
-                elif risk_res.overall_risk in ["Medium", "HIGH"]:
-                    seasonality_idx = 3.0
+                feas = FeasibilityEngine(db).evaluate_feasibility(category, category, district)
+                catchment_score = float(feas.overall_opportunity_score)
+                risk_res = RiskEngine(db).analyze_risks(category, category, proj_cost, own_cap, proj_cost - own_cap, district)
+                seasonality_idx = 4.0 if risk_res.seasonality_risk == "HIGH" else (2.5 if risk_res.seasonality_risk == "MEDIUM" else 1.5)
             except Exception:
                 pass
 
         return {
-            "operating_margin_pct": float(operating_margin),
-            "dscr_ratio": float(dscr),
-            "cash_buffer_months": float(cash_buffer_months),
-            "working_capital_ratio": float(working_capital_ratio),
-            "capacity_utilization_pct": float(capacity_util),
-            "catchment_score": float(catchment_score),
-            "seasonality_risk_idx": float(seasonality_idx),
+            "operating_margin_pct": round(operating_margin, 2),
+            "dscr_ratio": round(dscr, 2),
+            "cash_buffer_months": round(cash_buffer_months, 2),
+            "working_capital_ratio": round(working_capital_ratio, 2),
+            "capacity_utilization_pct": round(float(capacity_util), 2),
+            "catchment_score": round(catchment_score, 2),
+            "seasonality_risk_idx": round(seasonality_idx, 2),
         }

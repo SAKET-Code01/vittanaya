@@ -14,7 +14,6 @@ from backend.app.engines.feasibility_engine import FeasibilityEngine
 from backend.app.engines.risk_engine import RiskEngine
 from backend.app.engines.scheme_engine import SchemeEngine
 from backend.app.engines.whatif_engine import WhatIfEngine
-from backend.app.ml.predictive_engine import PredictiveEngine
 from backend.app.repositories.business_repository import BusinessRepository
 from backend.app.schemas.advisory import (
     BusinessContextInput,
@@ -285,6 +284,7 @@ class AdvisoryService:
                 next_steps.append("Optimize operational throughput and maintain target benchmark ratios.")
 
         elif intent == "PREDICTIVE_ML":
+            from backend.app.ml.predictive_engine import PredictiveEngine
             ml_req = PredictiveMlRequest(
                 business_id=active_business_id,
                 project_cost=proj_cost,
@@ -408,6 +408,7 @@ class AdvisoryService:
                     "No government scheme could be matched for this enterprise profile with verified eligibility. "
                     "Final eligibility is subject to the implementing authority."
                 )
+                key_facts.append(KeyFact(label="Scheme Status", value="No Rule Match"))
 
         elif intent == "FEASIBILITY":
             feas_engine = FeasibilityEngine(db)
