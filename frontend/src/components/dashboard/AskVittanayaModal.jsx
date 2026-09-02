@@ -18,13 +18,12 @@ export default function AskVittanayaModal({
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
-
-  const businessName = currentProfile?.businessName || currentProfile?.name || '';
-  const businessCategory = currentProfile?.category || currentProfile?.businessType || currentProfile?.type || '';
+  const businessName = currentProfile?.businessName || currentProfile?.name || currentProfile?.business_name || '';
+  const businessCategory = currentProfile?.category || currentProfile?.businessType || currentProfile?.type || currentProfile?.industry || '';
   const businessLocation = currentProfile?.location_district
     ? `${currentProfile.location_district}, ${currentProfile.location_state || 'Odisha'}`
-    : (currentProfile?.district || currentProfile?.location || '');
-  const ownCapital = Number(currentProfile?.available_margin_capital || currentProfile?.ownCapital || financialSummary?.cash_balance || 0);
+    : (currentProfile?.district || currentProfile?.location || currentProfile?.location_village || 'Odisha');
+  const ownCapital = Number(currentProfile?.available_margin_capital || currentProfile?.own_capital || currentProfile?.ownCapital || financialSummary?.cash_balance || 0);
 
   const activeReqIdRef = useRef(0);
   const lastUserTextRef = useRef('');
@@ -33,20 +32,20 @@ export default function AskVittanayaModal({
   useEffect(() => {
     activeReqIdRef.current += 1;
     setMessages([]);
-  }, [currentProfile?.id, currentProfile?.name]);
+  }, [currentProfile?.id, currentProfile?.name, currentProfile?.business_name]);
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const isProfileValid = Boolean(businessName && businessCategory);
+      const isProfileValid = Boolean(businessName || businessCategory || currentProfile?.id);
+      const welcomeMsg = isProfileValid
+        ? `Namaste! I am Ask VITTANAYA, your grounded hyper-local business advisor for **${businessName || 'your enterprise'}** in **${businessLocation}**. How can I help you today?`
+        : "Namaste! I am Ask VITTANAYA. Please select or complete an active business profile so I can provide grounded financial and scheme guidance.";
       setMessages([
         {
           id: 1,
           sender: 'ai',
-          text: isProfileValid
-            ? `Hello ${currentProfile?.user_name || 'Entrepreneur'}! I am VITTANAYA AI Advisor. Based on your business profile (${businessName} in ${businessLocation || 'Odisha'}), I am connected to real-time NABARD unit benchmarks, PMEGP/MUDRA scheme entitlement rules, and local risk calculators. What would you like to explore today?`
-            : `Hello ${currentProfile?.user_name || 'Entrepreneur'}! I am VITTANAYA AI Advisor. Please select or complete your active business profile so I can provide grounded financial structuring, scheme matching, and feasibility analysis for your enterprise.`,
+          text: welcomeMsg,
           time: 'Just now',
-          details: null,
         },
       ]);
     }
@@ -124,14 +123,14 @@ export default function AskVittanayaModal({
         message: text,
         business_id: currentProfile?.id ? String(currentProfile.id) : null,
         language: selectedLanguage,
-        business_context: (businessName || currentProfile?.id) ? {
+        business_context: (businessName || businessCategory || currentProfile?.id) ? {
           business_id: currentProfile?.id ? String(currentProfile.id) : null,
-          business_category: businessCategory || null,
-          specific_business: businessName || null,
-          location: businessLocation || null,
-          available_margin_capital: ownCapital > 0 ? ownCapital : 0,
-          social_category: currentProfile?.socialCategory || 'General',
-          area_type: currentProfile?.areaType || 'Rural',
+          business_category: businessCategory || businessName || 'Micro-Enterprise',
+          specific_business: businessName || businessCategory || 'Enterprise',
+          location: businessLocation || 'Odisha',
+          available_margin_capital: ownCapital > 0 ? ownCapital : 50000,
+          social_category: currentProfile?.socialCategory || currentProfile?.social_category || 'General',
+          area_type: currentProfile?.areaType || currentProfile?.area_type || 'Rural',
           scale: currentProfile?.scale || null,
         } : null,
         history: historyPayload,

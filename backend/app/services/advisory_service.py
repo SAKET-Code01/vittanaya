@@ -8,6 +8,7 @@ from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
+from backend.app.core.logging import logger
 from backend.app.engines.cost_engine import ProjectCostEngine
 from backend.app.engines.feasibility_engine import FeasibilityEngine
 from backend.app.engines.risk_engine import RiskEngine
@@ -69,24 +70,28 @@ class AdvisoryService:
                 if biz:
                     active_business_id = biz.id
                     specific_bus = biz.name
-                    bus_category = biz.type or biz.industry or "Micro-Enterprise"
+                    bus_category = getattr(biz, 'category', None) or biz.type or biz.industry or "Micro-Enterprise"
                     dist = biz.location_district or "Odisha"
                     st = biz.location_state or "Odisha"
                     loc = f"{dist}, {st}" if dist != st else dist
-                    margin_cap = float(biz.own_capital or 0.0)
-            except (ValueError, TypeError):
-                pass
+                    margin_cap = float(getattr(biz, 'own_capital', 0.0) or 0.0)
+                    if getattr(biz, 'social_category', None):
+                        social_cat = biz.social_category
+                    if getattr(biz, 'area_type', None):
+                        area = biz.area_type
+            except Exception as e:
+                logger.warning(f"Failed to lookup business by ID {payload.business_id}: {e}")
 
-        # If DB lookup did not yield context, check business_context payload
+        # Secondary context resolution from payload
         ctx: Optional[BusinessContextInput] = payload.business_context
-        if not specific_bus and ctx:
-            if ctx.specific_business and ctx.specific_business.strip():
+        if ctx:
+            if not specific_bus and ctx.specific_business and ctx.specific_business.strip():
                 specific_bus = ctx.specific_business.strip()
-            if ctx.business_category and ctx.business_category.strip():
+            if not bus_category and ctx.business_category and ctx.business_category.strip():
                 bus_category = ctx.business_category.strip()
-            if ctx.location and ctx.location.strip():
+            if not loc and ctx.location and ctx.location.strip():
                 loc = ctx.location.strip()
-            if ctx.available_margin_capital:
+            if margin_cap <= 0.0 and ctx.available_margin_capital:
                 margin_cap = float(ctx.available_margin_capital)
             if ctx.social_category:
                 social_cat = ctx.social_category
@@ -94,6 +99,17 @@ class AdvisoryService:
                 area = ctx.area_type
             if ctx.scale:
                 scale = ctx.scale
+
+        # Cross-fill implicit category & location defaults if specific business is specified
+        if specific_bus and not bus_category:
+            bus_category = specific_bus
+        if specific_bus and not loc:
+            loc = "Odisha"
+
+        logger.info(
+            f"Advisory Context Resolved: business_id={active_business_id}, specific_bus='{specific_bus}', "
+            f"bus_category='{bus_category}', loc='{loc}', margin_cap={margin_cap}"
+        )
 
         # Strict Context Safety Check: If no active business profile is provided, return safe UNAVAILABLE guidance
         if not specific_bus or not bus_category or not loc:

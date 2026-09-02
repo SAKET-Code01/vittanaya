@@ -22,7 +22,9 @@ from backend.app.services.seed_service import seed_all_reference_data
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan context manager: create tables & seed reference data on startup."""
     logger.info("Initializing database schema...")
+    from backend.app.core.database import auto_migrate_sqlite_schema
     Base.metadata.create_all(bind=engine)
+    auto_migrate_sqlite_schema(engine)
     logger.info("Database schema initialized successfully.")
 
     logger.info("Seeding VITTANAYA reference libraries and scheme rules...")
