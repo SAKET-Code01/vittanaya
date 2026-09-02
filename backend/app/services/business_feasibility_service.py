@@ -197,33 +197,36 @@ class BusinessFeasibilityService:
         ))
 
         # 2. Financial Criterion
-        # Source: FinancialEngine margin equity ratio (available_margin_capital / indicative_project_cost)
+        # Source: FinancialEngine margin equity ratio (available_margin_capital / project_cost)
         indicative_cost = project_cost
-        financing_req = max(0.0, indicative_cost - own_capital)
         margin_pct = (own_capital / indicative_cost * 100.0) if indicative_cost > 0 else 0.0
 
-        if indicative_cost <= 0:
-            try:
-                fin_engine = FinancialEngine(self.db)
-                fin_res = fin_engine.analyze_financial_gap(
-                    available_margin_capital=own_capital,
-                    business_category=bus_category,
-                    specific_business=specific_bus,
-                    location=location,
-                    business_id=getattr(business, "id", None),
-                )
+        fin_engine = FinancialEngine(self.db)
+        try:
+            fin_res = fin_engine.analyze_financial_gap(
+                available_margin_capital=own_capital,
+                business_category=bus_category,
+                specific_business=specific_bus,
+                location=location,
+                business_id=getattr(business, "id", None),
+            )
+            # Use official reference cost for gap/risk calculation if project_cost is 0
+            if indicative_cost <= 0:
                 indicative_cost = fin_res.indicative_project_cost
-                financing_req = fin_res.financing_requirement
                 margin_pct = fin_res.margin_pct
-            except Exception:
+            else:
+                margin_pct = (own_capital / indicative_cost) * 100.0
+            risk_eval_cost = fin_res.indicative_project_cost
+        except Exception:
+            if indicative_cost <= 0:
                 indicative_cost = max(own_capital * 4.0, 100000.0)
-                financing_req = max(0.0, indicative_cost - own_capital)
                 margin_pct = (own_capital / indicative_cost * 100.0) if indicative_cost > 0 else 25.0
+            risk_eval_cost = indicative_cost
 
         financial_raw = min(100.0, max(0.0, float(margin_pct)))
         fin_source = (
             f"FinancialEngine: margin equity {margin_pct:.2f}% "
-            f"(₹{own_capital:,.0f} own capital / ₹{indicative_cost:,.0f} indicative project cost)"
+            f"(₹{own_capital:,.0f} own capital / ₹{indicative_cost:,.0f} project cost)"
         )
         fin_derivation = f"margin_pct = ({own_capital:.0f} / {indicative_cost:.0f}) * 100 = {financial_raw:.2f}/100"
 
@@ -265,9 +268,9 @@ class BusinessFeasibilityService:
             risk_res = risk_engine.analyze_risks(
                 business_category=bus_category,
                 specific_business=specific_bus,
-                indicative_project_cost=indicative_cost,
+                indicative_project_cost=risk_eval_cost,
                 available_margin_capital=own_capital,
-                financing_requirement=financing_req,
+                financing_requirement=max(0.0, risk_eval_cost - own_capital),
                 location=location,
             )
             comp_risk_score = float(risk_res.competition_risk_score)

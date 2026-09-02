@@ -606,21 +606,28 @@ class AdvisoryService:
                     )
 
                 answer_text = (
-                    f"Your Feasibility Score of **{score_val:.0f}/100** for {specific_bus} in {loc} "
-                    f"is derived from the VITTANAYA AHP Multi-Dimensional Scoring Framework "
-                    f"(5 experts, 10 pairwise comparisons, Dataset B — illustrative worked example):\n\n"
+                    f"Your Final Feasibility Score of **{score_val:.0f}/100** for {specific_bus} in {loc} "
+                    f"is the weighted aggregation of 5 raw criterion scores.\n\n"
+                    f"AHP determines the importance weight of each feasibility dimension, while the business scoring engines "
+                    f"determine your raw score for each dimension:\n\n"
                     + "\n".join(breakdown_lines)
-                    + f"\n\nAHP Consistency: CR = {bfr.ahp_cr:.6f} (< 0.10 threshold — consistent). "
+                    + f"\n\nTotal Criterion Contributions: {bfr.criteria_traces[0]['contribution']:.2f} + {bfr.criteria_traces[1]['contribution']:.2f} + {bfr.criteria_traces[2]['contribution']:.2f} + {bfr.criteria_traces[3]['contribution']:.2f} + {bfr.criteria_traces[4]['contribution']:.2f} = **{score_val:.2f} (approx. {score_val:.0f}/100)**.\n"
+                    + f"Note: The sector Market Benchmark Score of {bfr.market_benchmark_score:.0f}/100 represents broader catchment demand and is distinct from your personalised multi-dimensional Feasibility Score of {score_val:.0f}/100.\n\n"
+                    + f"AHP Consistency: CR = {bfr.ahp_cr:.6f} (< 0.10 threshold — consistent). "
                     + f"Dataset status: {bfr.ahp_source_status}. {bfr.ahp_source_disclaimer}"
                 )
                 key_facts.append(KeyFact(label="Feasibility Score", value=f"{score_val:.0f} / 100"))
+                key_facts.append(KeyFact(label="Market Benchmark Score", value=f"{bfr.market_benchmark_score:.0f} / 100 (sector)"))
                 key_facts.append(KeyFact(label="AHP Methodology", value="5 experts, 10 comparisons"))
                 key_facts.append(KeyFact(label="Consistency Ratio (CR)", value=f"{bfr.ahp_cr:.6f} (< 0.10 acceptable)"))
                 key_facts.append(KeyFact(label="Dataset Status", value=bfr.ahp_source_status))
                 why_list.append(
-                    f"Weights from AHP geometric mean aggregation: "
+                    f"AHP weights derived via geometric mean aggregation: "
                     f"Market {nw['market']:.2%}, Financial {nw['financial']:.2%}, "
                     f"Location {nw['location']:.2%}, Competition {nw['competition']:.2%}, Risk {nw['risk']:.2%}."
+                )
+                why_list.append(
+                    "AHP determines criterion importance; backend engines evaluate business raw performance; final feasibility score is their weighted sum."
                 )
                 next_steps.append("Review the 'Why This Score?' modal on the Feasibility dashboard for the full AHP audit trail.")
             else:
