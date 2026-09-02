@@ -36,6 +36,7 @@ class Business(Base):
 
     # Capital & Social Demographic Attributes
     own_capital = Column(Numeric(12, 2), default=0.00, nullable=False)
+    project_cost = Column(Numeric(12, 2), default=0.00, nullable=False)
     existing_investment = Column(Numeric(12, 2), default=0.00, nullable=False)
     social_category = Column(String(50), nullable=True)  # e.g., 'General Category', 'OBC', 'SC', 'ST'
     area_type = Column(String(50), nullable=True)  # e.g., 'Rural Gram Panchayat', 'Semi-Urban / Peri-Urban'

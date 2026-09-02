@@ -37,6 +37,7 @@ class BusinessRepository:
             email=data.email,
             description=data.description,
             own_capital=data.own_capital or 0.00,
+            project_cost=data.project_cost or 0.00,
             existing_investment=data.existing_investment or 0.00,
             social_category=data.social_category,
             area_type=data.area_type,

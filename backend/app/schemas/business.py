@@ -22,6 +22,7 @@ class BusinessBase(BaseModel):
     email: Optional[EmailStr] = None
     description: Optional[str] = None
     own_capital: Optional[Decimal] = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
+    project_cost: Optional[Decimal] = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
     existing_investment: Optional[Decimal] = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
     social_category: Optional[str] = Field(None, max_length=50)
     area_type: Optional[str] = Field(None, max_length=50)
@@ -57,6 +58,7 @@ class BusinessUpdate(BaseModel):
     email: Optional[EmailStr] = None
     description: Optional[str] = None
     own_capital: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
+    project_cost: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
     existing_investment: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
     social_category: Optional[str] = None
     area_type: Optional[str] = None

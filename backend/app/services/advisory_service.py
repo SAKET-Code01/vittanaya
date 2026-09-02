@@ -50,7 +50,7 @@ class AdvisoryService:
         lower_msg = raw_msg.lower()
         lang = payload.language or "English"
 
-        # 1. Resolve Active Business Context (No default hardcoded 'Poultry' fallbacks)
+        # 1. Resolve Active Business Context (No default hardcoded fallbacks)
         bus_category: Optional[str] = None
         specific_bus: Optional[str] = None
         loc: Optional[str] = None
@@ -59,27 +59,36 @@ class AdvisoryService:
         area: str = "Rural"
         scale: Optional[str] = None
         active_business_id: Optional[int] = None
+        db_monthly_rev: float = 0.0
+        db_monthly_exp: float = 0.0
 
-        # Check DB by business_id if provided
-        if payload.business_id and db:
+        # Check DB by business_id if provided, or resolve active user business
+        if db:
             try:
-                biz_id_int = int(payload.business_id)
                 repo = BusinessRepository(db)
-                biz = repo.get_by_id(biz_id_int)
+                biz = None
+                if payload.business_id:
+                    biz = repo.get_by_id(int(payload.business_id))
+                if not biz:
+                    user_bizs = repo.get_by_owner(1)
+                    if user_bizs:
+                        biz = user_bizs[0]
                 if biz:
                     active_business_id = biz.id
                     specific_bus = biz.name
-                    bus_category = getattr(biz, 'category', None) or biz.type or biz.industry or "Micro-Enterprise"
+                    bus_category = getattr(biz, 'category', None) or biz.type or biz.industry
                     dist = biz.location_district or "Odisha"
                     st = biz.location_state or "Odisha"
                     loc = f"{dist}, {st}" if dist != st else dist
                     margin_cap = float(getattr(biz, 'own_capital', 0.0) or 0.0)
+                    db_monthly_rev = float(getattr(biz, 'monthly_revenue_estimate', 0.0) or 0.0)
+                    db_monthly_exp = float(getattr(biz, 'monthly_expense_estimate', 0.0) or 0.0)
                     if getattr(biz, 'social_category', None):
                         social_cat = biz.social_category
                     if getattr(biz, 'area_type', None):
                         area = biz.area_type
             except Exception as e:
-                logger.warning(f"Failed to lookup business by ID {payload.business_id}: {e}")
+                logger.warning(f"Failed to lookup business from DB: {e}")
 
         # Secondary context resolution from payload
         ctx: Optional[BusinessContextInput] = payload.business_context
@@ -99,15 +108,13 @@ class AdvisoryService:
             if ctx.scale:
                 scale = ctx.scale
 
-        # Cross-fill implicit category & location defaults if specific business is specified
+        # Cross-fill implicit category if specific business is specified
         if specific_bus and not bus_category:
             bus_category = specific_bus
-        if specific_bus and not loc:
-            loc = "Odisha"
 
         logger.info(
             f"Advisory Context Resolved: business_id={active_business_id}, specific_bus='{specific_bus}', "
-            f"bus_category='{bus_category}', loc='{loc}', margin_cap={margin_cap}"
+            f"bus_category='{bus_category}', loc='{loc}', margin_cap={margin_cap}, monthly_rev={db_monthly_rev}"
         )
 
         # Strict Context Safety Check: If no active business profile is provided, return safe UNAVAILABLE guidance
@@ -166,10 +173,19 @@ class AdvisoryService:
         next_steps: List[str] = []
         answer_text: str = ""
 
-        # Retrieve Project Cost from Deterministic Engine
-        cost_engine = ProjectCostEngine(db) if db else None
+        # Retrieve Project Cost from DB profile or ProjectCostEngine benchmark
         proj_cost = 0.0
-        if cost_engine:
+        if db and active_business_id:
+            try:
+                biz_repo = BusinessRepository(db)
+                b = biz_repo.get_by_id(active_business_id)
+                if b and getattr(b, 'project_cost', 0.0):
+                    proj_cost = float(b.project_cost)
+            except Exception:
+                pass
+
+        if proj_cost <= 0.0 and db:
+            cost_engine = ProjectCostEngine(db)
             try:
                 project_cost_res = cost_engine.get_indicative_cost(
                     business_activity=specific_bus,
@@ -179,13 +195,11 @@ class AdvisoryService:
                 proj_cost = float(project_cost_res.indicative_project_cost)
             except Exception:
                 proj_cost = 0.0
-        else:
-            proj_cost = 0.0
 
         if intent == "FINANCIAL":
             if proj_cost <= 0.0:
-                answer_text = "I don't have enough financial information to calculate that reliably. Please complete your project cost baseline first."
-                key_facts.append(KeyFact(label="Financial Status", value="Insufficient Reference Data"))
+                answer_text = "I don't have enough financial information to calculate project cost and EMI for this business. Please complete your project cost baseline first."
+                key_facts.append(KeyFact(label="Financial Status", value="Project Cost Unavailable"))
             else:
                 # Calculate Authoritative Loan Amortization Structure
                 margin_pct = (margin_cap / proj_cost * 100.0) if proj_cost > 0 else 10.0
@@ -218,49 +232,71 @@ class AdvisoryService:
                 key_facts.append(KeyFact(label="Eligible Bank Loan", value=f"₹{loan_amt:,.0f}"))
                 key_facts.append(KeyFact(label="Estimated Monthly EMI", value=f"₹{monthly_emi:,.0f}"))
 
-                why_list.append(f"Project cost reference ₹{proj_cost:,.0f} is sourced from official NABARD PLP district benchmarks for {loc}.")
+                why_list.append(f"Project cost reference ₹{proj_cost:,.0f} is sourced from active business profile / NABARD PLP district benchmarks for {loc}.")
                 why_list.append("Reducing-balance loan amortization calculated at 9.5% p.a. over 60 monthly payments.")
                 next_steps.append("Maintain proof of promoter margin deposit (FD/Bank Statement) for loan appraisal.")
 
         elif intent == "CASH_FLOW":
-            cf_req = CashFlowForecastRequest(
-                business_id=active_business_id,
-                project_cost=proj_cost if proj_cost > 0 else 500000.0,
-                available_margin_capital=margin_cap,
-                apply_seasonality=True,
-            )
-            cf_res = CashFlowService.generate_forecast(cf_req, db=db)
-            summary = cf_res.summary
-
-            answer_text = (
-                f"For your enterprise in {loc}, VITTANAYA Cash-Flow Engine projects a minimum closing cash balance of "
-                f"₹{summary.minimum_projected_cash:,.0f} over 12 months (Operating Coverage: {summary.months_of_coverage:.1f} months). "
-                f"Estimated working capital requirement is ₹{summary.working_capital_required:,.0f} with a target cash buffer of ₹{summary.minimum_recommended_buffer:,.0f}. "
-                f"Overall Liquidity Risk: {summary.liquidity_risk_level}."
-            )
-            if summary.critical_months:
-                answer_text += f" Pay close attention to liquidity pressure in {', '.join(summary.critical_months[:3])}."
-
-            key_facts.append(KeyFact(label="Min Projected Cash", value=f"₹{summary.minimum_projected_cash:,.0f}"))
-            key_facts.append(KeyFact(label="Working Capital Required", value=f"₹{summary.working_capital_required:,.0f}"))
-            key_facts.append(KeyFact(label="Recommended Buffer", value=f"₹{summary.minimum_recommended_buffer:,.0f}"))
-            key_facts.append(KeyFact(label="Liquidity Risk Level", value=summary.liquidity_risk_level))
-
-            why_list.append("12-month roll-forward calculated by CashFlowService using NABARD benchmarks & EMI debt service.")
-            why_list.append(f"Target cash buffer is set at {MINIMUM_BUFFER_MONTHS_COVERAGE}x monthly operating expenses.")
-
-            if cf_res.liquidity_flags:
-                for f in cf_res.liquidity_flags[:2]:
-                    next_steps.append(f"Month {f.affected_month}: {f.recommended_action}")
+            effective_proj_cost = proj_cost if proj_cost > 0 else (round((db_monthly_rev * 12.0) / 1.2, 2) if db_monthly_rev > 0 else 0.0)
+            if effective_proj_cost <= 0.0 and db_monthly_rev <= 0.0 and db_monthly_exp <= 0.0:
+                answer_text = "Project cost is not available for this business profile to calculate cash flow forecasts."
+                key_facts.append(KeyFact(label="Cash Flow Status", value="Project Cost Unavailable"))
             else:
-                next_steps.append("Maintain 45-day working capital buffer in liquid bank account.")
+                cf_req = CashFlowForecastRequest(
+                    business_id=active_business_id,
+                    project_cost=effective_proj_cost,
+                    available_margin_capital=margin_cap,
+                    monthly_revenue_estimate=db_monthly_rev if db_monthly_rev > 0 else None,
+                    monthly_expense_estimate=db_monthly_exp if db_monthly_exp > 0 else None,
+                    apply_seasonality=True,
+                )
+                cf_res = CashFlowService.generate_forecast(cf_req, db=db)
+                summary = cf_res.summary
+
+                answer_text = (
+                    f"For your enterprise in {loc}, VITTANAYA Cash-Flow Engine projects a minimum closing cash balance of "
+                    f"₹{summary.minimum_projected_cash:,.0f} over 12 months (Operating Coverage: {summary.months_of_coverage:.1f} months). "
+                    f"Estimated working capital requirement is ₹{summary.working_capital_required:,.0f} with a target cash buffer of ₹{summary.minimum_recommended_buffer:,.0f}. "
+                    f"Overall Liquidity Risk: {summary.liquidity_risk_level}."
+                )
+                if summary.critical_months:
+                    answer_text += f" Pay close attention to liquidity pressure in {', '.join(summary.critical_months[:3])}."
+
+                key_facts.append(KeyFact(label="Min Projected Cash", value=f"₹{summary.minimum_projected_cash:,.0f}"))
+                key_facts.append(KeyFact(label="Working Capital Required", value=f"₹{summary.working_capital_required:,.0f}"))
+                key_facts.append(KeyFact(label="Recommended Buffer", value=f"₹{summary.minimum_recommended_buffer:,.0f}"))
+                key_facts.append(KeyFact(label="Liquidity Risk Level", value=summary.liquidity_risk_level))
+
+                why_list.append("12-month roll-forward calculated by CashFlowService using saved DB revenue/expenses & EMI debt service.")
+                why_list.append(f"Target cash buffer is set at {MINIMUM_BUFFER_MONTHS_COVERAGE}x monthly operating expenses.")
+
+                if cf_res.liquidity_flags:
+                    for f in cf_res.liquidity_flags[:2]:
+                        next_steps.append(f"Month {f.affected_month}: {f.recommended_action}")
+                else:
+                    next_steps.append("Maintain 45-day working capital buffer in liquid bank account.")
 
         elif intent == "INDUSTRY":
             ind_code = IndustryService._map_category_to_code(bus_category)
+            ind_vars = {}
+            if db_monthly_rev > 0:
+                ind_vars = {
+                    "monthly_footfall": max(100.0, round(db_monthly_rev / 300.0, 0)),
+                    "average_transaction_value": 300.0,
+                    "production_capacity_units": max(100.0, round(db_monthly_rev / 200.0, 0)),
+                    "selling_price_per_unit": 200.0,
+                    "unit_cost": 120.0,
+                    "raw_material_cost_pct": 50.0,
+                    "utilization_pct": 75.0,
+                    "wastage_pct": 2.0,
+                    "gross_margin_pct": 25.0,
+                    "inventory_value": max(10000.0, db_monthly_rev * 0.5),
+                    "stock_holding_days": 30.0,
+                }
             ind_req = IndustryAnalysisRequest(
                 business_id=active_business_id,
                 industry_code=ind_code,
-                variables={},
+                variables=ind_vars,
             )
             ind_res = IndustryService.analyze(ind_req, db=db)
 
@@ -316,24 +352,24 @@ class AdvisoryService:
                 next_steps.append("Maintain current operational margins and debt-service coverage ratio.")
 
         elif intent == "WHAT_IF":
-            if proj_cost <= 0.0:
-                answer_text = "I don't have enough financial information to simulate scenarios for this business activity."
+            # Extract sales/cost changes from prompt or default to sales -15%
+            sales_change = -15.0
+            if "10%" in lower_msg:
+                sales_change = -10.0
+            elif "20%" in lower_msg:
+                sales_change = -20.0
+            elif "25%" in lower_msg:
+                sales_change = -25.0
+
+            base_sales = (db_monthly_rev * 12.0) if db_monthly_rev > 0 else (proj_cost * 1.2 if proj_cost > 0 else 0.0)
+            base_cost = (db_monthly_exp * 12.0) if db_monthly_exp > 0 else (proj_cost * 0.75 if proj_cost > 0 else 0.0)
+            base_margin = max(proj_cost * 0.1 if proj_cost > 0 else 0.0, margin_cap)
+
+            if base_sales <= 0.0:
+                answer_text = "I don't have enough saved financial revenue data to simulate what-if scenarios for this business activity."
             else:
-                # Extract sales/cost changes from prompt or default to sales -15%
-                sales_change = -15.0
-                if "10%" in lower_msg:
-                    sales_change = -10.0
-                elif "20%" in lower_msg:
-                    sales_change = -20.0
-                elif "25%" in lower_msg:
-                    sales_change = -25.0
-
-                base_sales = proj_cost * 1.2
-                base_cost = proj_cost * 0.75
-                base_margin = max(proj_cost * 0.1, margin_cap)
-
                 sim_res = WhatIfEngine().simulate(
-                    baseline_project_cost=proj_cost,
+                    baseline_project_cost=proj_cost if proj_cost > 0 else (base_sales / 1.2),
                     baseline_available_margin=base_margin,
                     baseline_sales_annual=base_sales,
                     baseline_operating_cost_annual=base_cost,
@@ -350,65 +386,70 @@ class AdvisoryService:
                     f"Net Surplus Change = ₹{diff:,.0f}. Risk Shift: {base.risk} → {sim.risk}."
                 )
 
-                cf_req = CashFlowForecastRequest(
-                    business_id=active_business_id,
-                    project_cost=proj_cost,
-                    available_margin_capital=margin_cap,
-                    stress_sales_change=sales_change,
-                    apply_seasonality=True,
-                )
-                cf_res = CashFlowService.generate_forecast(cf_req, db=db)
-                if cf_res.stress_comparison:
-                    sc = cf_res.stress_comparison
-                    answer_text += (
-                        f" 12-Month Cash Impact: Minimum closing cash drops from ₹{sc.baseline_min_cash:,.0f} to ₹{sc.stress_min_cash:,.0f} "
-                        f"(Cash Delta: ₹{sc.cash_delta:,.0f}). Liquidity Risk Shift: {sc.baseline_risk} → {sc.stress_risk}."
+                if proj_cost > 0:
+                    cf_req = CashFlowForecastRequest(
+                        business_id=active_business_id,
+                        project_cost=proj_cost,
+                        available_margin_capital=margin_cap,
+                        monthly_revenue_estimate=db_monthly_rev if db_monthly_rev > 0 else None,
+                        monthly_expense_estimate=db_monthly_exp if db_monthly_exp > 0 else None,
+                        stress_sales_change=sales_change,
+                        apply_seasonality=True,
                     )
+                    cf_res = CashFlowService.generate_forecast(cf_req, db=db)
+                    if cf_res.stress_comparison:
+                        sc = cf_res.stress_comparison
+                        answer_text += (
+                            f" 12-Month Cash Impact: Minimum closing cash drops from ₹{sc.baseline_min_cash:,.0f} to ₹{sc.stress_min_cash:,.0f} "
+                            f"(Cash Delta: ₹{sc.cash_delta:,.0f}). Liquidity Risk Shift: {sc.baseline_risk} → {sc.stress_risk}."
+                        )
 
                 key_facts.append(KeyFact(label="Baseline Annual Surplus", value=f"₹{base.surplus:,.0f}"))
                 key_facts.append(KeyFact(label="Simulated Annual Surplus", value=f"₹{sim.surplus:,.0f}"))
                 key_facts.append(KeyFact(label="Surplus Delta", value=f"₹{diff:,.0f}"))
                 key_facts.append(KeyFact(label="Simulated Risk Level", value=sim.risk))
-                if cf_res.stress_comparison:
-                    key_facts.append(KeyFact(label="Stressed Min Cash", value=f"₹{cf_res.stress_comparison.stress_min_cash:,.0f}"))
 
                 why_list.append(f"Isolated sensitivity model recalculates operating cash surplus under a {sales_change:+.0f}% revenue shock.")
                 why_list.append(f"Base operating margin: {base.operating_margin_pct:.1f}% → Simulated margin: {sim.operating_margin_pct:.1f}%.")
                 next_steps.append("Build a 3-month working capital cash buffer to absorb seasonal sales fluctuations.")
 
         elif intent == "SCHEME":
-            scheme_engine = SchemeEngine(db)
-            scheme_res = scheme_engine.match_schemes(
-                indicative_project_cost=proj_cost if proj_cost > 0 else 500000.0,
-                available_margin_capital=margin_cap,
-                business_category=bus_category,
-                specific_business=specific_bus,
-                location=loc,
-                social_category=social_cat,
-                area_type=area,
-            )
-
-            best_scheme = scheme_res.best_recommendation
-            if best_scheme:
-                answer_text = (
-                    f"Under the {best_scheme.scheme_name} ({best_scheme.scheme_code}), your enterprise appears suitable "
-                    f"for up to {best_scheme.estimated_subsidy_pct:.0f}% capital subsidy (approx. ₹{best_scheme.estimated_subsidy_amount:,.0f}). "
-                    f"Your required promoter margin is {best_scheme.required_margin_pct:.0f}% (₹{best_scheme.required_margin_capital:,.0f}), leaving an eligible bank loan "
-                    f"of ₹{best_scheme.eligible_loan_amount:,.0f}. Based on the available profile information, this scheme appears suitable. Final eligibility is subject to the implementing authority."
-                )
-                key_facts.append(KeyFact(label="Recommended Scheme", value=best_scheme.scheme_name))
-                key_facts.append(KeyFact(label="Estimated Subsidy", value=f"₹{best_scheme.estimated_subsidy_amount:,.0f} ({best_scheme.estimated_subsidy_pct:.0f}%)"))
-                key_facts.append(KeyFact(label="Eligible Bank Loan", value=f"₹{best_scheme.eligible_loan_amount:,.0f}"))
-                total_schemes = len(scheme_res.eligible_schemes) + len(scheme_res.ineligible_schemes)
-                why_list.append(f"Scheme matching evaluated against {total_schemes} active MoSJE / MSME / KVIC central and state guidelines.")
-                why_list.append(f"Rule: {best_scheme.scheme_code} provides credit-linked capital subsidy for rural micro-enterprises.")
-                next_steps.append("Submit application via KVIC PMEGP Portal or JanSamarth Portal.")
+            if proj_cost <= 0.0:
+                answer_text = "Project cost baseline is required to calculate government scheme subsidy entitlement. Please complete your business project cost intake."
+                key_facts.append(KeyFact(label="Scheme Status", value="Project Cost Required"))
             else:
-                answer_text = (
-                    "No government scheme could be matched for this enterprise profile with verified eligibility. "
-                    "Final eligibility is subject to the implementing authority."
+                scheme_engine = SchemeEngine(db)
+                scheme_res = scheme_engine.match_schemes(
+                    indicative_project_cost=proj_cost,
+                    available_margin_capital=margin_cap,
+                    business_category=bus_category,
+                    specific_business=specific_bus,
+                    location=loc,
+                    social_category=social_cat,
+                    area_type=area,
                 )
-                key_facts.append(KeyFact(label="Scheme Status", value="No Rule Match"))
+
+                best_scheme = scheme_res.best_recommendation
+                if best_scheme:
+                    answer_text = (
+                        f"Under the {best_scheme.scheme_name} ({best_scheme.scheme_code}), your enterprise appears suitable "
+                        f"for up to {best_scheme.estimated_subsidy_pct:.0f}% capital subsidy (approx. ₹{best_scheme.estimated_subsidy_amount:,.0f}). "
+                        f"Your required promoter margin is {best_scheme.required_margin_pct:.0f}% (₹{best_scheme.required_margin_capital:,.0f}), leaving an eligible bank loan "
+                        f"of ₹{best_scheme.eligible_loan_amount:,.0f}. Based on the available profile information, this scheme appears suitable. Final eligibility is subject to the implementing authority."
+                    )
+                    key_facts.append(KeyFact(label="Recommended Scheme", value=best_scheme.scheme_name))
+                    key_facts.append(KeyFact(label="Estimated Subsidy", value=f"₹{best_scheme.estimated_subsidy_amount:,.0f} ({best_scheme.estimated_subsidy_pct:.0f}%)"))
+                    key_facts.append(KeyFact(label="Eligible Bank Loan", value=f"₹{best_scheme.eligible_loan_amount:,.0f}"))
+                    total_schemes = len(scheme_res.eligible_schemes) + len(scheme_res.ineligible_schemes)
+                    why_list.append(f"Scheme matching evaluated against {total_schemes} active MoSJE / MSME / KVIC central and state guidelines.")
+                    why_list.append(f"Rule: {best_scheme.scheme_code} provides credit-linked capital subsidy for rural micro-enterprises.")
+                    next_steps.append("Submit application via KVIC PMEGP Portal or JanSamarth Portal.")
+                else:
+                    answer_text = (
+                        "No government scheme could be matched for this enterprise profile with verified eligibility. "
+                        "Final eligibility is subject to the implementing authority."
+                    )
+                    key_facts.append(KeyFact(label="Scheme Status", value="No Rule Match"))
 
         elif intent == "FEASIBILITY":
             feas_engine = FeasibilityEngine(db)
@@ -457,13 +498,13 @@ class AdvisoryService:
             risk_res = risk_engine.analyze_risks(
                 business_category=bus_category,
                 specific_business=specific_bus,
-                indicative_project_cost=proj_cost if proj_cost > 0 else 500000.0,
+                indicative_project_cost=proj_cost if proj_cost > 0 else 100000.0,
                 available_margin_capital=margin_cap,
-                financing_requirement=max(0.0, (proj_cost if proj_cost > 0 else 500000.0) - margin_cap),
+                financing_requirement=max(0.0, proj_cost - margin_cap),
                 location=loc,
             )
             answer_text = (
-                f"Your enterprise overall risk profile is classified as '{risk_res.overall_risk}' (Score: {risk_res.overall_risk_score:.0f}/100). "
+                f"For your {specific_bus} enterprise in {loc}, your overall risk profile is classified as '{risk_res.overall_risk}' (Score: {risk_res.overall_risk_score:.0f}/100). "
                 f"Key risk drivers include Financial Risk ({risk_res.financial_risk}) and Seasonality Risk ({risk_res.seasonality_risk})."
             )
             key_facts.append(KeyFact(label="Overall Risk", value=risk_res.overall_risk))

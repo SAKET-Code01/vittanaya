@@ -97,14 +97,6 @@ class IndustryService:
 
         # Determine Data Status
         data_status = "ESTIMATE"
-        if payload.business_id and db:
-            try:
-                repo = BusinessRepository(db)
-                biz = repo.get_by_id(int(payload.business_id))
-                if biz and (biz.monthly_revenue_estimate or biz.monthly_expense_estimate):
-                    data_status = "ACTUAL"
-            except Exception:
-                pass
 
         # Dispatch Sector-Specific Analytics
         if ind_code == INDUSTRY_MANUFACTURING:
@@ -119,6 +111,23 @@ class IndustryService:
             rev, exp, kpis, risks = IndustryService._analyze_services(merged_vars, data_status)
         else:  # CREATOR
             rev, exp, kpis, risks = IndustryService._analyze_creator(merged_vars, data_status)
+
+        # Sync Actual DB Financials if present
+        if payload.business_id and db:
+            try:
+                repo = BusinessRepository(db)
+                biz = repo.get_by_id(int(payload.business_id))
+                if biz:
+                    db_rev = float(biz.monthly_revenue_estimate or 0.0)
+                    db_exp = float(biz.monthly_expense_estimate or 0.0)
+                    if db_rev > 0 or db_exp > 0:
+                        data_status = "ACTUAL"
+                        if db_rev > 0:
+                            rev = db_rev
+                        if db_exp > 0:
+                            exp = db_exp
+            except Exception:
+                pass
 
         # Run Sector What-If Scenario
         scenario_res = IndustryService._run_scenario(ind_code, merged_vars, rev, exp)

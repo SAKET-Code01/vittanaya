@@ -83,9 +83,18 @@ class CashFlowService:
             except (ValueError, TypeError):
                 pass
 
-        # 2. Benchmark Lookup if revenue/expense missing
+        # 2. Benchmark Lookup & Input Normalization
         proj_cost = float(payload.project_cost or 0.0)
-        if proj_cost == 0.0 and db:
+        if proj_cost == 0.0 and biz_id and db:
+            try:
+                repo = BusinessRepository(db)
+                biz = repo.get_by_id(int(biz_id))
+                if biz and getattr(biz, 'project_cost', 0.0):
+                    proj_cost = float(biz.project_cost)
+            except Exception:
+                pass
+
+        if proj_cost == 0.0 and biz_id and db:
             try:
                 cost_res = ProjectCostEngine(db).get_indicative_cost(
                     business_activity=biz_name,
@@ -94,30 +103,40 @@ class CashFlowService:
                 )
                 proj_cost = float(cost_res.indicative_project_cost)
             except Exception:
-                proj_cost = 500000.0
-        elif proj_cost == 0.0:
-            proj_cost = 500000.0
+                proj_cost = 0.0
 
-        if monthly_rev == 0.0:
+        if monthly_rev == 0.0 and monthly_exp > 0.0:
+            monthly_rev = round(monthly_exp * 1.30, 2)
+            if data_status != "ACTUAL":
+                data_status = "ESTIMATE"
+        elif monthly_rev == 0.0 and proj_cost > 0.0:
             monthly_rev = round((proj_cost * 1.20) / 12.0, 2)
             if data_status != "ACTUAL":
                 data_status = "REFERENCE"
-        if monthly_exp == 0.0:
+
+        if monthly_exp == 0.0 and monthly_rev > 0.0:
+            monthly_exp = round(monthly_rev * 0.65, 2)
+            if data_status != "ACTUAL":
+                data_status = "ESTIMATE"
+        elif monthly_exp == 0.0 and proj_cost > 0.0:
             monthly_exp = round((proj_cost * 0.75) / 12.0, 2)
             if data_status != "ACTUAL":
                 data_status = "REFERENCE"
 
         # 3. Calculate Authoritative Loan Debt Service (EMI) from FinancialPlanService
-        margin_pct = (opening_cash_initial / proj_cost * 100.0) if proj_cost > 0 else 10.0
-        margin_pct = max(5.0, min(100.0, margin_pct))
-        funding_req = FundingStructureRequest(
-            project_cost=proj_cost,
-            margin_pct=margin_pct,
-            interest_rate_annual=payload.interest_rate_annual,
-            tenure_years=payload.tenure_years,
-        )
-        funding_res = FinancialPlanService.calculate_funding_structure(funding_req)
-        monthly_emi = float(funding_res.monthly_emi)
+        if proj_cost > 0.0:
+            margin_pct = (opening_cash_initial / proj_cost * 100.0)
+            margin_pct = max(5.0, min(100.0, margin_pct))
+            funding_req = FundingStructureRequest(
+                project_cost=proj_cost,
+                margin_pct=margin_pct,
+                interest_rate_annual=payload.interest_rate_annual,
+                tenure_years=payload.tenure_years,
+            )
+            funding_res = FinancialPlanService.calculate_funding_structure(funding_req)
+            monthly_emi = float(funding_res.monthly_emi)
+        else:
+            monthly_emi = 0.0
 
         # 4. Fetch DB Receivables & Payables Totals if DB Session Available
         receivables_by_month, payables_by_month, receivables_total, payables_total = (

@@ -138,9 +138,9 @@ class PredictiveEngine:
         db: Optional[Session] = None,
     ) -> Dict[str, float]:
         """Extract authoritative inputs from deterministic engines and stored DB business profile."""
-        proj_cost = payload.project_cost if payload.project_cost and payload.project_cost > 0 else 100000.0
-        own_cap = payload.own_capital if payload.own_capital and payload.own_capital > 0 else 20000.0
-        category = payload.category or "Manufacturing"
+        proj_cost = float(payload.project_cost or 0.0)
+        own_cap = float(payload.own_capital or 0.0)
+        category = payload.category or "Retail"
         district = payload.district or "Sundargarh"
 
         monthly_rev = 0.0
@@ -152,6 +152,7 @@ class PredictiveEngine:
                 b = biz_repo.get_by_id(int(payload.business_id))
                 if b:
                     own_cap = float(b.own_capital or own_cap)
+                    proj_cost = float(getattr(b, 'project_cost', 0.0) or proj_cost)
                     category = b.type or getattr(b, 'category', None) or b.industry or category
                     district = b.location_district or district
                     monthly_rev = float(b.monthly_revenue_estimate or 0.0)
@@ -159,11 +160,19 @@ class PredictiveEngine:
             except Exception:
                 pass
 
+        if proj_cost <= 0.0 and db:
+            try:
+                from backend.app.engines.cost_engine import ProjectCostEngine
+                c_res = ProjectCostEngine(db).get_indicative_cost(category, category, district)
+                proj_cost = float(c_res.indicative_project_cost)
+            except Exception:
+                proj_cost = 100000.0
+
         margin_pct = min(99.0, max(0.0, (own_cap / proj_cost) * 100.0)) if proj_cost > 0 else 20.0
 
         # 1. Deterministic Financial Plan Engine
         funding_req = FundingStructureRequest(
-            project_cost=proj_cost,
+            project_cost=max(10000.0, proj_cost),
             margin_pct=margin_pct,
             interest_rate_annual=payload.interest_rate_pct,
             tenure_years=int(payload.tenure_years),
@@ -186,7 +195,7 @@ class PredictiveEngine:
         cf_req = CashFlowForecastRequest(
             business_id=payload.business_id,
             project_cost=proj_cost,
-            margin_pct=margin_pct,
+            available_margin_capital=own_cap,
             interest_rate_annual=payload.interest_rate_pct,
             tenure_years=int(payload.tenure_years),
             monthly_revenue_estimate=monthly_rev if monthly_rev > 0 else None,
@@ -197,10 +206,19 @@ class PredictiveEngine:
         working_capital_ratio = min(0.40, float(cf_forecast.summary.working_capital_required) / proj_cost) if proj_cost > 0 else 0.15
 
         # 3. Deterministic Industry Engine
+        ind_vars = {}
+        if monthly_rev > 0:
+            ind_vars = {
+                "monthly_footfall": max(100.0, round(monthly_rev / 300.0, 0)),
+                "average_transaction_value": 300.0,
+                "production_capacity_units": max(100.0, round(monthly_rev / 200.0, 0)),
+                "selling_price_per_unit": 200.0,
+                "unit_cost": 120.0,
+            }
         ind_req = IndustryAnalysisRequest(
             business_id=payload.business_id,
             industry_code=IndustryService._map_category_to_code(category),
-            variables={},
+            variables=ind_vars,
         )
         ind_analysis = IndustryService.analyze(ind_req, db=db)
         capacity_util = next((k.value for k in ind_analysis.kpis if "utilization" in k.key.lower() or "ratio" in k.key.lower()), 70.0)

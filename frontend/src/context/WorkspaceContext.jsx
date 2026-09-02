@@ -343,6 +343,42 @@ export function WorkspaceProvider({ children }) {
     );
   };
 
+  // Fetch active business profile from SQLite backend DB on mount
+  useEffect(() => {
+    fetch('/api/v1/business')
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then((data) => {
+        if (data && data.id) {
+          setCurrentProfile((prev) => ({
+            ...prev,
+            id: data.id,
+            businessName: data.name,
+            name: data.name,
+            business_name: data.name,
+            category: data.category || data.type,
+            type: data.type,
+            industry: data.industry,
+            location_district: data.location_district,
+            location_state: data.location_state,
+            own_capital: Number(data.own_capital || 0),
+            project_cost: Number(data.project_cost || 0),
+            monthly_revenue: Number(data.monthly_revenue_estimate || 0),
+            monthly_expenses: Number(data.monthly_expense_estimate || 0),
+            social_category: data.social_category,
+            area_type: data.area_type,
+            phone: data.phone,
+            email: data.email,
+            description: data.description,
+            onboardingCompletedAt: prev?.onboardingCompletedAt || new Date().toISOString(),
+          }));
+        }
+      })
+      .catch((err) => console.warn('Could not fetch active business profile from backend DB', err));
+  }, []);
+
   // Action: Update user or business identity fields
   const updateProfile = (fields = {}) => {
     setCurrentProfile((prev) => {
@@ -361,6 +397,7 @@ export function WorkspaceProvider({ children }) {
         industry: updated.industry || updated.category || 'General',
         location_district: updated.location || updated.location_district,
         own_capital: typeof updated.own_capital === 'number' ? updated.own_capital : (parseFloat(updated.own_capital) || 0.0),
+        project_cost: typeof updated.project_cost === 'number' ? updated.project_cost : (parseFloat(updated.project_cost) || 0.0),
         monthly_revenue_estimate: typeof updated.monthly_revenue === 'number' ? updated.monthly_revenue : (parseFloat(updated.monthly_revenue) || 0.0),
         monthly_expense_estimate: typeof updated.monthly_expenses === 'number' ? updated.monthly_expenses : (parseFloat(updated.monthly_expenses) || 0.0),
         phone: updated.phone,

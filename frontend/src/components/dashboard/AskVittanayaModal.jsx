@@ -126,12 +126,14 @@ export default function AskVittanayaModal({
         language: selectedLanguage,
         business_context: (businessName || businessCategory || currentProfile?.id) ? {
           business_id: currentProfile?.id ? String(currentProfile.id) : null,
-          business_category: businessCategory || businessName || 'Micro-Enterprise',
-          specific_business: businessName || businessCategory || 'Enterprise',
-          location: businessLocation || 'Odisha',
-          available_margin_capital: ownCapital > 0 ? ownCapital : 50000,
-          social_category: currentProfile?.socialCategory || currentProfile?.social_category || 'General',
-          area_type: currentProfile?.areaType || currentProfile?.area_type || 'Rural',
+          business_category: businessCategory || businessName || null,
+          specific_business: businessName || businessCategory || null,
+          location: (currentProfile?.location_district || currentProfile?.district || currentProfile?.location)
+            ? `${currentProfile.location_district || currentProfile.district || currentProfile.location}${currentProfile.location_state ? `, ${currentProfile.location_state}` : ''}`
+            : null,
+          available_margin_capital: ownCapital > 0 ? ownCapital : 0,
+          social_category: currentProfile?.socialCategory || currentProfile?.social_category || null,
+          area_type: currentProfile?.areaType || currentProfile?.area_type || null,
           scale: currentProfile?.scale || null,
         } : null,
         history: historyPayload,
