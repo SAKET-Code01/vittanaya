@@ -18,12 +18,12 @@ class BusinessContextInput(BaseModel):
     """Structured business profile context for grounded advisory context building."""
 
     business_id: Optional[str] = Field(None, description="Optional DB business UUID")
-    business_category: str = Field("Micro-Enterprise", description="Industry sector or category")
-    specific_business: str = Field("Micro-Enterprise", description="Specific business activity/name")
-    location: str = Field("Odisha", description="District and state location")
-    available_margin_capital: float = Field(50000.0, ge=0, description="Own capital available in INR")
-    social_category: str = Field("General", description="Social category: General / SC / ST / OBC / Women")
-    area_type: str = Field("Rural", description="Area classification: Rural / Urban")
+    business_category: Optional[str] = Field(None, description="Industry sector or category")
+    specific_business: Optional[str] = Field(None, description="Specific business activity/name")
+    location: Optional[str] = Field(None, description="District and state location")
+    available_margin_capital: Optional[float] = Field(None, ge=0, description="Own capital available in INR")
+    social_category: Optional[str] = Field("General", description="Social category: General / SC / ST / OBC / Women")
+    area_type: Optional[str] = Field("Rural", description="Area classification: Rural / Urban")
     scale: Optional[str] = Field(None, description="Scale or bird/unit capacity specification")
 
 

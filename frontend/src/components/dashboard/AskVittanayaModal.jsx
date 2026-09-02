@@ -26,8 +26,12 @@ export default function AskVittanayaModal({
     : (currentProfile?.district || currentProfile?.location || '');
   const ownCapital = Number(currentProfile?.available_margin_capital || currentProfile?.ownCapital || financialSummary?.cash_balance || 0);
 
+  const activeReqIdRef = useRef(0);
+  const lastUserTextRef = useRef('');
+
   // Reset conversation context whenever the active business profile changes
   useEffect(() => {
+    activeReqIdRef.current += 1;
     setMessages([]);
   }, [currentProfile?.id, currentProfile?.name]);
 
@@ -84,25 +88,31 @@ export default function AskVittanayaModal({
 
   if (!isOpen) return null;
 
-  const handleSendMessage = async (textToSend) => {
+  const handleSendMessage = async (textToSend, isRetry = false) => {
     const text = textToSend || inputText;
     if (!text.trim() || isTyping) return;
 
-    const userMsg = {
-      id: Date.now(),
-      sender: 'user',
-      text: text,
-      time: 'Just now',
-    };
+    lastUserTextRef.current = text;
+    const reqId = ++activeReqIdRef.current;
+    const reqProfileId = currentProfile?.id;
 
-    setMessages((prev) => [...prev, userMsg]);
-    if (!textToSend) setInputText('');
+    if (!isRetry) {
+      const userMsg = {
+        id: Date.now(),
+        sender: 'user',
+        text: text,
+        time: 'Just now',
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      if (!textToSend) setInputText('');
+    }
+
     setIsTyping(true);
 
     try {
       // Build past history turns for context
       const historyPayload = messages
-        .filter((m) => m.text)
+        .filter((m) => m.text && !m.error)
         .slice(-4)
         .map((m) => ({
           sender: m.sender,
@@ -116,16 +126,19 @@ export default function AskVittanayaModal({
         language: selectedLanguage,
         business_context: (businessName || currentProfile?.id) ? {
           business_id: currentProfile?.id ? String(currentProfile.id) : null,
-          business_category: businessCategory || 'General',
-          specific_business: businessName || 'Enterprise',
-          location: businessLocation || 'Odisha',
-          available_margin_capital: ownCapital,
+          business_category: businessCategory || null,
+          specific_business: businessName || null,
+          location: businessLocation || null,
+          available_margin_capital: ownCapital > 0 ? ownCapital : 0,
           social_category: currentProfile?.socialCategory || 'General',
           area_type: currentProfile?.areaType || 'Rural',
           scale: currentProfile?.scale || null,
         } : null,
         history: historyPayload,
       });
+
+      // Ignore stale response if user switched business or sent a newer request
+      if (reqId !== activeReqIdRef.current || currentProfile?.id !== reqProfileId) return;
 
       const resData = response.data || response;
 
@@ -136,32 +149,38 @@ export default function AskVittanayaModal({
           sender: 'ai',
           text: resData.answer || 'Response generated from verified VITTANAYA engines.',
           time: 'Just now',
+          error: resData.data_status === 'UNAVAILABLE',
           details: resData,
         },
       ]);
     } catch (err) {
       console.warn('AI Advisor error notice:', err);
-      // Retain message history and display clear error message with deterministic fallback
+      if (reqId !== activeReqIdRef.current || currentProfile?.id !== reqProfileId) return;
+
+      const unavailableText = "VITTANAYA's advisory service is temporarily unavailable. Your saved business data is safe. Please retry.";
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
           sender: 'ai',
-          text: `[Service Notice: ${err.message || 'Backend advisory server unreachable'}]\n\nOffline Guidance: For ${businessName} in ${businessLocation}, your available capital of ₹${ownCapital.toLocaleString('en-IN')} qualifies for credit-linked subsidies under PMEGP and MUDRA.`,
+          text: unavailableText,
           time: 'Just now',
           error: true,
           details: {
-            answer: `Based on your profile for ${businessName} in ${businessLocation}, your available capital of ₹${ownCapital.toLocaleString('en-IN')} qualifies for government credit-linked subsidies under PMEGP and MUDRA.`,
-            confidence: 'MEDIUM',
-            data_status: 'OFFLINE_DETERMINISTIC',
-            why_this_result: ['Service connection temporary fallback', 'NABARD benchmark rules applied'],
-            recommended_next_steps: ['Check Feasibility Module', 'Explore Scheme entitlement'],
-            sources: [{ name: 'VITTANAYA Offline Rules Engine', authority: 'VITTANAYA System' }],
+            answer: unavailableText,
+            confidence: 'NONE',
+            data_status: 'UNAVAILABLE',
+            why_this_result: ['Service request timed out or backend unreachable.'],
+            recommended_next_steps: ['Check backend service status', 'Click Retry button'],
+            sources: [],
+            key_facts: [],
           },
         },
       ]);
     } finally {
-      setIsTyping(false);
+      if (reqId === activeReqIdRef.current) {
+        setIsTyping(false);
+      }
     }
   };
 
@@ -238,64 +257,84 @@ export default function AskVittanayaModal({
                 <div
                   className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed shadow-xs ${
                     isAi
-                      ? 'bg-white border border-[#E8E2D5] text-[#1A211D]'
+                      ? msg.error || details?.data_status === 'UNAVAILABLE'
+                        ? 'bg-amber-50/90 border border-amber-200 text-amber-900'
+                        : 'bg-white border border-[#E8E2D5] text-[#1A211D]'
                       : 'bg-[#102A1E] text-white'
                   }`}
                 >
                   {/* Primary Text Answer */}
                   <p>{msg.text}</p>
 
-                  {/* Grounded Key Facts Pills */}
-                  {isAi && details?.key_facts && details.key_facts.length > 0 && (
-                    <div className="mt-3 pt-2 border-t border-[#E8E2D5]/60 flex flex-wrap gap-1.5">
-                      {details.key_facts.map((kf, idx) => (
-                        <div
-                          key={idx}
-                          className="px-2.5 py-1 rounded-xl bg-[#F4EFE6] border border-[#E8E2D5] text-[11px] font-semibold text-[#0F291E]"
-                        >
-                          <span className="text-[#607267] font-normal">{kf.label}: </span>
-                          <span>{kf.value}</span>
+                  {/* Unavailable / Error Retry Box */}
+                  {isAi && (msg.error || details?.data_status === 'UNAVAILABLE') ? (
+                    <div className="mt-3 pt-2.5 border-t border-amber-200/80 flex items-center justify-between gap-2">
+                      <span className="px-2 py-0.5 text-[9px] font-black rounded bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wider">
+                        UNAVAILABLE
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleSendMessage(lastUserTextRef.current || 'What is my EMI?', true)}
+                        className="px-3 py-1 rounded-xl bg-[#0F291E] hover:bg-[#1C4332] text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-1 cursor-pointer"
+                      >
+                        <span>🔄 Retry</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Grounded Key Facts Pills */}
+                      {isAi && details?.key_facts && details.key_facts.length > 0 && (
+                        <div className="mt-3 pt-2 border-t border-[#E8E2D5]/60 flex flex-wrap gap-1.5">
+                          {details.key_facts.map((kf, idx) => (
+                            <div
+                              key={idx}
+                              className="px-2.5 py-1 rounded-xl bg-[#F4EFE6] border border-[#E8E2D5] text-[11px] font-semibold text-[#0F291E]"
+                            >
+                              <span className="text-[#607267] font-normal">{kf.label}: </span>
+                              <span>{kf.value}</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Why / Explainability Points */}
-                  {isAi && details?.why_this_result && details.why_this_result.length > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-[#E8E2D5]/60">
-                      <span className="text-[10px] font-bold text-[#607267] uppercase tracking-wider block mb-1">
-                        Why this result:
-                      </span>
-                      <ul className="list-disc list-inside space-y-0.5 text-[11px] text-[#425047]">
-                        {details.why_this_result.slice(0, 2).map((item, idx) => (
-                          <li key={idx}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Recommended Next Steps */}
-                  {isAi && details?.recommended_next_steps && details.recommended_next_steps.length > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-[#E8E2D5]/60">
-                      <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block mb-1">
-                        Recommended Next Step:
-                      </span>
-                      <p className="text-[11px] font-medium text-emerald-900">
-                        {details.recommended_next_steps[0]}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Source & Confidence Footer */}
-                  {isAi && details && (
-                    <div className="mt-2.5 pt-1.5 border-t border-[#E8E2D5]/40 flex items-center justify-between text-[9px] text-[#819388]">
-                      <span className="font-semibold text-emerald-700">
-                        ✓ {details.data_status || 'VERIFIED'}
-                      </span>
-                      {details.sources && details.sources[0] && (
-                        <span>Source: {details.sources[0].authority}</span>
                       )}
-                    </div>
+
+                      {/* Why / Explainability Points */}
+                      {isAi && details?.why_this_result && details.why_this_result.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-[#E8E2D5]/60">
+                          <span className="text-[10px] font-bold text-[#607267] uppercase tracking-wider block mb-1">
+                            Why this result:
+                          </span>
+                          <ul className="list-disc list-inside space-y-0.5 text-[11px] text-[#425047]">
+                            {details.why_this_result.slice(0, 2).map((item, idx) => (
+                              <li key={idx}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Recommended Next Steps */}
+                      {isAi && details?.recommended_next_steps && details.recommended_next_steps.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-[#E8E2D5]/60">
+                          <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block mb-1">
+                            Recommended Next Step:
+                          </span>
+                          <p className="text-[11px] font-medium text-emerald-900">
+                            {details.recommended_next_steps[0]}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Source & Confidence Footer */}
+                      {isAi && details && (
+                        <div className="mt-2.5 pt-1.5 border-t border-[#E8E2D5]/40 flex items-center justify-between text-[9px] text-[#819388]">
+                          <span className="font-semibold text-emerald-700">
+                            ✓ {details.data_status || 'VERIFIED'}
+                          </span>
+                          {details.sources && details.sources[0] && (
+                            <span>Source: {details.sources[0].authority}</span>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
 
                   <span

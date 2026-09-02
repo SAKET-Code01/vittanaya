@@ -95,20 +95,19 @@ class AdvisoryService:
             if ctx.scale:
                 scale = ctx.scale
 
-        # Strict Context Safety Check: If no active business profile is provided, return safe guidance
+        # Strict Context Safety Check: If no active business profile is provided, return safe UNAVAILABLE guidance
         if not specific_bus or not bus_category or not loc:
             return ChatResponse(
                 answer=(
-                    "To provide accurate advisory grounding for your enterprise, please complete or select "
-                    "a business profile in your VITTANAYA workspace first. This enables tailored scheme matching, "
-                    "financial structuring, and location risk assessment."
+                    "I need your active business profile before I can provide a reliable answer. "
+                    "Please complete or select a business profile in your VITTANAYA workspace first."
                 ),
                 intent="GENERAL",
                 confidence="HIGH",
                 key_facts=[
                     KeyFact(
                         label="Profile Status",
-                        value="Incomplete / Missing Active Business Context",
+                        value="Incomplete / Missing Active Business Profile",
                     )
                 ],
                 why_this_result=[
@@ -120,7 +119,7 @@ class AdvisoryService:
                     "Select Active Enterprise Workspace",
                 ],
                 sources=[],
-                data_status="MISSING_CONTEXT",
+                data_status="UNAVAILABLE",
                 language=lang,
                 traceability=TraceabilityMetadata(
                     input={"message": payload.message},
@@ -164,9 +163,9 @@ class AdvisoryService:
                 )
                 proj_cost = float(project_cost_res.indicative_project_cost)
             except Exception:
-                proj_cost = 500000.0 if (specific_bus or bus_category) else 0.0
+                proj_cost = 0.0
         else:
-            proj_cost = 500000.0 if (specific_bus or bus_category) else 0.0
+            proj_cost = 0.0
 
         if intent == "FINANCIAL":
             if proj_cost <= 0.0:
@@ -390,10 +389,9 @@ class AdvisoryService:
                 next_steps.append("Submit application via KVIC PMEGP Portal or JanSamarth Portal.")
             else:
                 answer_text = (
-                    "Based on available profile information, credit-linked schemes like PMEGP and MUDRA apply for rural enterprises. "
+                    "No government scheme could be matched for this enterprise profile with verified eligibility. "
                     "Final eligibility is subject to the implementing authority."
                 )
-                key_facts.append(KeyFact(label="General Subsidy", value="PMEGP 25% - 35%"))
 
         elif intent == "FEASIBILITY":
             feas_engine = FeasibilityEngine(db)
