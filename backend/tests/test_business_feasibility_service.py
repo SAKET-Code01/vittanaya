@@ -145,7 +145,87 @@ def test_business_data_change_reactivity(db, client):
         db.commit()
 
 
+def test_business_project_cost_reactivity(db):
+    """Mutating Business.project_cost recalculates the financial raw score and final score."""
+    svc = BusinessFeasibilityService(db)
+    b = db.query(Business).filter(Business.id == 7).first()
+    orig_cost = b.project_cost
+
+    try:
+        # Baseline: own_capital=100k, project_cost=1000k -> margin_pct=10.0% -> fin_raw=10.0 -> fin_contrib=2.50
+        base_res = svc.compute(7)
+        assert base_res.raw_scores["financial"] == 10.0
+        assert base_res.final_score == 52.03
+        assert base_res.business_project_cost == 1000000.0
+        assert base_res.reference_project_cost == 1178000.0
+
+        # Change project_cost from 1,000,000 to 500,000 (margin becomes 100k/500k = 20%)
+        b.project_cost = 500000.00
+        db.commit()
+
+        new_res = svc.compute(7)
+        assert new_res.raw_scores["financial"] == 20.0  # 20% margin
+        # Contribution rises from 2.50 to 5.00 (+2.50 pts) -> final score becomes 54.53
+        assert round(new_res.final_score, 2) == 54.53
+        assert new_res.business_project_cost == 500000.0
+
+    finally:
+        b.project_cost = orig_cost
+        db.commit()
+
+
+def test_reference_cost_does_not_override_authoritative_business_project_cost(db):
+    """Changing indicative/reference cost does NOT change the business feasibility score."""
+    from backend.app.models.insights import ProjectCostReference
+
+    svc = BusinessFeasibilityService(db)
+    b = db.query(Business).filter(Business.id == 7).first()
+    assert float(b.project_cost or 0) == 1000000.0
+
+    # Find the reference cost record matching dairy
+    ref = db.query(ProjectCostReference).filter(
+        ProjectCostReference.category.ilike("%dairy%")
+    ).first()
+
+    if ref:
+        orig_min = ref.reference_cost_min_inr
+        orig_max = ref.reference_cost_max_inr
+        try:
+            # Baseline with authoritative Business.project_cost = 1,000,000
+            base_res = svc.compute(7)
+            assert base_res.raw_scores["financial"] == 10.0
+            assert base_res.final_score == 52.03
+
+            # Artificially modify the indicative reference cost table
+            ref.reference_cost_min_inr = 5000000.00
+            ref.reference_cost_max_inr = 6000000.00
+            db.commit()
+
+            # Business 7 feasibility MUST NOT change because Business.project_cost is authoritative
+            new_res = svc.compute(7)
+            assert new_res.raw_scores["financial"] == 10.0
+            assert new_res.final_score == 52.03
+
+        finally:
+            ref.reference_cost_min_inr = orig_min
+            ref.reference_cost_max_inr = orig_max
+            db.commit()
+
+
+def test_business_7_location_leakage_prevented(client):
+    """Business 7 (Sundargarh) market reach must NOT contain Puri pilgrim belt text."""
+    res = client.get("/api/v1/ahp/business-feasibility/7")
+    assert res.status_code == 200
+    data = res.json()
+
+    assert "Puri" not in data["market_reach"]
+    assert "pilgrim" not in data["market_reach"].lower()
+    assert "Sector Benchmark" in data["market_reach"]
+    assert "Sundargarh" in data["market_reach"]
+
+
 def test_nonexistent_business_id_404(client):
     """Requesting feasibility for non-existent business returns 404."""
     res = client.get("/api/v1/ahp/business-feasibility/99999")
     assert res.status_code == 404
+

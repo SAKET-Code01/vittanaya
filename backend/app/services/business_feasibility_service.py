@@ -20,10 +20,11 @@ market_raw:
     Final fallback: 50.0 (neutral, unknown market).
 
 financial_raw:
-    Source: FinancialEngine.analyze_financial_gap() → margin_pct.
-    Formula: min(100, (margin_pct / 25) * 100)
-    Rationale: 25% margin considered ideal (100 pts); linear below; capped at 100.
-    Example: margin 9.63% → (9.63 / 25) * 100 = 38.52 pts.
+    Source: margin equity ratio (own_capital / business_project_cost * 100).
+    Authoritative source: Business.project_cost (persisted business profile input).
+    Reference fallback: FinancialEngine indicative reference cost if project_cost is 0 (unconfigured).
+    Formula: min(100.0, max(0.0, margin_pct))
+    Example: own_capital=₹100,000 / project_cost=₹1,000,000 → margin=10.0% → raw=10.00 pts.
 
 location_raw:
     Source: LocalMarketData record matched for business's district.
@@ -95,6 +96,10 @@ class BusinessFeasibilityResult:
     final_score: float
     score_formula: str = "final_feasibility_score = sum((raw_score / 100) * dashboard_points)"
 
+    # Project cost provenance (Authoritative vs Reference)
+    business_project_cost: float = 0.0      # authoritative persisted value from Business.project_cost
+    reference_project_cost: float = 0.0     # indicative planning estimate from sector benchmark
+
     # Contextual data (NOT used in AHP calculation — for display only)
     market_benchmark_score: float = 0.0     # raw LocalMarketData.base_score (sector benchmark)
     market_reach: str = ""
@@ -164,7 +169,7 @@ class BusinessFeasibilityService:
         location = f"{location_district}, {location_state}".strip(", ")
 
         own_capital = float(business.own_capital or 0.0)
-        project_cost = float(business.project_cost or 0.0)
+        business_project_cost = float(business.project_cost or 0.0)
 
         # ---- Step 1: Match LocalMarketData record and FeasibilityEngine context ----
         market_record = self._match_market_record(bus_category, specific_bus, location_district)
@@ -206,9 +211,9 @@ class BusinessFeasibilityService:
         ))
 
         # 2. Financial Criterion
-        # Source: FinancialEngine margin equity ratio (available_margin_capital / project_cost)
-        indicative_cost = project_cost
-        margin_pct = (own_capital / indicative_cost * 100.0) if indicative_cost > 0 else 0.0
+        # Authoritative source: Business.project_cost (persisted business/project input).
+        # Reference fallback: FinancialEngine indicative reference cost (used ONLY when business.project_cost is 0).
+        reference_project_cost = 0.0
 
         fin_engine = FinancialEngine(self.db)
         try:
@@ -219,25 +224,32 @@ class BusinessFeasibilityService:
                 location=location,
                 business_id=getattr(business, "id", None),
             )
-            # Use official reference cost for gap/risk calculation if project_cost is 0
-            if indicative_cost <= 0:
-                indicative_cost = fin_res.indicative_project_cost
-                margin_pct = fin_res.margin_pct
-            else:
-                margin_pct = (own_capital / indicative_cost) * 100.0
-            risk_eval_cost = fin_res.indicative_project_cost
+            reference_project_cost = float(fin_res.indicative_project_cost)
         except Exception:
-            if indicative_cost <= 0:
-                indicative_cost = max(own_capital * 4.0, 100000.0)
-                margin_pct = (own_capital / indicative_cost * 100.0) if indicative_cost > 0 else 25.0
-            risk_eval_cost = indicative_cost
+            reference_project_cost = max(own_capital * 4.0, 100000.0)
+
+        if business_project_cost > 0:
+            margin_pct = (own_capital / business_project_cost) * 100.0
+            fin_source = (
+                f"FinancialEngine: margin equity {margin_pct:.2f}% "
+                f"(₹{own_capital:,.0f} own capital / ₹{business_project_cost:,.0f} business project cost)"
+            )
+            fin_derivation = (
+                f"margin_pct = ({own_capital:.0f} / {business_project_cost:.0f}) * 100 "
+                f"= {margin_pct:.2f}/100"
+            )
+        else:
+            margin_pct = (own_capital / reference_project_cost * 100.0) if reference_project_cost > 0 else 0.0
+            fin_source = (
+                f"FinancialEngine: margin equity {margin_pct:.2f}% "
+                f"(₹{own_capital:,.0f} own capital / ₹{reference_project_cost:,.0f} reference project cost [profile unconfigured])"
+            )
+            fin_derivation = (
+                f"margin_pct = ({own_capital:.0f} / {reference_project_cost:.0f}) * 100 "
+                f"= {margin_pct:.2f}/100 [reference fallback]"
+            )
 
         financial_raw = min(100.0, max(0.0, float(margin_pct)))
-        fin_source = (
-            f"FinancialEngine: margin equity {margin_pct:.2f}% "
-            f"(₹{own_capital:,.0f} own capital / ₹{indicative_cost:,.0f} project cost)"
-        )
-        fin_derivation = f"margin_pct = ({own_capital:.0f} / {indicative_cost:.0f}) * 100 = {financial_raw:.2f}/100"
 
         raw_details.append(RawCriterionScore(
             criterion="financial",
@@ -273,6 +285,7 @@ class BusinessFeasibilityService:
         # 4. Competition Criterion
         # Source: RiskEngine.analyze_risks() competition_risk_score (inverted: resilience = 100 - risk_score)
         risk_engine = RiskEngine(self.db)
+        risk_eval_cost = reference_project_cost if reference_project_cost > 0 else (business_project_cost if business_project_cost > 0 else 100000.0)
         try:
             risk_res = risk_engine.analyze_risks(
                 business_category=bus_category,
@@ -367,6 +380,8 @@ class BusinessFeasibilityService:
             criteria_traces=score_output["criteria"],
             final_score=score_output["final_score"],
             score_formula=score_output["score_formula"],
+            business_project_cost=business_project_cost,
+            reference_project_cost=reference_project_cost,
             market_benchmark_score=float(market_record.base_score) if market_record else 0.0,
             market_reach=resolved_market_reach,
             opportunity=resolved_opportunity,
@@ -456,41 +471,7 @@ class BusinessFeasibilityService:
 
         return None
 
-    def _compute_financial_raw(
-        self,
-        bus_category: str,
-        specific_bus: str,
-        location: str,
-        own_capital: float,
-        project_cost: float,
-        business_id: Optional[int],
-    ) -> tuple[float, str, str]:
-        """Derive financial raw score (0-100) from margin equity ratio."""
-        if project_cost <= 0:
-            # No project cost recorded — use FinancialEngine to look up reference cost
-            fin_engine = FinancialEngine(self.db)
-            fin_res = fin_engine.analyze_financial_gap(
-                available_margin_capital=own_capital,
-                business_category=bus_category,
-                specific_business=specific_bus,
-                location=location,
-                business_id=business_id,
-            )
-            indicative_cost = fin_res.indicative_project_cost
-            margin_pct = fin_res.margin_pct
-        else:
-            indicative_cost = project_cost
-            margin_pct = (own_capital / indicative_cost) * 100.0 if indicative_cost > 0 else 0.0
 
-        # Formula: min(100, (margin_pct / 25) * 100)
-        # 25% margin → 100 pts (ideal), linear below, capped at 100
-        financial_raw = min(100.0, round((margin_pct / 25.0) * 100.0, 2))
-        source = (
-            f"FinancialEngine: margin equity {margin_pct:.2f}% "
-            f"on ₹{indicative_cost:,.0f} project cost"
-        )
-        derivation = f"min(100, ({margin_pct:.2f} / 25) × 100) = {financial_raw}"
-        return financial_raw, source, derivation
 
     def _fallback_market_score(
         self, bus_category: str, specific_bus: str

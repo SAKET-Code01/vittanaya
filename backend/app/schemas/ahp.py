@@ -159,6 +159,14 @@ class BusinessFeasibilityResponse(BaseModel):
     )
 
     # Contextual fields for display (NOT used in AHP calculation)
+    business_project_cost: float = Field(
+        default=0.0,
+        description="Authoritative persisted project cost from business profile",
+    )
+    reference_project_cost: float = Field(
+        default=0.0,
+        description="Indicative reference project cost from sector benchmark",
+    )
     market_benchmark_score: float = Field(
         description=(
             "Sector benchmark score from LocalMarketData.base_score — "

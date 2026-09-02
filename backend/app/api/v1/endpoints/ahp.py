@@ -181,6 +181,8 @@ def get_business_feasibility(
         criteria_traces=criteria_traces,
         final_score=result.final_score,
         score_formula=result.score_formula,
+        business_project_cost=result.business_project_cost,
+        reference_project_cost=result.reference_project_cost,
         market_benchmark_score=result.market_benchmark_score,
         market_reach=result.market_reach,
         opportunity=result.opportunity,
