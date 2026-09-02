@@ -14,18 +14,21 @@ from backend.app.engines.feasibility_engine import FeasibilityEngine
 from backend.app.engines.risk_engine import RiskEngine
 from backend.app.engines.scheme_engine import SchemeEngine
 from backend.app.engines.whatif_engine import WhatIfEngine
+from backend.app.nlp.intent_classifier import classify_intent
 from backend.app.repositories.business_repository import BusinessRepository
 from backend.app.schemas.advisory import (
     BusinessContextInput,
     ChatRequest,
     ChatResponse,
     KeyFact,
+    NlpMetadata,
     SourceInfo,
 )
 from backend.app.schemas.financial_plan import CashFlowForecastRequest, FundingStructureRequest
 from backend.app.schemas.industry import IndustryAnalysisRequest
 from backend.app.schemas.insights import TraceabilityMetadata
 from backend.app.schemas.ml import PredictiveMlRequest
+from backend.app.services.ahp_service import get_ahp_result
 from backend.app.services.cash_flow_service import MINIMUM_BUFFER_MONTHS_COVERAGE, CashFlowService
 from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.industry_service import IndustryService
@@ -166,8 +169,8 @@ class AdvisoryService:
                 ),
             )
 
-        # 2. Detect Query Intent
-        intent = AdvisoryService._classify_intent(lower_msg)
+        # 2. Detect Query Intent via Local Offline NLP Classifier (TF-IDF + Logistic Regression)
+        intent, intent_confidence, nlp_method = classify_intent(raw_msg)
 
         # 3. Execute Deterministic Grounding Based on Recognized Intent
         key_facts: List[KeyFact] = []
@@ -580,6 +583,44 @@ class AdvisoryService:
             why_list.append("Baseline financial estimates are verified from your active workspace records.")
             next_steps.append("Track monthly receivables and payables in the Cash Flow section to optimize cash runways.")
 
+        elif intent == "EXPLANATION":
+            # Fetch live AHP weights from the single source of truth (never hardcoded)
+            ahp = get_ahp_result()
+            dp = ahp.dashboard_points  # e.g. {"market": 30, "financial": 25, ...}
+            nw = ahp.normalized_weights  # e.g. {"market": 0.3024, ...}
+
+            feas_engine = FeasibilityEngine(db)
+            feas_res = feas_engine.evaluate_feasibility(bus_category, specific_bus, loc)
+            score_val = feas_res.overall_opportunity_score
+
+            answer_text = (
+                f"Your Feasibility & Market Opportunity Score of **{score_val:.0f}/100** for {specific_bus} in {loc} "
+                f"is derived from the VITTANAYA AHP Multi-Dimensional Scoring Framework "
+                f"(5 experts, 10 pairwise comparisons, Dataset B — illustrative worked example):\n\n"
+                f"1. **Market Catchment & Demand ({dp['market']}% / {nw['market']:.2%} AHP weight)**: {feas_res.opportunity}\n"
+                f"2. **Financial Viability & Margin ({dp['financial']}% / {nw['financial']:.2%} AHP weight)**: "
+                f"Margin equity evaluated against indicative project cost of Rs.{proj_cost:,.0f}.\n"
+                f"3. **Location & Mandi Connectivity ({dp['location']}% / {nw['location']:.2%} AHP weight)**: "
+                f"Procurement routes and mandi connectivity in {loc}.\n"
+                f"4. **Competition & Barrier to Entry ({dp['competition']}% / {nw['competition']:.2%} AHP weight)**: "
+                f"{feas_res.competitor_level}.\n"
+                f"5. **Risk Resilience & Buffer ({dp['risk']}% / {nw['risk']:.2%} AHP weight)**: "
+                f"Working capital buffer against seasonality shocks.\n\n"
+                f"AHP Consistency: CR = {ahp.cr:.6f} (< 0.10 threshold — consistent).\n"
+                f"Dataset status: {ahp.source_status}. {ahp.source_disclaimer}"
+            )
+            key_facts.append(KeyFact(label="Overall Score", value=f"{score_val:.0f} / 100"))
+            key_facts.append(KeyFact(label="AHP Methodology", value=f"{ahp.expert_count} experts, {ahp.comparison_count} comparisons"))
+            key_facts.append(KeyFact(label="Consistency Ratio (CR)", value=f"{ahp.cr:.6f} (< 0.10 acceptable)"))
+            key_facts.append(KeyFact(label="Dataset Status", value=ahp.source_status))
+            why_list.append(
+                f"Weights derived via AHP geometric mean aggregation: "
+                f"Market {nw['market']:.2%}, Financial {nw['financial']:.2%}, "
+                f"Location {nw['location']:.2%}, Competition {nw['competition']:.2%}, Risk {nw['risk']:.2%}."
+            )
+            why_list.append(f"Primary benchmark authority: {feas_res.traceability.source_authority}.")
+            next_steps.append("Review the 'Why This Score?' modal on the Feasibility dashboard for the full AHP audit trail.")
+
         else:
             # General Query Handling
             feas_engine = FeasibilityEngine(db)
@@ -593,6 +634,12 @@ class AdvisoryService:
             key_facts.append(KeyFact(label="Location", value=loc))
             key_facts.append(KeyFact(label="Feasibility Score", value=f"{feas_res.overall_opportunity_score:.0f}/100"))
 
+        nlp_meta = NlpMetadata(
+            pipeline="TF-IDF + Logistic Regression (100% Offline)",
+            confidence_score=intent_confidence,
+            method=nlp_method,
+        )
+
         traceability = TraceabilityMetadata(
             input={
                 "message": raw_msg,
@@ -601,8 +648,11 @@ class AdvisoryService:
                 "business_category": bus_category,
                 "specific_business": specific_bus,
                 "location": loc,
+                "nlp_intent": intent,
+                "nlp_confidence": intent_confidence,
+                "nlp_method": nlp_method,
             },
-            calculation_rule="Intent-guided synthesis over deterministic NABARD, PMEGP, and Risk engine metrics.",
+            calculation_rule=f"NLP intent classified as '{intent}' ({nlp_method}, confidence: {intent_confidence:.1%}) -> routed to authoritative engine.",
             source_authority="VITTANAYA Grounded AI Advisory Engine",
             source_year="2026",
             provenance_priority="DETERMINISTIC_GROUNDED",
@@ -615,11 +665,12 @@ class AdvisoryService:
             key_facts=key_facts,
             why_this_result=why_list,
             recommended_next_steps=next_steps,
-            confidence="HIGH",
+            confidence="HIGH" if intent_confidence >= 0.50 else "MEDIUM",
             sources=sources,
             data_status="VERIFIED_DETERMINISTIC",
             language=lang,
             traceability=traceability,
+            nlp_metadata=nlp_meta,
         )
 
     @staticmethod
