@@ -54,9 +54,12 @@ def create_business(
 
 
 @router.patch("", response_model=BusinessResponse, summary="Update Business Profile")
+@router.put("", response_model=BusinessResponse, summary="Update Business Profile")
+@router.patch("/{business_id}", response_model=BusinessResponse, summary="Update Business Profile by Path ID")
+@router.put("/{business_id}", response_model=BusinessResponse, summary="Update Business Profile by Path ID")
 def update_business(
     data: BusinessUpdate,
-    business_id: Optional[int] = Query(None, description="ID of the business to update"),
+    business_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ) -> BusinessResponse:
     """Update editable fields on a rural micro-enterprise profile."""

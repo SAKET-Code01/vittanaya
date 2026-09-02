@@ -351,6 +351,29 @@ export function WorkspaceProvider({ children }) {
         ...fields,
         lastUpdatedAt: getFormattedNow(),
       };
+
+      // Persist profile edits to backend SQLite DB
+      const targetId = updated.id || 1;
+      const apiPayload = {
+        name: updated.name || updated.business_name,
+        type: updated.businessType || updated.type || updated.category || 'Retail',
+        category: updated.category,
+        industry: updated.industry || updated.category || 'General',
+        location_district: updated.location || updated.location_district,
+        own_capital: typeof updated.own_capital === 'number' ? updated.own_capital : (parseFloat(updated.own_capital) || 0.0),
+        monthly_revenue_estimate: typeof updated.monthly_revenue === 'number' ? updated.monthly_revenue : (parseFloat(updated.monthly_revenue) || 0.0),
+        monthly_expense_estimate: typeof updated.monthly_expenses === 'number' ? updated.monthly_expenses : (parseFloat(updated.monthly_expenses) || 0.0),
+        phone: updated.phone,
+        email: updated.email,
+        description: updated.description,
+      };
+
+      fetch(`/api/v1/business/${targetId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiPayload),
+      }).catch((err) => console.warn('Failed to sync business profile to backend DB', err));
+
       return updated;
     });
   };

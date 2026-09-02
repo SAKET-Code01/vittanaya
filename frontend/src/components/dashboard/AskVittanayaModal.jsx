@@ -18,6 +18,7 @@ export default function AskVittanayaModal({
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const businessName = currentProfile?.businessName || currentProfile?.name || currentProfile?.business_name || '';
   const businessCategory = currentProfile?.category || currentProfile?.businessType || currentProfile?.type || currentProfile?.industry || '';
   const businessLocation = currentProfile?.location_district
@@ -71,8 +72,8 @@ export default function AskVittanayaModal({
   ];
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
 
@@ -233,7 +234,7 @@ export default function AskVittanayaModal({
         </div>
 
         {/* Message History */}
-        <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[50vh] bg-[#FAF7F2]">
+        <div ref={messagesContainerRef} className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[50vh] bg-[#FAF7F2]">
           {initialPrompt && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800 font-medium">
               Feasibility context loaded. You can send the suggested question or edit it first.
