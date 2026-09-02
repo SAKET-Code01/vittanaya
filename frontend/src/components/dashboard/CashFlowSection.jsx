@@ -32,8 +32,22 @@ export default function CashFlowSection({
   const [errorMessage, setErrorMessage] = useState('');
 
   const bizId = currentProfile?.id || null;
-  const ownCapital = Number(currentProfile?.ownCapital || 50000);
-  const bizName = currentProfile?.name || currentProfile?.businessName || 'Micro-Enterprise';
+  const ownCapital = currentProfile?.own_capital !== undefined && currentProfile?.own_capital !== null
+    ? Number(currentProfile.own_capital)
+    : currentProfile?.ownCapital !== undefined && currentProfile?.ownCapital !== null
+      ? Number(currentProfile.ownCapital)
+      : null;
+  const monthlyRevenue = currentProfile?.monthly_revenue_estimate !== undefined && currentProfile?.monthly_revenue_estimate !== null
+    ? Number(currentProfile.monthly_revenue_estimate)
+    : currentProfile?.monthlyRevenue !== undefined && currentProfile?.monthlyRevenue !== null
+      ? Number(currentProfile.monthlyRevenue)
+      : null;
+  const monthlyExpense = currentProfile?.monthly_expense_estimate !== undefined && currentProfile?.monthly_expense_estimate !== null
+    ? Number(currentProfile.monthly_expense_estimate)
+    : currentProfile?.monthlyExpense !== undefined && currentProfile?.monthlyExpense !== null
+      ? Number(currentProfile.monthlyExpense)
+      : null;
+  const bizName = currentProfile?.name || currentProfile?.businessName || 'Your Enterprise';
 
   const fetchCashFlow = useCallback(
     async (stressChange = 0.0) => {
@@ -44,8 +58,10 @@ export default function CashFlowSection({
       try {
         const payload = {
           business_id: bizId ? Number(bizId) : null,
-          project_cost: Number(projectCost) || 1000000,
-          available_margin_capital: ownCapital,
+          project_cost: projectCost !== null && projectCost !== undefined && Number(projectCost) > 0 ? Number(projectCost) : undefined,
+          available_margin_capital: ownCapital !== null ? ownCapital : undefined,
+          monthly_revenue_estimate: monthlyRevenue !== null ? monthlyRevenue : undefined,
+          monthly_expense_estimate: monthlyExpense !== null ? monthlyExpense : undefined,
           interest_rate_annual: Number(interestRate) || 8.5,
           tenure_years: Number(loanTenureYears) || 7,
           stress_sales_change: stressChange,
@@ -135,70 +151,75 @@ export default function CashFlowSection({
 
       {/* ERROR STATE */}
       {isError && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 flex items-center justify-between">
-          <span>{errorMessage}</span>
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center space-y-3">
+          <p className="text-sm font-bold text-rose-900">Cash-flow forecast unavailable</p>
+          <p className="text-xs text-rose-700 max-w-md mx-auto">
+            {errorMessage || 'Unable to compute cash-flow forecast. Please verify that the backend is running and try again.'}
+          </p>
           <button
             type="button"
             onClick={() => fetchCashFlow(isStressActive ? -15.0 : 0.0)}
-            className="px-3 py-1 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 transition cursor-pointer"
+            className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700 transition cursor-pointer"
           >
-            Retry
+            Retry Calculation
           </button>
         </div>
       )}
 
-      {/* SUMMARY KPI CARDS */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-2xl border border-[#E2EEE8] bg-[#F7FBF9] p-3.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
-            Min Projected Cash
-          </p>
-          <p className="mt-1 text-lg font-black text-[#0F172A]">
-            {isLoading ? '...' : formatINR(summary?.minimum_projected_cash)}
-          </p>
-          <p className="mt-0.5 text-[10px] text-[#94A3B8]">Lowest 12m closing balance</p>
-        </div>
-
-        <div className="rounded-2xl border border-[#E2EEE8] bg-[#F7FBF9] p-3.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
-            Working Capital Req.
-          </p>
-          <p className="mt-1 text-lg font-black text-[#2563EB]">
-            {isLoading ? '...' : formatINR(summary?.working_capital_required)}
-          </p>
-          <p className="mt-0.5 text-[10px] text-[#94A3B8]">1.5m ops + net dues</p>
-        </div>
-
-        <div className="rounded-2xl border border-[#E2EEE8] bg-[#F7FBF9] p-3.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
-            Target Cash Buffer
-          </p>
-          <p className="mt-1 text-lg font-black text-[#0F172A]">
-            {isLoading ? '...' : formatINR(summary?.minimum_recommended_buffer)}
-          </p>
-          <p className="mt-0.5 text-[10px] text-[#94A3B8]">45-day operating safety</p>
-        </div>
-
-        <div className="rounded-2xl border border-[#E2EEE8] bg-[#F7FBF9] p-3.5 flex flex-col justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
-            Liquidity Risk
-          </p>
-          <div className="mt-1 flex items-center gap-2">
-            <span
-              className={`inline-block px-2.5 py-1 text-xs font-black rounded-full border ${riskBadgeColor(
-                summary?.liquidity_risk_level
-              )}`}
-            >
-              {isLoading ? '...' : summary?.liquidity_risk_level || 'LOW'}
-            </span>
+      {/* SUMMARY KPI CARDS - Only rendered when data exists or loading */}
+      {(cashFlowData || isLoading) && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-2xl border border-[#E2EEE8] bg-[#F7FBF9] p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+              Min Projected Cash
+            </p>
+            <p className="mt-1 text-lg font-black text-[#0F172A]">
+              {isLoading ? '...' : (summary?.minimum_projected_cash !== undefined ? formatINR(summary.minimum_projected_cash) : 'Not available')}
+            </p>
+            <p className="mt-0.5 text-[10px] text-[#94A3B8]">Lowest 12m closing balance</p>
           </div>
-          <p className="mt-0.5 text-[10px] text-[#94A3B8]">
-            {summary?.critical_months?.length > 0
-              ? `Alert in: ${summary.critical_months.join(', ')}`
-              : 'No shortage projected'}
-          </p>
+
+          <div className="rounded-2xl border border-[#E2EEE8] bg-[#F7FBF9] p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+              Working Capital Req.
+            </p>
+            <p className="mt-1 text-lg font-black text-[#2563EB]">
+              {isLoading ? '...' : (summary?.working_capital_required !== undefined ? formatINR(summary.working_capital_required) : 'Not available')}
+            </p>
+            <p className="mt-0.5 text-[10px] text-[#94A3B8]">1.5m ops + net dues</p>
+          </div>
+
+          <div className="rounded-2xl border border-[#E2EEE8] bg-[#F7FBF9] p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+              Target Cash Buffer
+            </p>
+            <p className="mt-1 text-lg font-black text-[#0F172A]">
+              {isLoading ? '...' : (summary?.minimum_recommended_buffer !== undefined ? formatINR(summary.minimum_recommended_buffer) : 'Not available')}
+            </p>
+            <p className="mt-0.5 text-[10px] text-[#94A3B8]">45-day operating safety</p>
+          </div>
+
+          <div className="rounded-2xl border border-[#E2EEE8] bg-[#F7FBF9] p-3.5 flex flex-col justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#64748B]">
+              Liquidity Risk
+            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <span
+                className={`inline-block px-2.5 py-1 text-xs font-black rounded-full border ${riskBadgeColor(
+                  summary?.liquidity_risk_level
+                )}`}
+              >
+                {isLoading ? '...' : summary?.liquidity_risk_level || 'Unavailable'}
+              </span>
+            </div>
+            <p className="mt-0.5 text-[10px] text-[#94A3B8]">
+              {summary?.critical_months?.length > 0
+                ? `Alert in: ${summary.critical_months.join(', ')}`
+                : (summary ? 'No shortage projected' : 'Calculation unavailable')}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* STRESS COMPARISON ALERT */}
       {isStressActive && stressComp && (
@@ -218,49 +239,51 @@ export default function CashFlowSection({
         </div>
       )}
 
-      {/* RECHARTS COMPOSED CHART */}
-      <div className="mt-4">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-extrabold text-[#0F172A]">
-            12-Month Roll-Forward (Revenue vs. Expenses vs. Debt Service vs. Closing Cash)
-          </span>
-          <span className="text-[10px] font-bold text-[#64748B]">
-            Data Integrity: <strong className="text-blue-600">{cashFlowData?.data_status || 'ESTIMATE'}</strong>
-          </span>
-        </div>
+      {/* RECHARTS COMPOSED CHART - Only rendered when data exists or loading */}
+      {(cashFlowData || isLoading) && (
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-extrabold text-[#0F172A]">
+              12-Month Roll-Forward (Revenue vs. Expenses vs. Debt Service vs. Closing Cash)
+            </span>
+            <span className="text-[10px] font-bold text-[#64748B]">
+              Data Integrity: <strong className="text-blue-600">{cashFlowData?.data_status || 'ESTIMATE'}</strong>
+            </span>
+          </div>
 
-        {isLoading ? (
-          <div className="h-64 flex items-center justify-center text-xs text-[#94A3B8] font-bold">
-            Calculating Cash-Flow Roll-Forward...
-          </div>
-        ) : (
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={months} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#64748B' }} />
-                <YAxis tick={{ fontSize: 10, fill: '#64748B' }} tickFormatter={(v) => `₹${v / 1000}k`} />
-                <Tooltip
-                  formatter={(val, name) => [formatINR(val), name]}
-                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '11px' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                <Bar dataKey="revenue" name="Monthly Revenue" fill="#10B981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="operating_expenses" name="Operating Expenses" fill="#F59E0B" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="debt_service" name="Debt Service (EMI)" fill="#EF4444" radius={[4, 4, 0, 0]} />
-                <Line type="monotone" dataKey="closing_cash" name="Closing Cash" stroke="#2563EB" strokeWidth={3} dot={{ r: 3 }} />
-                {summary?.minimum_recommended_buffer > 0 && (
-                  <ReferenceLine
-                    y={summary.minimum_recommended_buffer}
-                    stroke="#D97706"
-                    strokeDasharray="3 3"
-                    label={{ value: 'Target Buffer', fill: '#D97706', fontSize: 10, position: 'insideTopRight' }}
+          {isLoading ? (
+            <div className="h-64 flex items-center justify-center text-xs text-[#94A3B8] font-bold">
+              Calculating Cash-Flow Roll-Forward...
+            </div>
+          ) : (
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={months} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#64748B' }} />
+                  <YAxis tick={{ fontSize: 10, fill: '#64748B' }} tickFormatter={(v) => `₹${v / 1000}k`} />
+                  <Tooltip
+                    formatter={(val, name) => [formatINR(val), name]}
+                    contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '11px' }}
                   />
-                )}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </div>
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                  <Bar dataKey="revenue" name="Monthly Revenue" fill="#10B981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="operating_expenses" name="Operating Expenses" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="debt_service" name="Debt Service (EMI)" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="closing_cash" name="Closing Cash" stroke="#2563EB" strokeWidth={3} dot={{ r: 3 }} />
+                  {summary?.minimum_recommended_buffer > 0 && (
+                    <ReferenceLine
+                      y={summary.minimum_recommended_buffer}
+                      stroke="#D97706"
+                      strokeDasharray="3 3"
+                      label={{ value: 'Target Buffer', fill: '#D97706', fontSize: 10, position: 'insideTopRight' }}
+                    />
+                  )}
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* LIQUIDITY RISK FLAGS & RECOMMENDATIONS */}
       {flags.length > 0 && (

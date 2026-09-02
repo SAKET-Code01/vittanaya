@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BUSINESS_TYPES, AVAILABLE_OPERATIONS } from '../../data/adaptiveWorkspaceConfig';
 import { formatINR } from '../../mocks/dashboardMockData';
 
@@ -14,12 +14,39 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
     email: profile?.email || '',
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  // Re-sync form when profile updates (fixes stale state on async load)
+  useEffect(() => {
+    if (isOpen && profile) {
+      setFormData({
+        user_name: profile.user_name || profile.owner_name || '',
+        user_role: profile.user_role || 'Business Owner',
+        phone: profile.phone || '',
+        email: profile.email || '',
+      });
+      setSaveError(null);
+    }
+  }, [isOpen, profile]);
+
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
-    onClose();
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      await onSave({
+        ...formData,
+        owner_name: formData.user_name,
+      });
+      onClose();
+    } catch (err) {
+      setSaveError('Could not save your changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const userInitials = formData.user_name
@@ -111,19 +138,25 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
             </div>
           </div>
 
+          {saveError && (
+            <p className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{saveError}</p>
+          )}
+
           <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors"
+              disabled={isSaving}
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer"
+              disabled={isSaving}
+              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer disabled:opacity-60"
             >
-              Save Profile Changes
+              {isSaving ? 'Saving…' : 'Save Profile Changes'}
             </button>
           </div>
         </form>
@@ -134,34 +167,69 @@ export function EditProfileModal({ isOpen, onClose, profile, onSave }) {
 
 /**
  * 2. EDIT BUSINESS IDENTITY & DETAILS MODAL
- * Allows editing Business Name, Location, GST, PAN, Udyam, Structure, Description, etc.
+ * Canonical field names match backend DB columns exactly.
+ * useEffect re-syncs on every open to prevent stale state.
+ * handleSubmit awaits server confirmation before closing.
  */
 export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
   const [formData, setFormData] = useState({
-    name: profile?.name || '',
-    user_name: profile?.user_name || '',
-    phone: profile?.phone || '',
-    email: profile?.email || '',
-    location: profile?.location || '',
-    gstin: profile?.gstin || '',
-    pan: profile?.pan || '',
-    regNo: profile?.regNo || '',
-    legalStructure: profile?.legalStructure || 'Proprietorship',
-    taxRegime: profile?.taxRegime || 'Regular',
-    financialYear: profile?.financialYear || 'April - March',
-    currency: profile?.currency || 'INR (₹)',
-    registeredAddress: profile?.registeredAddress || '',
-    description: profile?.description || '',
-    notes: profile?.notes || '',
-    businessSince: profile?.businessSince || '2022',
+    name: '',
+    owner_name: '',
+    phone: '',
+    email: '',
+    location_district: '',
+    gstin: '',
+    pan: '',
+    udyam_registration: '',
+    legal_structure: 'Proprietorship',
+    tax_regime: 'Regular',
+    financial_year: 'April - March',
+    registered_address: '',
+    description: '',
+    notes: '',
+    business_since: '',
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  // Re-sync from profile every time the modal opens (fixes stale state bug)
+  useEffect(() => {
+    if (isOpen && profile) {
+      setFormData({
+        name: profile.name || '',
+        owner_name: profile.owner_name || profile.user_name || '',
+        phone: profile.phone || '',
+        email: profile.email || '',
+        location_district: profile.location_district || profile.location || '',
+        gstin: profile.gstin || '',
+        pan: profile.pan || '',
+        udyam_registration: profile.udyam_registration || profile.regNo || '',
+        legal_structure: profile.legal_structure || profile.legalStructure || 'Proprietorship',
+        tax_regime: profile.tax_regime || profile.taxRegime || 'Regular',
+        financial_year: profile.financial_year || profile.financialYear || 'April - March',
+        registered_address: profile.registered_address || profile.registeredAddress || '',
+        description: profile.description || '',
+        notes: profile.notes || '',
+        business_since: profile.business_since || profile.businessSince || '',
+      });
+      setSaveError(null);
+    }
+  }, [isOpen, profile]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(formData);
-    onClose();
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      await onSave(formData);
+      onClose();
+    } catch (err) {
+      setSaveError('Could not save your changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -202,12 +270,11 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Owner / Contact Name *</label>
+              <label className="text-xs font-bold text-slate-700">Owner / Contact Name</label>
               <input
                 type="text"
-                required
-                value={formData.user_name}
-                onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
+                value={formData.owner_name}
+                onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500"
                 placeholder="e.g. Amiya Nayak"
               />
@@ -239,13 +306,13 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Business Location *</label>
+              <label className="text-xs font-bold text-slate-700">Business District / Location</label>
               <input
                 type="text"
-                required
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                value={formData.location_district}
+                onChange={(e) => setFormData({ ...formData, location_district: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500"
+                placeholder="e.g. Khordha"
               />
             </div>
             <div className="space-y-1.5">
@@ -276,11 +343,11 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Registration No. (Udyam)</label>
+              <label className="text-xs font-bold text-slate-700">Udyam Registration No.</label>
               <input
                 type="text"
-                value={formData.regNo}
-                onChange={(e) => setFormData({ ...formData, regNo: e.target.value.toUpperCase() })}
+                value={formData.udyam_registration}
+                onChange={(e) => setFormData({ ...formData, udyam_registration: e.target.value.toUpperCase() })}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 font-mono"
                 placeholder="UDYAM-OD-21-0001234"
               />
@@ -288,8 +355,8 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700">Legal Structure</label>
               <select
-                value={formData.legalStructure}
-                onChange={(e) => setFormData({ ...formData, legalStructure: e.target.value })}
+                value={formData.legal_structure}
+                onChange={(e) => setFormData({ ...formData, legal_structure: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 bg-white"
               >
                 <option value="Proprietorship">Proprietorship</option>
@@ -306,16 +373,17 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
               <label className="text-xs font-bold text-slate-700">Financial Year</label>
               <input
                 type="text"
-                value={formData.financialYear}
-                onChange={(e) => setFormData({ ...formData, financialYear: e.target.value })}
+                value={formData.financial_year}
+                onChange={(e) => setFormData({ ...formData, financial_year: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500"
+                placeholder="April - March"
               />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700">Tax Regime</label>
               <select
-                value={formData.taxRegime}
-                onChange={(e) => setFormData({ ...formData, taxRegime: e.target.value })}
+                value={formData.tax_regime}
+                onChange={(e) => setFormData({ ...formData, tax_regime: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 bg-white"
               >
                 <option value="Regular">Regular</option>
@@ -326,9 +394,10 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
               <label className="text-xs font-bold text-slate-700">Business Since (Year)</label>
               <input
                 type="text"
-                value={formData.businessSince}
-                onChange={(e) => setFormData({ ...formData, businessSince: e.target.value })}
+                value={formData.business_since}
+                onChange={(e) => setFormData({ ...formData, business_since: e.target.value })}
                 className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500 font-mono"
+                placeholder="2022"
               />
             </div>
           </div>
@@ -337,10 +406,10 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
             <label className="text-xs font-bold text-slate-700">Registered Address</label>
             <input
               type="text"
-              value={formData.registeredAddress}
-              onChange={(e) => setFormData({ ...formData, registeredAddress: e.target.value })}
+              value={formData.registered_address}
+              onChange={(e) => setFormData({ ...formData, registered_address: e.target.value })}
               className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:border-emerald-500"
-              placeholder="Full registered address"
+              placeholder="Full registered / operational address"
             />
           </div>
 
@@ -366,19 +435,25 @@ export function EditBusinessInfoModal({ isOpen, onClose, profile, onSave }) {
             />
           </div>
 
+          {saveError && (
+            <p className="text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">{saveError}</p>
+          )}
+
           <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors"
+              disabled={isSaving}
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer"
+              disabled={isSaving}
+              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer disabled:opacity-60"
             >
-              Save Details
+              {isSaving ? 'Saving…' : 'Save Details'}
             </button>
           </div>
         </form>

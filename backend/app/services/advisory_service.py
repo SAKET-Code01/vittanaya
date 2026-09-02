@@ -51,6 +51,7 @@ class AdvisoryService:
         lang = payload.language or "English"
 
         # 1. Resolve Active Business Context (No default hardcoded fallbacks)
+        bus_name: Optional[str] = None
         bus_category: Optional[str] = None
         specific_bus: Optional[str] = None
         loc: Optional[str] = None
@@ -74,8 +75,10 @@ class AdvisoryService:
                         biz = None
                 if biz:
                     active_business_id = biz.id
-                    specific_bus = biz.name
-                    bus_category = getattr(biz, 'category', None) or getattr(biz, 'type', None) or getattr(biz, 'industry', None) or biz.name
+                    bus_name = biz.name
+                    bus_activity = getattr(biz, 'industry', None) or getattr(biz, 'category', None) or getattr(biz, 'type', None) or "General Enterprise"
+                    bus_category = getattr(biz, 'category', None) or getattr(biz, 'type', None) or getattr(biz, 'industry', None) or "General"
+                    specific_bus = bus_activity
                     dist = (getattr(biz, 'location_district', '') or '').strip()
                     st = (getattr(biz, 'location_state', '') or '').strip()
                     if dist and st:
@@ -100,7 +103,9 @@ class AdvisoryService:
         ctx: Optional[BusinessContextInput] = payload.business_context
         if ctx:
             if not specific_bus and ctx.specific_business and ctx.specific_business.strip():
-                specific_bus = ctx.specific_business.strip()
+                # Avoid setting specific_business to the trade name if identical
+                if not (bus_name and ctx.specific_business.strip().lower() == bus_name.strip().lower()):
+                    specific_bus = ctx.specific_business.strip()
             if not bus_category and ctx.business_category and ctx.business_category.strip():
                 bus_category = ctx.business_category.strip()
             if not loc and ctx.location and ctx.location.strip():
@@ -113,6 +118,9 @@ class AdvisoryService:
                 area = ctx.area_type
             if ctx.scale:
                 scale = ctx.scale
+
+        bus_name = bus_name or specific_bus or "Your Enterprise"
+        specific_bus = specific_bus or bus_category or "General Enterprise"
 
         # Cross-fill implicit category if specific business is specified
         if specific_bus and not bus_category:
@@ -535,14 +543,52 @@ class AdvisoryService:
             next_steps.append("Complete Udyam MSME Registration on udyamregistration.gov.in")
             next_steps.append("Generate Verified DPR from VITTANAYA Action Plan menu")
 
+        elif intent == "PROFILE_IDENTITY":
+            stage_str = "Established"
+            if db and active_business_id:
+                try:
+                    b = BusinessRepository(db).get_by_id(active_business_id)
+                    if b and b.stage:
+                        stage_str = b.stage.capitalize()
+                except Exception:
+                    pass
+            answer_text = (
+                f"Your active enterprise is **{bus_name}**, a {stage_str} {bus_category} business "
+                f"specializing in {specific_bus} in {loc}. "
+                f"Your registered equity margin capital is ₹{margin_cap:,.0f}."
+            )
+            key_facts.append(KeyFact(label="Business Name", value=bus_name))
+            key_facts.append(KeyFact(label="Business Activity", value=specific_bus))
+            key_facts.append(KeyFact(label="Industry Sector", value=bus_category))
+            key_facts.append(KeyFact(label="Location", value=loc))
+            why_list.append("Enterprise identity and sector classification retrieved directly from your active database profile.")
+            next_steps.append("Update enterprise parameters anytime in the Business Profile management menu.")
+
+        elif intent == "REVENUE_EXPENSE":
+            net_operating = db_monthly_rev - db_monthly_exp
+            answer_text = (
+                f"For **{bus_name}**, your recorded monthly revenue is ₹{db_monthly_rev:,.0f} (Annualized: ₹{db_monthly_rev * 12:,.0f}) "
+                f"and monthly expenses are ₹{db_monthly_exp:,.0f} (Annualized: ₹{db_monthly_exp * 12:,.0f}). "
+                f"This yields a net monthly operating surplus of ₹{net_operating:,.0f}."
+            )
+            key_facts.append(KeyFact(label="Monthly Revenue", value=f"₹{db_monthly_rev:,.0f}"))
+            key_facts.append(KeyFact(label="Monthly Expenses", value=f"₹{db_monthly_exp:,.0f}"))
+            key_facts.append(KeyFact(label="Net Monthly Surplus", value=f"₹{net_operating:,.0f}"))
+            if db_monthly_rev > 0:
+                op_margin = (net_operating / db_monthly_rev) * 100.0
+                key_facts.append(KeyFact(label="Operating Margin", value=f"{op_margin:.1f}%"))
+            why_list.append("Baseline financial estimates are verified from your active workspace records.")
+            next_steps.append("Track monthly receivables and payables in the Cash Flow section to optimize cash runways.")
+
         else:
             # General Query Handling
             feas_engine = FeasibilityEngine(db)
             feas_res = feas_engine.evaluate_feasibility(bus_category, specific_bus, loc)
             answer_text = (
-                f"For {specific_bus} in {loc}, VITTANAYA provides verified decision engine guidance across feasibility "
+                f"For **{bus_name}** ({specific_bus}) in {loc}, VITTANAYA provides verified decision engine guidance across feasibility "
                 f"({feas_res.overall_opportunity_score:.0f}/100), financial loan EMI calculations, and PMEGP/MUDRA scheme matching."
             )
+            key_facts.append(KeyFact(label="Business Name", value=bus_name))
             key_facts.append(KeyFact(label="Business Activity", value=specific_bus))
             key_facts.append(KeyFact(label="Location", value=loc))
             key_facts.append(KeyFact(label="Feasibility Score", value=f"{feas_res.overall_opportunity_score:.0f}/100"))
@@ -579,6 +625,10 @@ class AdvisoryService:
     @staticmethod
     def _classify_intent(lower_msg: str) -> str:
         """Classify natural language user message into core advisory intent domain."""
+        if any(w in lower_msg for w in ["what is my business", "what is my enterprise", "business name", "my company", "which business", "tell me about my business", "what business"]):
+            return "PROFILE_IDENTITY"
+        if any(w in lower_msg for w in ["monthly revenue", "my revenue", "how much revenue", "sales revenue", "monthly sales", "monthly expense", "my expenses", "operating expense", "monthly cost"]):
+            return "REVENUE_EXPENSE"
         if any(w in lower_msg for w in ["ml risk", "ml prediction", "predict default", "default risk", "distress risk", "growth forecast", "ml score", "ml model", "predictive"]):
             return "PREDICTIVE_ML"
         if any(w in lower_msg for w in ["what if", "what-if", "scenario", "sales fall", "sales drop", "sales decline", "cost increase", "revenue drop", "price fall"]):

@@ -173,15 +173,37 @@ class FeasibilityEngine:
         """Evaluate local market feasibility based on verified database records or benchmarks."""
         cat_lower = business_category.lower().strip()
         spec_lower = specific_business.lower().strip()
+        loc_lower = location.lower().strip()
 
         # Step 1: Query LocalMarketData table in SQLite DB
         db_records = self.db.query(LocalMarketData).all()
         matched_db_record = None
+
+        # Prioritize records matching both sector and district
         for rec in db_records:
             sec_lower = rec.sector_category.lower()
-            if sec_lower in cat_lower or sec_lower in spec_lower:
+            dist_lower = rec.district_name.lower()
+            sector_match = (
+                sec_lower in cat_lower
+                or sec_lower in spec_lower
+                or any(token in cat_lower or token in spec_lower for token in sec_lower.split())
+            )
+            if sector_match and dist_lower in loc_lower:
                 matched_db_record = rec
                 break
+
+        # If no district-exact match, find matching sector across Odisha database
+        if not matched_db_record:
+            for rec in db_records:
+                sec_lower = rec.sector_category.lower()
+                sector_match = (
+                    sec_lower in cat_lower
+                    or sec_lower in spec_lower
+                    or any(token in cat_lower or token in spec_lower for token in sec_lower.split())
+                )
+                if sector_match:
+                    matched_db_record = rec
+                    break
 
         if matched_db_record:
             parsed_swot = {}
@@ -234,6 +256,10 @@ class FeasibilityEngine:
         matched_key = None
         for key in VERIFIED_ODISHA_BENCHMARKS:
             if key in cat_lower or key in spec_lower:
+                matched_key = key
+                break
+            key_tokens = key.split()
+            if any(t in cat_lower or t in spec_lower for t in key_tokens if len(t) > 3):
                 matched_key = key
                 break
 

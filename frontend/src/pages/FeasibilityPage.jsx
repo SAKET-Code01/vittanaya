@@ -210,12 +210,15 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
 
     feasibilityService
       .getUnifiedInsights({
-        available_margin_capital: Number(profile.ownCapital || profile.available_margin_capital || 50000),
-        business_category: profile.category || profile.businessType || 'Retail',
-        specific_business: profile.businessName || profile.name || 'General Enterprise',
-        location: profile.district || profile.location || 'Odisha',
-        social_category: profile.socialCategory || 'General',
-        area_type: profile.areaType || 'Rural',
+        business_id: profile?.id ? Number(profile.id) : undefined,
+        business_name: profile?.businessName || profile?.name || null,
+        business_activity: profile?.industry || profile?.activity || profile?.category || 'General',
+        available_margin_capital: Number(profile?.ownCapital || profile?.available_margin_capital || 100000),
+        business_category: profile?.category || profile?.businessType || 'General',
+        specific_business: profile?.industry || profile?.activity || profile?.category || 'General Enterprise',
+        location: profile?.district || profile?.location || 'Odisha',
+        social_category: profile?.socialCategory || 'General',
+        area_type: profile?.areaType || 'Rural',
       })
       .then((data) => {
         if (isMounted) {
@@ -235,16 +238,19 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
       isMounted = false;
     };
   }, [
-    profile.ownCapital,
-    profile.available_margin_capital,
-    profile.category,
-    profile.businessType,
-    profile.businessName,
-    profile.name,
-    profile.district,
-    profile.location,
-    profile.socialCategory,
-    profile.areaType,
+    profile?.id,
+    profile?.ownCapital,
+    profile?.available_margin_capital,
+    profile?.category,
+    profile?.businessType,
+    profile?.businessName,
+    profile?.name,
+    profile?.industry,
+    profile?.activity,
+    profile?.district,
+    profile?.location,
+    profile?.socialCategory,
+    profile?.areaType,
   ]);
 
   useEffect(() => {
@@ -329,16 +335,21 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
     businessLocation,
   ]);
 
-  const overallScore = Math.round(backendInsights?.opportunity?.overall_opportunity_score ?? factorScores.overall);
-  const isDataSufficient = backendInsights?.opportunity?.is_data_sufficient ?? true;
-  const overallConfidence = factorScores.confidence;
+  const overallScore = backendInsights?.opportunity?.overall_opportunity_score != null
+    ? Math.round(backendInsights.opportunity.overall_opportunity_score)
+    : insightsError
+      ? null
+      : factorScores.overall;
+
+  const isDataSufficient = backendInsights?.opportunity?.is_data_sufficient ?? (insightsError ? false : true);
+  const overallConfidence = insightsError ? 0 : factorScores.confidence;
   const factorBreakdown = factorScores.entries.filter((entry) => typeof entry.score === 'number');
   const factorCount = factorBreakdown.length;
 
   const dataUpdated = profile.lastUpdatedAt || profile.onboardingCompletedAt || null;
   const sourceCount = [
     profile.name,
-        businessLocation !== 'Awaiting analysis',
+    businessLocation !== 'Awaiting analysis',
     financialHealth !== null,
     selectedOps.length > 0,
     isDemoMode,
@@ -346,6 +357,9 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
   const isEstablished = (profile?.stage || '').toUpperCase() === 'ESTABLISHED';
 
   const decisionLabel = useMemo(() => {
+    if (overallScore === null || insightsError) {
+      return 'CALCULATION UNAVAILABLE';
+    }
     if (isEstablished) {
       if (overallScore >= 70) return 'SUSTAINABLE — OPTIMIZATION RECOMMENDED';
       if (overallScore >= 55) return 'VIABLE COMMERCIAL OPERATION';
@@ -355,18 +369,20 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
     if (overallScore >= 75 && overallConfidence >= 65) return 'PROCEED WITH CAUTION';
     if (overallScore >= 60) return 'REVIEW BEFORE PROCEEDING';
     return 'DECISION PENDING DATA VALIDATION';
-  }, [isEstablished, overallConfidence, overallScore]);
+  }, [insightsError, isEstablished, overallConfidence, overallScore]);
 
   const feasibilityStatus =
-    decisionLabel === 'SUSTAINABLE — OPTIMIZATION RECOMMENDED'
+    overallScore === null || insightsError
+      ? 'Calculation Unavailable'
+      : decisionLabel === 'SUSTAINABLE — OPTIMIZATION RECOMMENDED'
       ? 'Sustainable & Healthy'
       : decisionLabel === 'VIABLE COMMERCIAL OPERATION'
       ? 'Viable Commercial Operation'
       : decisionLabel === 'PROCEED WITH CAUTION'
       ? 'Proceed with caution'
       : decisionLabel === 'REVIEW BEFORE PROCEEDING'
-        ? 'Review before proceeding'
-        : 'Decision pending data validation';
+      ? 'Review before proceeding'
+      : 'Decision pending data validation';
 
   const hasConfidenceEvidence = sourceCount > 0;
   const confidenceDisplay = `${overallConfidence}%`;
@@ -638,6 +654,26 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
         </div>
       </div>
 
+      {/* Error State Banner with Retry */}
+      {insightsError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50/90 p-4 text-xs text-red-700 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 font-black">!</span>
+            <div>
+              <p className="font-bold">Feasibility analysis unavailable</p>
+              <p className="text-[11px] text-red-600 mt-0.5">{insightsError}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={fetchInsights}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition cursor-pointer"
+          >
+            <span>↻</span><span>Retry Analysis</span>
+          </button>
+        </div>
+      )}
+
       {/* Main score + supporting cards */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
         <div className="xl:col-span-4 rounded-[26px] border border-blue-500/25 bg-gradient-to-br from-[#060D1D] via-[#0B1736] to-[#0A1128] p-5 sm:p-6 text-white shadow-[0_16px_40px_rgba(6,13,29,0.35)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(11,23,54,0.45)]">
@@ -648,15 +684,39 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
             </div>
 
             <div className="flex-1 flex flex-col items-center justify-center py-4">
-              <CircularScoreGauge score={clamp(overallScore, 0, 100)} size={150} strokeWidth={10} stroke="#3B82F6" />
-              <div className="mt-2 text-center">
-                <div className="text-2xl sm:text-3xl font-black text-blue-400">
-                  {overallScore >= 75 ? 'Good Potential' : overallScore >= 60 ? 'Review Required' : 'Needs Validation'}
+              {isLoadingInsights ? (
+                <div className="text-center py-8">
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-400 border-r-transparent" />
+                  <p className="mt-3 text-xs text-blue-200/80">Evaluating hyper-local evidence...</p>
                 </div>
-                <p className="mt-2 max-w-md text-xs leading-relaxed text-blue-100/75">
-                  Business fundamentals and available local evidence currently support this feasibility position.
-                </p>
-              </div>
+              ) : overallScore !== null ? (
+                <>
+                  <CircularScoreGauge score={clamp(overallScore, 0, 100)} size={150} strokeWidth={10} stroke="#3B82F6" />
+                  <div className="mt-2 text-center">
+                    <div className="text-2xl sm:text-3xl font-black text-blue-400">
+                      {overallScore >= 75 ? 'Good Potential' : overallScore >= 60 ? 'Review Required' : 'Needs Validation'}
+                    </div>
+                    <p className="mt-2 max-w-md text-xs leading-relaxed text-blue-100/75">
+                      {backendInsights?.opportunity?.opportunity || 'Business fundamentals and available local evidence currently support this feasibility position.'}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-6 px-4">
+                  <p className="text-3xl font-black text-slate-400">N/A</p>
+                  <p className="mt-2 text-xs font-bold text-amber-300">Calculation Unavailable</p>
+                  <p className="mt-1 text-[11px] text-blue-100/60 max-w-xs">
+                    Verified reference benchmarks could not be retrieved. Click Retry to re-evaluate.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={fetchInsights}
+                    className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-500 cursor-pointer"
+                  >
+                    <span>↻</span><span>Retry Analysis</span>
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">

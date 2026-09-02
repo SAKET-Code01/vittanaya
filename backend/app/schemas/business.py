@@ -30,6 +30,17 @@ class BusinessBase(BaseModel):
     status: Optional[str] = Field(default="active", max_length=50)
     monthly_revenue_estimate: Decimal = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
     monthly_expense_estimate: Decimal = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
+    # Business Identity & Compliance
+    owner_name: Optional[str] = Field(None, max_length=150)
+    gstin: Optional[str] = Field(None, max_length=20)
+    pan: Optional[str] = Field(None, max_length=10)
+    udyam_registration: Optional[str] = Field(None, max_length=50)
+    legal_structure: Optional[str] = Field(None, max_length=50)
+    financial_year: Optional[str] = Field(None, max_length=30)
+    tax_regime: Optional[str] = Field(None, max_length=30)
+    business_since: Optional[str] = Field(None, max_length=10)
+    registered_address: Optional[str] = None
+    notes: Optional[str] = None
 
     @field_validator("email", mode="before")
     @classmethod
@@ -66,6 +77,17 @@ class BusinessUpdate(BaseModel):
     status: Optional[str] = None
     monthly_revenue_estimate: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
     monthly_expense_estimate: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
+    # Business Identity & Compliance
+    owner_name: Optional[str] = None
+    gstin: Optional[str] = None
+    pan: Optional[str] = None
+    udyam_registration: Optional[str] = None
+    legal_structure: Optional[str] = None
+    financial_year: Optional[str] = None
+    tax_regime: Optional[str] = None
+    business_since: Optional[str] = None
+    registered_address: Optional[str] = None
+    notes: Optional[str] = None
 
     @field_validator("email", mode="before")
     @classmethod

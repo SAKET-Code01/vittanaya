@@ -43,9 +43,9 @@ class ApiClient {
       case 500:
       case 502:
       case 503:
-        return 'The analytical calculation service is temporarily unavailable. Please try again shortly.';
+        return 'The analytical calculation service is temporarily unavailable. Please verify the backend is running and try again.';
       default:
-        return `Unable to complete request (${status}). Please check your connection.`;
+        return `Unable to complete request (${status}). Please verify that the backend is running.`;
     }
   }
 
@@ -80,6 +80,7 @@ class ApiClient {
         const errorDetail = this.parseError(response.status, errJson);
         const error = new Error(errorDetail);
         error.status = response.status;
+        error.code = response.status >= 500 ? 'HTTP_5XX' : (response.status >= 400 ? 'HTTP_4XX' : 'HTTP_ERROR');
         error.response = errJson;
         throw error;
       }
@@ -88,10 +89,16 @@ class ApiClient {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error.name === 'AbortError') {
-        throw new Error('Request timed out. Please verify the calculation server is reachable.');
+        const timeoutErr = new Error('Request timed out. Please verify the calculation server is reachable.');
+        timeoutErr.code = 'TIMEOUT';
+        timeoutErr.status = 408;
+        throw timeoutErr;
       }
-      if (error.message && error.message.includes('Failed to fetch')) {
-        throw new Error('Unable to connect to VITTANAYA service. Please check your internet connection.');
+      if (error.message && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('Load failed') || error.message.includes('ECONNREFUSED'))) {
+        const netErr = new Error('VITTANAYA calculation service is unavailable. Please verify that the backend is running and try again.');
+        netErr.code = 'NETWORK_ERROR';
+        netErr.status = 0;
+        throw netErr;
       }
       throw error;
     }
@@ -109,6 +116,14 @@ class ApiClient {
     return this.request(endpoint, {
       ...options,
       method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  put(endpoint, body, options = {}) {
+    return this.request(endpoint, {
+      ...options,
+      method: 'PUT',
       body: JSON.stringify(body),
     });
   }

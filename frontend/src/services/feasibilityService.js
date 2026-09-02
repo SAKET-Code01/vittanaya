@@ -17,9 +17,11 @@ export const feasibilityService = {
    */
   async analyzeFeasibility(payload) {
     return apiClient.post('/feasibility', {
+      business_id: payload.business_id || payload.id || null,
+      business_name: payload.business_name || payload.name || payload.businessName || null,
       business_category: payload.business_category || payload.category || 'Retail',
-      specific_business: payload.specific_business || payload.business_activity || payload.name || 'General Enterprise',
-      location: payload.location || payload.location_district || 'Odisha',
+      specific_business: payload.specific_business || payload.business_activity || payload.industry || payload.category || 'General Enterprise',
+      location: payload.location || payload.location_district || payload.district || 'Odisha',
       scale: payload.scale || null,
     });
   },
@@ -29,9 +31,11 @@ export const feasibilityService = {
    */
   async getProjectCost(payload) {
     return apiClient.post('/project-cost', {
-      business_activity: payload.business_activity || payload.specific_business || payload.name || 'Commercial Broiler Farming',
+      business_id: payload.business_id || payload.id || null,
+      business_name: payload.business_name || payload.name || payload.businessName || null,
+      business_activity: payload.business_activity || payload.industry || payload.specific_business || payload.category || 'Commercial Broiler Farming',
       business_category: payload.business_category || payload.category || null,
-      location: payload.location || payload.location_district || 'Odisha',
+      location: payload.location || payload.location_district || payload.district || 'Odisha',
       scale: payload.scale || null,
     });
   },
@@ -41,12 +45,14 @@ export const feasibilityService = {
    */
   async analyzeRisk(payload) {
     return apiClient.post('/risk-analysis', {
+      business_id: payload.business_id || payload.id || null,
+      business_name: payload.business_name || payload.name || payload.businessName || null,
       business_category: payload.business_category || payload.category || 'General',
-      specific_business: payload.specific_business || payload.name || 'General Enterprise',
+      specific_business: payload.business_activity || payload.industry || payload.specific_business || payload.category || 'General Enterprise',
       indicative_project_cost: Number(payload.indicative_project_cost || payload.project_cost || 200000),
       available_margin_capital: Number(payload.available_margin_capital || payload.own_capital || 50000),
       financing_requirement: Number(payload.financing_requirement || 150000),
-      location: payload.location || payload.location_district || 'Odisha',
+      location: payload.location || payload.location_district || payload.district || 'Odisha',
       seasonality_factor: payload.seasonality_factor || null,
     });
   },
@@ -73,13 +79,16 @@ export const feasibilityService = {
    */
   async getUnifiedInsights(payload) {
     return apiClient.post('/insights/analyze', {
-      available_margin_capital: Number(payload.available_margin_capital || payload.own_capital || 50000),
-      business_category: payload.business_category || payload.category || 'Retail',
-      specific_business: payload.specific_business || payload.name || payload.business_activity || 'General Enterprise',
-      location: payload.location || payload.location_district || 'Odisha',
+      business_id: payload.business_id || payload.id || null,
+      business_name: payload.business_name || payload.name || payload.businessName || null,
+      business_activity: payload.business_activity || payload.industry || payload.category || null,
+      available_margin_capital: Number(payload.available_margin_capital || payload.own_capital || payload.ownCapital || 50000),
+      business_category: payload.business_category || payload.category || payload.businessType || 'General',
+      specific_business: payload.business_activity || payload.industry || payload.specific_business || payload.category || 'General Enterprise',
+      location: payload.location || payload.location_district || payload.district || 'Odisha',
       scale: payload.scale || null,
-      social_category: payload.social_category || 'General',
-      area_type: payload.area_type || 'Rural',
+      social_category: payload.social_category || payload.socialCategory || 'General',
+      area_type: payload.area_type || payload.areaType || 'Rural',
       baseline_sales_annual: payload.baseline_sales_annual ? Number(payload.baseline_sales_annual) : null,
       baseline_operating_cost_annual: payload.baseline_operating_cost_annual ? Number(payload.baseline_operating_cost_annual) : null,
       simulation_inputs: payload.simulation_inputs || null,

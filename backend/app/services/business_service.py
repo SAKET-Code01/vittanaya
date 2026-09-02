@@ -21,6 +21,10 @@ class BusinessService:
     def list_user_businesses(self, user_id: int) -> Sequence[Business]:
         return self.repo.get_by_owner(user_id)
 
+    def list_businesses(self, limit: int = 50) -> Sequence[Business]:
+        """Return all registered business profiles."""
+        return self.repo.list_all(limit=limit)
+
     def create_business(self, data: BusinessCreate) -> Business:
         return self.repo.create(data)
 

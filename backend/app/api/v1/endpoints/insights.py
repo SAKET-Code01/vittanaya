@@ -10,6 +10,8 @@ SIH26091 - Insights Backend Services:
 - Unified Analysis
 """
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
@@ -58,7 +60,45 @@ def get_project_cost(
         business_category=payload.business_category,
         location=payload.location,
         scale=payload.scale,
+        business_name=payload.business_name,
+        business_id=payload.business_id,
     )
+
+
+def _disambiguate_activity_and_category(
+    db: Session,
+    business_id: Optional[int] = None,
+    business_name: Optional[str] = None,
+    business_activity: Optional[str] = None,
+    business_category: Optional[str] = None,
+) -> tuple[str, str]:
+    """Resolve authoritative activity and sector category, preventing entity names as activities."""
+    from backend.app.models.business import Business
+
+    db_biz = None
+    if business_id:
+        db_biz = db.query(Business).filter(Business.id == business_id).first()
+    elif business_name:
+        db_biz = db.query(Business).filter(Business.name.ilike(business_name.strip())).first()
+    elif business_activity:
+        db_biz = db.query(Business).filter(Business.name.ilike(business_activity.strip())).first()
+
+    activity = business_activity
+    category = business_category
+
+    if db_biz:
+        if not category or category.lower() in ("general", "retail"):
+            category = db_biz.category or db_biz.type or category
+        if (
+            not activity
+            or activity.strip().lower() == db_biz.name.strip().lower()
+            or activity.strip().lower() in ("general enterprise", "enterprise", "retail")
+        ):
+            activity = db_biz.industry or db_biz.category or activity
+
+    clean_activity = activity.strip() if activity else "General Enterprise"
+    clean_category = category.strip() if category else "General"
+    return clean_activity, clean_category
 
 
 @router.post(
@@ -72,10 +112,17 @@ def analyze_feasibility(
     db: Session = Depends(get_db),
 ) -> FeasibilityResponse:
     """Evaluate market reach, opportunity, competition, pricing, threats, and SWOT."""
+    clean_activity, clean_category = _disambiguate_activity_and_category(
+        db,
+        business_id=payload.business_id,
+        business_name=payload.business_name,
+        business_activity=payload.specific_business,
+        business_category=payload.business_category,
+    )
     engine = FeasibilityEngine(db)
     return engine.evaluate_feasibility(
-        business_category=payload.business_category,
-        specific_business=payload.specific_business,
+        business_category=clean_category,
+        specific_business=clean_activity,
         location=payload.location,
         scale=payload.scale,
     )
@@ -92,12 +139,19 @@ def match_schemes(
     db: Session = Depends(get_db),
 ) -> SchemeMatchResponse:
     """Match government credit & subsidy schemes against project parameters."""
+    clean_activity, clean_category = _disambiguate_activity_and_category(
+        db,
+        business_id=payload.business_id,
+        business_name=payload.business_name,
+        business_activity=payload.specific_business,
+        business_category=payload.business_category,
+    )
     engine = SchemeEngine(db)
     return engine.match_schemes(
         indicative_project_cost=payload.indicative_project_cost,
         available_margin_capital=payload.available_margin_capital,
-        business_category=payload.business_category,
-        specific_business=payload.specific_business,
+        business_category=clean_category,
+        specific_business=clean_activity,
         location=payload.location,
         social_category=payload.social_category,
         area_type=payload.area_type,
@@ -115,10 +169,17 @@ def analyze_risks(
     db: Session = Depends(get_db),
 ) -> RiskAnalysisResponse:
     """Calculate market, competition, operational, seasonality, and financial risk dimensions."""
+    clean_activity, clean_category = _disambiguate_activity_and_category(
+        db,
+        business_id=payload.business_id,
+        business_name=payload.business_name,
+        business_activity=payload.specific_business,
+        business_category=payload.business_category,
+    )
     engine = RiskEngine(db)
     return engine.analyze_risks(
-        business_category=payload.business_category,
-        specific_business=payload.specific_business,
+        business_category=clean_category,
+        specific_business=clean_activity,
         indicative_project_cost=payload.indicative_project_cost,
         available_margin_capital=payload.available_margin_capital,
         financing_requirement=payload.financing_requirement,
@@ -188,21 +249,30 @@ def analyze_all_insights(
     db: Session = Depends(get_db),
 ) -> UnifiedInsightsResponse:
     """Execute complete intelligence analysis pipeline returning all 6 components."""
+    clean_activity, clean_category = _disambiguate_activity_and_category(
+        db,
+        business_id=payload.business_id,
+        business_name=payload.business_name,
+        business_activity=payload.business_activity or payload.specific_business,
+        business_category=payload.business_category,
+    )
+
     # 1. Financial Gap Analysis (includes Cost Engine)
     fin_engine = FinancialEngine(db)
     fin_res = fin_engine.analyze_financial_gap(
         available_margin_capital=payload.available_margin_capital,
-        business_category=payload.business_category,
-        specific_business=payload.specific_business,
+        business_category=clean_category,
+        specific_business=clean_activity,
         location=payload.location,
         scale=payload.scale,
+        business_id=payload.business_id,
     )
 
     # 2. Local Opportunity / Feasibility Analysis
     feas_engine = FeasibilityEngine(db)
     feas_res = feas_engine.evaluate_feasibility(
-        business_category=payload.business_category,
-        specific_business=payload.specific_business,
+        business_category=clean_category,
+        specific_business=clean_activity,
         location=payload.location,
         scale=payload.scale,
     )
@@ -212,8 +282,8 @@ def analyze_all_insights(
     scheme_res = scheme_engine.match_schemes(
         indicative_project_cost=fin_res.indicative_project_cost,
         available_margin_capital=payload.available_margin_capital,
-        business_category=payload.business_category,
-        specific_business=payload.specific_business,
+        business_category=clean_category,
+        specific_business=clean_activity,
         location=payload.location,
         social_category=payload.social_category,
         area_type=payload.area_type,
@@ -222,8 +292,8 @@ def analyze_all_insights(
     # 4. Risk Advisory Analysis
     risk_engine = RiskEngine(db)
     risk_res = risk_engine.analyze_risks(
-        business_category=payload.business_category,
-        specific_business=payload.specific_business,
+        business_category=clean_category,
+        specific_business=clean_activity,
         indicative_project_cost=fin_res.indicative_project_cost,
         available_margin_capital=payload.available_margin_capital,
         financing_requirement=fin_res.financing_requirement,

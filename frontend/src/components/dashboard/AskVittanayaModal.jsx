@@ -126,8 +126,9 @@ export default function AskVittanayaModal({
         language: selectedLanguage,
         business_context: (businessName || businessCategory || currentProfile?.id) ? {
           business_id: currentProfile?.id ? String(currentProfile.id) : null,
-          business_category: businessCategory || businessName || null,
-          specific_business: businessName || businessCategory || null,
+          business_category: businessCategory || currentProfile?.category || 'General',
+          specific_business: currentProfile?.industry || currentProfile?.category || 'General Enterprise',
+          business_name: businessName,
           location: (currentProfile?.location_district || currentProfile?.district || currentProfile?.location)
             ? `${currentProfile.location_district || currentProfile.district || currentProfile.location}${currentProfile.location_state ? `, ${currentProfile.location_state}` : ''}`
             : null,

@@ -18,9 +18,50 @@ import PredictiveMlCard from '../components/dashboard/PredictiveMlCard';
  */
 
 const formatINR = (value) => {
-  if (value === undefined || value === null || isNaN(value)) return '₹ 0';
-  return `₹ ${Math.max(0, Math.round(value)).toLocaleString('en-IN')}`;
+  if (value === undefined || value === null || isNaN(value)) return 'Not available';
+  const val = Math.round(value);
+  if (val < 0) {
+    return `-₹ ${Math.abs(val).toLocaleString('en-IN')}`;
+  }
+  return `₹ ${val.toLocaleString('en-IN')}`;
 };
+
+class SectionErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.warn(`SectionErrorBoundary [${this.props.name}] caught:`, error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 my-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-extrabold">{this.props.name} Notice</p>
+              <p className="mt-1 text-amber-700">
+                {this.state.error?.message || 'Component temporarily unavailable.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="rounded-lg bg-amber-600 px-3 py-1.5 font-bold text-white hover:bg-amber-700 transition cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const Icon = ({ children, className = '' }) => (
   <span aria-hidden="true" className={`inline-flex items-center justify-center ${className}`}>
@@ -142,11 +183,52 @@ export default function FinancialPlanPage({
   const { currentProfile: contextProfile } = useWorkspace();
   const currentProfile = propProfile || contextProfile;
 
+  // Authoritative Business Profile Inputs
+  const savedProjectCost = useMemo(() => {
+    const raw = currentProfile?.project_cost ?? currentProfile?.indicative_project_cost ?? currentProfile?.estimatedProjectCost;
+    if (raw !== undefined && raw !== null && !isNaN(Number(raw)) && Number(raw) > 0) {
+      return Number(raw);
+    }
+    return null;
+  }, [currentProfile?.project_cost, currentProfile?.indicative_project_cost, currentProfile?.estimatedProjectCost]);
+
+  const userOwnCapital = useMemo(() => {
+    const raw = currentProfile?.own_capital ?? currentProfile?.ownCapital;
+    if (raw !== undefined && raw !== null && !isNaN(Number(raw))) {
+      return Number(raw);
+    }
+    return null;
+  }, [currentProfile?.own_capital, currentProfile?.ownCapital]);
+
+  const savedMonthlyRevenue = useMemo(() => {
+    const raw = currentProfile?.monthly_revenue_estimate ?? currentProfile?.monthlyRevenue;
+    if (raw !== undefined && raw !== null && !isNaN(Number(raw))) {
+      return Number(raw);
+    }
+    return null;
+  }, [currentProfile?.monthly_revenue_estimate, currentProfile?.monthlyRevenue]);
+
+  const savedMonthlyExpense = useMemo(() => {
+    const raw = currentProfile?.monthly_expense_estimate ?? currentProfile?.monthlyExpense;
+    if (raw !== undefined && raw !== null && !isNaN(Number(raw))) {
+      return Number(raw);
+    }
+    return null;
+  }, [currentProfile?.monthly_expense_estimate, currentProfile?.monthlyExpense]);
+
+  const activeCategory = currentProfile?.category || currentProfile?.businessType || 'General';
+  const activeTradeName = currentProfile?.name || currentProfile?.businessName || 'Your Enterprise';
+  const activeActivity = currentProfile?.industry || currentProfile?.category || 'General Enterprise';
+  const activeLocation = currentProfile?.district || currentProfile?.location || (currentProfile?.location_district ? `${currentProfile.location_district}, ${currentProfile.location_state || 'Odisha'}` : 'Odisha');
+
   // Primary Input States
-  const [projectCostInput, setProjectCostInput] = useState(1000000);
+  const [projectCostInput, setProjectCostInput] = useState(savedProjectCost);
   const [marginPct, setMarginPct] = useState(10);
   const [loanTenureYears, setLoanTenureYears] = useState(7);
   const [interestRate, setInterestRate] = useState(8.5);
+
+  // Provenance & Source state
+  const [costProvenance, setCostProvenance] = useState(savedProjectCost ? 'User Profile Configuration' : null);
 
   // UI Panels Toggle States
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -168,31 +250,34 @@ export default function FinancialPlanPage({
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const activeCategory = currentProfile?.category || currentProfile?.businessType || 'Poultry';
-  const activeBusinessName = currentProfile?.businessName || currentProfile?.name || 'Commercial Broiler Farming';
-  const activeLocation = currentProfile?.district || currentProfile?.location || 'Sundargarh, Odisha';
-  const activeOwnCapital = Number(currentProfile?.ownCapital || 50000);
-
   // 1. Authoritative Backend Funding Structure Fetcher
   const recalculateFundingStructure = useCallback(
     async (cost, margin, rate, tenure) => {
+      if (!cost || isNaN(Number(cost)) || Number(cost) <= 0) {
+        setFundingData(null);
+        return;
+      }
+
       setIsLoading(true);
       setIsError(false);
       setErrorMessage('');
 
-      const validatedCost = Math.max(10000, Number(cost) || 1000000);
+      const validatedCost = Math.max(1000, Number(cost));
       const validatedMargin = Math.max(0, Math.min(100, Number(margin) || 10));
       const validatedRate = Math.max(0, Number(rate) || 0);
       const validatedTenure = Math.max(1, Number(tenure) || 7);
 
       try {
         const response = await financeService.calculateFundingStructure({
+          business_id: currentProfile?.id ? Number(currentProfile.id) : undefined,
           project_cost: validatedCost,
           margin_pct: validatedMargin,
           interest_rate_annual: validatedRate,
           tenure_years: validatedTenure,
           business_category: activeCategory,
-          specific_business: activeBusinessName,
+          specific_business: activeActivity,
+          business_activity: activeActivity,
+          business_name: activeTradeName,
           location: activeLocation,
         });
 
@@ -205,53 +290,77 @@ export default function FinancialPlanPage({
       } catch (err) {
         console.warn('Backend funding structure error:', err);
         setIsError(true);
+        setFundingData(null);
         setErrorMessage(
-          err?.response?.data?.detail || err.message || 'Unable to connect to financial calculation engine.'
+          err?.response?.data?.detail || err.message || 'VITTANAYA calculation service is unavailable. Please verify that the backend is running and try again.'
         );
       } finally {
         setIsLoading(false);
       }
     },
-    [activeCategory, activeBusinessName, activeLocation]
+    [activeCategory, activeActivity, activeTradeName, activeLocation, currentProfile?.id]
   );
 
-  // 2. Fetch Initial Project Cost from Backend Reference Library
+  // 2. Fetch Project Cost based on Priority Hierarchy:
+  // Priority 1: User-saved project_cost from currentProfile
+  // Priority 2: Explicitly requested reference estimate from backend
+  // Priority 3: UNAVAILABLE if neither exists
   useEffect(() => {
     let isMounted = true;
-    setIsLoading(true);
 
+    if (savedProjectCost && savedProjectCost > 0) {
+      setProjectCostInput(savedProjectCost);
+      setCostProvenance('User Profile Configuration');
+      recalculateFundingStructure(savedProjectCost, marginPct, interestRate, loanTenureYears);
+      return;
+    }
+
+    // Priority 2: Query Authoritative Reference Cost from Backend
+    setIsLoading(true);
     feasibilityService
       .getProjectCost({
+        business_id: currentProfile?.id ? Number(currentProfile.id) : undefined,
+        business_name: activeTradeName,
         business_category: activeCategory,
-        specific_business: activeBusinessName,
+        business_activity: activeActivity,
+        specific_business: activeActivity,
         location: activeLocation,
-        available_margin_capital: activeOwnCapital,
+        available_margin_capital: userOwnCapital || undefined,
       })
       .then((res) => {
         const data = res?.data || res;
-        if (isMounted && data) {
+        if (isMounted && data?.indicative_project_cost) {
+          const costVal = Number(data.indicative_project_cost);
           setBackendCost(data);
-          const costVal = Number(data.indicative_project_cost || 1000000);
           setProjectCostInput(costVal);
+          setCostProvenance(data.source_authority || 'NABARD Odisha Reference Library');
           recalculateFundingStructure(costVal, marginPct, interestRate, loanTenureYears);
+        } else if (isMounted) {
+          setProjectCostInput(null);
+          setFundingData(null);
         }
       })
       .catch((err) => {
-        console.warn('Backend project cost notice:', err);
+        console.warn('Backend project cost lookup notice:', err);
         if (isMounted) {
-          recalculateFundingStructure(projectCostInput, marginPct, interestRate, loanTenureYears);
+          setProjectCostInput(null);
+          setFundingData(null);
         }
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [activeCategory, activeBusinessName, activeLocation, activeOwnCapital]);
+  }, [savedProjectCost, activeCategory, activeTradeName, activeActivity, activeLocation, userOwnCapital]);
 
   // Recalculate on input change
   const handleCostChange = (newCost) => {
-    const val = Math.max(10000, newCost);
+    const val = Math.max(1000, newCost);
     setProjectCostInput(val);
+    setCostProvenance('User Interactive Parameter');
     setBackendSimulation(null);
     setStressMode(false);
     recalculateFundingStructure(val, marginPct, interestRate, loanTenureYears);
@@ -262,7 +371,9 @@ export default function FinancialPlanPage({
     setMarginPct(val);
     setBackendSimulation(null);
     setStressMode(false);
-    recalculateFundingStructure(projectCostInput, val, interestRate, loanTenureYears);
+    if (projectCostInput) {
+      recalculateFundingStructure(projectCostInput, val, interestRate, loanTenureYears);
+    }
   };
 
   const handleTenureChange = (newTenure) => {
@@ -270,7 +381,9 @@ export default function FinancialPlanPage({
     setLoanTenureYears(val);
     setBackendSimulation(null);
     setStressMode(false);
-    recalculateFundingStructure(projectCostInput, marginPct, interestRate, val);
+    if (projectCostInput) {
+      recalculateFundingStructure(projectCostInput, marginPct, interestRate, val);
+    }
   };
 
   const handleRateChange = (newRate) => {
@@ -278,23 +391,37 @@ export default function FinancialPlanPage({
     setInterestRate(val);
     setBackendSimulation(null);
     setStressMode(false);
-    recalculateFundingStructure(projectCostInput, marginPct, val, loanTenureYears);
+    if (projectCostInput) {
+      recalculateFundingStructure(projectCostInput, marginPct, val, loanTenureYears);
+    }
   };
 
-  // 3. Authoritative Stress Simulation Engine Call
+  // 3. Authoritative Stress Simulation Engine Call (What-If)
   const runStressTest = async () => {
+    if (!projectCostInput) return;
     setStressMode(true);
     setShowStressTest(true);
     setIsSimulating(true);
 
-    const marginCap = fundingData?.own_margin_capital ?? Math.round((projectCostInput * marginPct) / 100);
+    const marginCap = fundingData?.own_margin_capital ?? (userOwnCapital || Math.round((projectCostInput * marginPct) / 100));
+    const annualSales = savedMonthlyRevenue !== null && savedMonthlyRevenue > 0 ? savedMonthlyRevenue * 12 : 0;
+    const annualCosts = savedMonthlyExpense !== null && savedMonthlyExpense > 0 ? savedMonthlyExpense * 12 : 0;
+
+    if (annualSales <= 0 || annualCosts <= 0) {
+      setIsSimulating(false);
+      setBackendSimulation({
+        isNotice: true,
+        message: 'Monthly revenue and operating expenses must be configured in Business Profile to run What-If stress test.',
+      });
+      return;
+    }
 
     try {
       const response = await feasibilityService.runSimulation({
         baseline_project_cost: projectCostInput,
         baseline_available_margin: marginCap,
-        baseline_sales_annual: projectCostInput * 1.25,
-        baseline_operating_cost_annual: projectCostInput * 0.85,
+        baseline_sales_annual: annualSales,
+        baseline_operating_cost_annual: annualCosts,
         sales_change: -15.0,
         cost_change: 10.0,
       });
@@ -302,6 +429,10 @@ export default function FinancialPlanPage({
       setBackendSimulation(data);
     } catch (err) {
       console.warn('Backend stress simulation notice:', err);
+      setBackendSimulation({
+        isError: true,
+        message: 'Stress simulation service is currently unavailable. Please retry.',
+      });
     } finally {
       setIsSimulating(false);
     }
@@ -312,56 +443,66 @@ export default function FinancialPlanPage({
 
   // Grounded Values Sourced Authoritatively from Backend Funding Structure
   const ownMarginCapital = useMemo(
-    () => fundingData?.own_margin_capital ?? Math.round((projectCostInput * marginPct) / 100),
-    [fundingData, projectCostInput, marginPct]
+    () => (fundingData ? fundingData.own_margin_capital : null),
+    [fundingData]
   );
 
   const loanAmount = useMemo(
-    () => fundingData?.loan_amount ?? Math.max(0, projectCostInput - ownMarginCapital),
-    [fundingData, projectCostInput, ownMarginCapital]
+    () => (fundingData ? fundingData.loan_amount : null),
+    [fundingData]
   );
 
   const monthlyEmi = useMemo(
-    () => fundingData?.monthly_emi ?? 0,
+    () => (fundingData ? fundingData.monthly_emi : null),
     [fundingData]
   );
 
   const totalPayment = useMemo(
-    () => fundingData?.total_payment ?? monthlyEmi * loanTenureYears * 12,
-    [fundingData, monthlyEmi, loanTenureYears]
+    () => (fundingData ? fundingData.total_payment : null),
+    [fundingData]
   );
 
   const totalInterest = useMemo(
-    () => fundingData?.total_interest ?? Math.max(0, totalPayment - loanAmount),
-    [fundingData, totalPayment, loanAmount]
+    () => (fundingData ? fundingData.total_interest : null),
+    [fundingData]
   );
 
-  const estimatedMonthlySurplus = useMemo(
-    () => Math.round((projectCostInput * 0.40) / 12),
-    [projectCostInput]
-  );
+  // Authoritative Monthly Surplus = Saved Monthly Revenue - Saved Monthly Expense
+  const monthlySurplus = useMemo(() => {
+    if (savedMonthlyRevenue !== null && savedMonthlyExpense !== null) {
+      return savedMonthlyRevenue - savedMonthlyExpense;
+    }
+    return null;
+  }, [savedMonthlyRevenue, savedMonthlyExpense]);
 
-  const afterEmi = useMemo(
-    () => Math.max(0, estimatedMonthlySurplus - monthlyEmi),
-    [estimatedMonthlySurplus, monthlyEmi]
-  );
+  // After EMI buffer = Monthly Surplus - Monthly EMI
+  const afterEmi = useMemo(() => {
+    if (monthlySurplus !== null && monthlyEmi !== null) {
+      return monthlySurplus - monthlyEmi;
+    }
+    return null;
+  }, [monthlySurplus, monthlyEmi]);
 
+  // Cash buffer percentage = After EMI / Monthly Surplus
   const cashBufferPct = useMemo(() => {
-    if (estimatedMonthlySurplus <= 0) return 0;
-    return Math.min(100, Math.round((afterEmi / estimatedMonthlySurplus) * 100));
-  }, [afterEmi, estimatedMonthlySurplus]);
+    if (afterEmi === null || monthlySurplus === null || monthlySurplus <= 0) return null;
+    return Math.min(100, Math.round((Math.max(0, afterEmi) / monthlySurplus) * 100));
+  }, [afterEmi, monthlySurplus]);
 
   const costItems = useMemo(
-    () => [
-      { name: 'Plant & Machinery / Equipment', amount: Math.round(projectCostInput * 0.55), pct: 55 },
-      { name: 'Premises & Fitments / Infrastructure', amount: Math.round(projectCostInput * 0.15), pct: 15 },
-      { name: 'Working Capital Requirement', amount: Math.round(projectCostInput * 0.20), pct: 20 },
-      { name: 'Contingency Buffer (10%)', amount: Math.round(projectCostInput * 0.10), pct: 10 },
-    ],
+    () => {
+      if (!projectCostInput) return [];
+      return [
+        { name: 'Plant & Machinery / Equipment', amount: Math.round(projectCostInput * 0.55), pct: 55 },
+        { name: 'Premises & Fitments / Infrastructure', amount: Math.round(projectCostInput * 0.15), pct: 15 },
+        { name: 'Working Capital Requirement', amount: Math.round(projectCostInput * 0.20), pct: 20 },
+        { name: 'Contingency Buffer (10%)', amount: Math.round(projectCostInput * 0.10), pct: 10 },
+      ];
+    },
     [projectCostInput]
   );
 
-  const quarterlyRepayment = useMemo(() => monthlyEmi * 3, [monthlyEmi]);
+  const quarterlyRepayment = useMemo(() => (monthlyEmi !== null ? monthlyEmi * 3 : null), [monthlyEmi]);
   const totalMonths = useMemo(() => loanTenureYears * 12, [loanTenureYears]);
 
   // Authoritative Yearly Repayment Schedule Sourced from Backend
@@ -369,18 +510,16 @@ export default function FinancialPlanPage({
     if (fundingData?.yearly_schedule && fundingData.yearly_schedule.length > 0) {
       return fundingData.yearly_schedule;
     }
-    // Fallback display rows while loading
     return [];
   }, [fundingData]);
 
   // Grounded Stress Monthly Surplus from Backend Simulation
   const stressMonthlySurplus = useMemo(() => {
-    if (backendSimulation?.simulated?.surplus !== undefined) {
+    if (backendSimulation?.simulated?.surplus !== undefined && backendSimulation?.simulated?.surplus !== null) {
       return Math.round(backendSimulation.simulated.surplus / 12);
     }
-    const stressedSurplus = estimatedMonthlySurplus * 0.80 - monthlyEmi * 1.10;
-    return Math.round(stressedSurplus);
-  }, [backendSimulation, estimatedMonthlySurplus, monthlyEmi]);
+    return null;
+  }, [backendSimulation]);
 
   return (
     <div className="w-full bg-[#F7F9F8] pb-12 pt-1 text-[#0F172A]">
@@ -411,7 +550,7 @@ export default function FinancialPlanPage({
               {isEstablished
                 ? 'Cash flow velocity, working capital requirement, debt serviceability, and expansion affordability for '
                 : 'DPR-ready Capex, Margin capital, and Working capital models for '}
-              <strong>{activeBusinessName}</strong> in {activeLocation}.
+              <strong>{activeTradeName}</strong> in {activeLocation}.
             </p>
           </div>
 
@@ -433,10 +572,10 @@ export default function FinancialPlanPage({
             </div>
             <button
               type="button"
-              onClick={() => recalculateFundingStructure(projectCostInput, marginPct, interestRate, loanTenureYears)}
+              onClick={() => projectCostInput && recalculateFundingStructure(projectCostInput, marginPct, interestRate, loanTenureYears)}
               className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 transition cursor-pointer shrink-0"
             >
-              Retry Connection
+              Retry Calculation
             </button>
           </div>
         )}
@@ -446,8 +585,8 @@ export default function FinancialPlanPage({
           <KpiCard
             icon="◔"
             label={isEstablished ? 'Target Financing / Facility' : 'Project Cost'}
-            value={isLoading ? 'Calculating...' : formatINR(projectCostInput)}
-            subtitle={backendCost?.source_authority ? `Source: ${backendCost.source_authority}` : 'Total CapEx + Working Capital'}
+            value={isLoading ? 'Calculating...' : (projectCostInput !== null ? formatINR(projectCostInput) : 'Not configured')}
+            subtitle={projectCostInput !== null ? (costProvenance ? `Source: ${costProvenance}` : 'Total CapEx + Working Capital') : 'Configure in Business Profile'}
             action={
               <SmallAction onClick={() => setShowBreakdown((v) => !v)}>
                 {showBreakdown ? 'Hide' : 'View Breakdown'} <Arrow />
@@ -457,9 +596,13 @@ export default function FinancialPlanPage({
 
           <KpiCard
             icon="♙"
-            label={isEstablished ? 'Promoter Margin Money' : 'Own Margin Capital'}
-            value={isLoading ? 'Calculating...' : formatINR(ownMarginCapital)}
-            subtitle={`${marginPct}% Promoter Equity Contribution`}
+            label={isEstablished ? 'Promoter Margin Money' : 'Promoter Margin Required'}
+            value={isLoading ? 'Calculating...' : (ownMarginCapital !== null ? formatINR(ownMarginCapital) : 'Not available')}
+            subtitle={
+              userOwnCapital !== null
+                ? `Available Equity: ${formatINR(userOwnCapital)} (${marginPct}% Required)`
+                : `${marginPct}% Equity Margin Requirement`
+            }
             accent="amber"
             action={
               <SmallAction tone="amber" onClick={() => setShowMarginReason((v) => !v)}>
@@ -471,8 +614,8 @@ export default function FinancialPlanPage({
           <KpiCard
             icon="▥"
             label={isEstablished ? 'Bank Credit Facility' : 'Maximum Loan Amount'}
-            value={isLoading ? 'Calculating...' : formatINR(loanAmount)}
-            subtitle={isEstablished ? 'Term Loan + Cash Credit OD' : `Subsidized Bank Debt (${loanTenureYears} Years)`}
+            value={isLoading ? 'Calculating...' : (loanAmount !== null ? formatINR(loanAmount) : 'Not available')}
+            subtitle={fundingData ? (isEstablished ? 'Term Loan + Cash Credit OD' : `Subsidized Bank Debt (${loanTenureYears} Years)`) : 'Requires calculation service'}
             accent="purple"
             action={
               <SmallAction tone="green" onClick={() => setShowLoanCalculation((v) => !v)}>
@@ -484,8 +627,8 @@ export default function FinancialPlanPage({
           <KpiCard
             icon="◷"
             label="Estimated Monthly EMI"
-            value={isLoading ? 'Calculating...' : `${formatINR(monthlyEmi)} / mo`}
-            subtitle={`Total Interest: ${formatINR(totalInterest)}`}
+            value={isLoading ? 'Calculating...' : (monthlyEmi !== null ? `${formatINR(monthlyEmi)} / mo` : 'Not available')}
+            subtitle={totalInterest !== null ? `Total Interest: ${formatINR(totalInterest)}` : 'Requires calculation service'}
             action={
               <SmallAction onClick={() => setShowAffordability((v) => !v)}>
                 Affordability <Arrow />
@@ -550,23 +693,29 @@ export default function FinancialPlanPage({
         )}
 
         {/* INDUSTRY-ADAPTIVE BUSINESS INTELLIGENCE SECTION */}
-        <IndustryKpiCard currentProfile={currentProfile} />
+        <SectionErrorBoundary name="Industry Intelligence">
+          <IndustryKpiCard currentProfile={currentProfile} />
+        </SectionErrorBoundary>
 
         {/* SCIKIT-LEARN PREDICTIVE ML INTELLIGENCE SECTION */}
-        <PredictiveMlCard
-          currentProfile={currentProfile}
-          projectCost={projectCostInput}
-          marginPct={marginPct}
-        />
+        <SectionErrorBoundary name="Predictive Risk Model">
+          <PredictiveMlCard
+            currentProfile={currentProfile}
+            projectCost={projectCostInput}
+            marginPct={marginPct}
+          />
+        </SectionErrorBoundary>
 
         {/* CASH-FLOW & LIQUIDITY INTELLIGENCE SECTION */}
-        <CashFlowSection
-          currentProfile={currentProfile}
-          projectCost={projectCostInput}
-          marginPct={marginPct}
-          interestRate={interestRate}
-          loanTenureYears={loanTenureYears}
-        />
+        <SectionErrorBoundary name="Cash-Flow & Liquidity Forecast">
+          <CashFlowSection
+            currentProfile={currentProfile}
+            projectCost={projectCostInput}
+            marginPct={marginPct}
+            interestRate={interestRate}
+            loanTenureYears={loanTenureYears}
+          />
+        </SectionErrorBoundary>
 
         {/* MAIN SIMULATOR */}
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-12 items-stretch">
@@ -596,9 +745,9 @@ export default function FinancialPlanPage({
             <div className="mt-6 space-y-5">
               <SliderRow
                 label="Total Project Cost"
-                value={projectCostInput}
+                value={projectCostInput ?? 0}
                 displayValue={formatINR(projectCostInput)}
-                min={200000}
+                min={100000}
                 max={5000000}
                 step={50000}
                 disabled={isLoading}
@@ -668,7 +817,7 @@ export default function FinancialPlanPage({
                   <p className="text-[9px] font-bold uppercase tracking-wider text-[#83928A]">
                     Monthly EMI
                   </p>
-                  <p className="mt-1 text-xs font-black">{formatINR(monthlyEmi)} / mo</p>
+                  <p className="mt-1 text-xs font-black">{monthlyEmi !== null ? `${formatINR(monthlyEmi)} / mo` : 'Not available'}</p>
                 </div>
 
                 <div className="border-r border-[#DCE6E1] px-2 last:border-r-0">
@@ -683,7 +832,7 @@ export default function FinancialPlanPage({
                     Buffer Risk
                   </p>
                   <p className="mt-1 text-xs font-black text-[#1D4ED8]">
-                    {cashBufferPct >= 55 ? 'LOW' : cashBufferPct >= 30 ? 'MEDIUM' : 'HIGH'}
+                    {cashBufferPct === null ? 'Unavailable' : (cashBufferPct >= 55 ? 'LOW' : cashBufferPct >= 30 ? 'MEDIUM' : 'HIGH')}
                   </p>
                 </div>
               </div>
@@ -772,7 +921,7 @@ export default function FinancialPlanPage({
 
               <div className="flex items-center justify-between rounded-xl bg-[#F7FAF8] px-3 py-2.5">
                 <span className="text-xs font-bold text-[#4D5D54]">Monthly EMI</span>
-                <span className="text-xs font-black">{formatINR(monthlyEmi)} / month</span>
+                <span className="text-xs font-black">{monthlyEmi !== null ? `${formatINR(monthlyEmi)} / month` : 'Not available'}</span>
               </div>
             </div>
 
@@ -799,18 +948,20 @@ export default function FinancialPlanPage({
 
             <div className="mt-4 space-y-2.5 text-xs">
               <div className="flex justify-between border-b border-[#EEF1EF] pb-2.5">
-                <span className="font-semibold text-[#5F7066]">Monthly Surplus (Est.)</span>
-                <strong>{formatINR(estimatedMonthlySurplus)}</strong>
+                <span className="font-semibold text-[#5F7066]">Monthly Surplus (Saved)</span>
+                <strong>{monthlySurplus !== null ? formatINR(monthlySurplus) : 'Profile Unset'}</strong>
               </div>
 
               <div className="flex justify-between border-b border-[#EEF1EF] pb-2.5">
                 <span className="font-semibold text-[#5F7066]">Estimated EMI</span>
-                <strong>{formatINR(monthlyEmi)}</strong>
+                <strong>{monthlyEmi !== null ? formatINR(monthlyEmi) : 'Not available'}</strong>
               </div>
 
               <div className="flex justify-between">
-                <span className="font-semibold text-[#5F7066]">After EMI</span>
-                <strong>{formatINR(afterEmi)}</strong>
+                <span className="font-semibold text-[#5F7066]">After EMI Buffer</span>
+                <strong className={afterEmi !== null && afterEmi < 0 ? 'text-rose-600' : ''}>
+                  {afterEmi !== null ? formatINR(afterEmi) : 'Not available'}
+                </strong>
               </div>
             </div>
 
@@ -819,19 +970,25 @@ export default function FinancialPlanPage({
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#789086]">
                   Cash Buffer
                 </p>
-                <p className="mt-0.5 text-sm font-black text-[#1D4ED8]">{cashBufferPct}%</p>
+                <p className="mt-0.5 text-sm font-black text-[#1D4ED8]">
+                  {cashBufferPct !== null ? `${cashBufferPct}%` : 'Unavailable'}
+                </p>
               </div>
 
               <span
                 className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
-                  cashBufferPct >= 55
-                    ? 'bg-[#DDF5E9] text-[#1D4ED8]'
-                    : cashBufferPct >= 30
-                    ? 'bg-[#FFF2D3] text-[#B5790C]'
-                    : 'bg-[#FFE8E8] text-[#C44242]'
+                  cashBufferPct !== null
+                    ? (cashBufferPct >= 55
+                        ? 'bg-[#DDF5E9] text-[#1D4ED8]'
+                        : cashBufferPct >= 30
+                        ? 'bg-[#FFF2D3] text-[#B5790C]'
+                        : 'bg-[#FFE8E8] text-[#C44242]')
+                    : 'bg-slate-100 text-slate-600'
                 }`}
               >
-                {cashBufferPct >= 55 ? 'Healthy' : cashBufferPct >= 30 ? 'Watch' : 'Tight'}
+                {cashBufferPct !== null
+                  ? (cashBufferPct >= 55 ? 'Healthy' : cashBufferPct >= 30 ? 'Watch' : 'Tight')
+                  : 'Pending'}
               </span>
             </div>
 
@@ -874,31 +1031,47 @@ export default function FinancialPlanPage({
 
             {stressMode && (
               <div className="mt-4 rounded-xl border border-[#E4D9F8] bg-[#F9F6FF] p-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-extrabold text-[#6C5A8A]">
-                    Stressed Monthly Surplus
-                  </span>
-                  <strong className="text-xs text-[#493A62]">
-                    {formatINR(stressMonthlySurplus)}
-                  </strong>
-                </div>
-                {backendSimulation?.simulated?.risk && (
-                  <p className="mt-1 text-[10px] font-bold text-[#6C49BC]">
-                    Evaluated Risk Level: {backendSimulation.simulated.risk}
+                {backendSimulation?.isNotice ? (
+                  <p className="text-[11px] font-bold text-amber-700">
+                    {backendSimulation.message}
+                  </p>
+                ) : backendSimulation?.isError ? (
+                  <p className="text-[11px] font-bold text-rose-700">
+                    {backendSimulation.message}
+                  </p>
+                ) : stressMonthlySurplus !== null ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold text-[#6C5A8A]">
+                        Stressed Monthly Surplus
+                      </span>
+                      <strong className={`text-xs ${stressMonthlySurplus < 0 ? 'text-rose-600' : 'text-[#493A62]'}`}>
+                        {formatINR(stressMonthlySurplus)}
+                      </strong>
+                    </div>
+                    {backendSimulation?.simulated?.risk && (
+                      <p className="mt-1 text-[10px] font-bold text-[#6C49BC]">
+                        Evaluated Risk Level: {backendSimulation.simulated.risk}
+                      </p>
+                    )}
+                    <p className="mt-1 text-[10px] leading-4 text-[#756B82]">
+                      {stressMonthlySurplus > 0
+                        ? 'The scenario remains serviceable under simulated stress, but repayment buffer tightens.'
+                        : 'The scenario creates funding stress. Consider increasing margin capital before applying.'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[11px] font-bold text-slate-600">
+                    Simulation result unavailable. Please retry.
                   </p>
                 )}
-                <p className="mt-1 text-[10px] leading-4 text-[#756B82]">
-                  {stressMonthlySurplus > 0
-                    ? 'The scenario remains serviceable under simulated stress, but repayment buffer tightens.'
-                    : 'The scenario creates funding stress. Consider increasing margin capital before applying.'}
-                </p>
               </div>
             )}
 
             <button
               type="button"
               onClick={runStressTest}
-              disabled={isSimulating || isLoading}
+              disabled={isSimulating || isLoading || !projectCostInput}
               className="mt-3 w-full rounded-xl border border-[#E4D9F8] bg-[#FAF7FF] py-2.5 text-xs font-extrabold text-[#6C49BC] transition hover:bg-[#F5EEFF] disabled:opacity-40 cursor-pointer"
             >
               {isSimulating ? 'Simulating...' : stressMode ? 'Re-run Stress Test' : 'Run Stress Test'} <Arrow />

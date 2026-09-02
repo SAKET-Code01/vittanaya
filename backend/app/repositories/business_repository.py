@@ -20,6 +20,10 @@ class BusinessRepository:
     def get_by_owner(self, owner_id: int) -> Sequence[Business]:
         return self.db.query(Business).filter(Business.owner_id == owner_id).all()
 
+    def list_all(self, limit: int = 50) -> Sequence[Business]:
+        """Return all businesses ordered by creation date (most recent first)."""
+        return self.db.query(Business).order_by(Business.created_at.desc()).limit(limit).all()
+
     def create(self, data: BusinessCreate) -> Business:
         business = Business(
             owner_id=data.owner_id or 1,
@@ -45,6 +49,17 @@ class BusinessRepository:
             status=data.status or "active",
             monthly_revenue_estimate=data.monthly_revenue_estimate or 0.00,
             monthly_expense_estimate=data.monthly_expense_estimate or 0.00,
+            # Identity & Compliance
+            owner_name=data.owner_name,
+            gstin=data.gstin,
+            pan=data.pan,
+            udyam_registration=data.udyam_registration,
+            legal_structure=data.legal_structure,
+            financial_year=data.financial_year,
+            tax_regime=data.tax_regime,
+            business_since=data.business_since,
+            registered_address=data.registered_address,
+            notes=data.notes,
         )
         self.db.add(business)
         self.db.commit()

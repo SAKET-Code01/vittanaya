@@ -9,11 +9,13 @@ strict provenance hierarchy:
 Never invent project costs.
 """
 
+import re
 from typing import Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.app.models.business import Business
 from backend.app.models.insights import ProjectCostReference
 from backend.app.schemas.insights import ProjectCostResponse, TraceabilityMetadata
 
@@ -36,30 +38,128 @@ class ProjectCostEngine:
         business_category: Optional[str] = None,
         location: str = "Odisha",
         scale: Optional[str] = None,
+        business_name: Optional[str] = None,
+        business_id: Optional[int] = None,
     ) -> ProjectCostResponse:
         """Lookup project cost from official reference database using strict priority rules."""
         query = self.db.query(ProjectCostReference)
 
+        # Step 0: Disambiguate trade name vs business activity
+        db_biz = None
+        if business_id:
+            db_biz = self.db.query(Business).filter(Business.id == business_id).first()
+        elif business_activity:
+            db_biz = self.db.query(Business).filter(Business.name.ilike(business_activity.strip())).first()
+
+        if db_biz:
+            if not business_category or business_category.lower() in ("general", "retail"):
+                business_category = db_biz.category or db_biz.type or business_category
+            if (
+                not business_activity
+                or business_activity.strip().lower() == db_biz.name.strip().lower()
+                or business_activity.strip().lower() in ("general enterprise", "enterprise", "retail")
+            ):
+                business_activity = db_biz.industry or db_biz.category or business_activity
+
+        clean_activity = business_activity.strip()
+        all_refs = query.all()
+        match = None
+
         # Step 1: Search exact activity match
         exact_matches = query.filter(
-            ProjectCostReference.business_activity.ilike(business_activity.strip())
+            ProjectCostReference.business_activity.ilike(clean_activity)
         ).all()
-
         match = self._pick_best_match(exact_matches, scale)
 
-        # Step 2: Partial activity match
+        # Step 2: Partial activity match (bidirectional substring)
         if not match:
             partial_matches = query.filter(
-                ProjectCostReference.business_activity.ilike(f"%{business_activity.strip()}%")
+                ProjectCostReference.business_activity.ilike(f"%{clean_activity}%")
             ).all()
             match = self._pick_best_match(partial_matches, scale)
 
-        # Step 3: Category match fallback if category provided
+        if not match:
+            reverse_matches = [
+                ref for ref in all_refs
+                if len(ref.business_activity) >= 4 and ref.business_activity.lower() in clean_activity.lower()
+            ]
+            match = self._pick_best_match(reverse_matches, scale)
+
+        # Step 3: Meaningful token matching on activity
+        if not match:
+            stop_words = {
+                "mills", "unit", "agro", "enterprise", "enterprises", "pvt", "ltd",
+                "production", "works", "services", "center", "centre", "trading", "retail",
+            }
+            tokens = [
+                t.lower()
+                for t in re.findall(r"[a-zA-Z]{4,}", clean_activity)
+                if t.lower() not in stop_words
+            ]
+            for t in tokens:
+                token_matches = [
+                    ref for ref in all_refs
+                    if t in ref.business_activity.lower() or t in (ref.category or "").lower()
+                ]
+                match = self._pick_best_match(token_matches, scale)
+                if match:
+                    break
+
+        # Step 4: Category match fallback (including delimited tokens)
         if not match and business_category:
             category_matches = query.filter(
                 ProjectCostReference.category.ilike(f"%{business_category.strip()}%")
             ).all()
             match = self._pick_best_match(category_matches, scale)
+
+            if not match:
+                cat_tokens = [
+                    t.lower()
+                    for t in re.findall(r"[a-zA-Z]{4,}", business_category)
+                    if t.lower() not in stop_words
+                ]
+                for ct in cat_tokens:
+                    cat_token_matches = [
+                        ref for ref in all_refs
+                        if ct in (ref.category or "").lower() or ct in ref.business_activity.lower()
+                    ]
+                    match = self._pick_best_match(cat_token_matches, scale)
+                    if match:
+                        break
+
+        # Step 5: User-saved baseline project cost if business has an authoritative saved baseline
+        if not match and db_biz and db_biz.project_cost and float(db_biz.project_cost) > 0:
+            saved_cost = float(db_biz.project_cost)
+            traceability = TraceabilityMetadata(
+                input={
+                    "business_activity": business_activity,
+                    "business_category": business_category,
+                    "location": location,
+                    "scale": scale,
+                    "business_id": db_biz.id,
+                },
+                calculation_rule=(
+                    f"Saved baseline project cost retrieved directly from verified database profile for '{db_biz.name}' (ID {db_biz.id})."
+                ),
+                source_authority="User Enterprise Profile Baseline",
+                source_year=str(db_biz.financial_year or "2026"),
+                provenance_priority="USER_PROFILE_BASELINE",
+                official_source_url=None,
+            )
+            return ProjectCostResponse(
+                indicative_project_cost=saved_cost,
+                reference_cost_min_inr=saved_cost,
+                reference_cost_max_inr=saved_cost,
+                scale_or_specification=f"{db_biz.stage.capitalize() if db_biz.stage else 'Micro'} Unit",
+                unit="Unit",
+                cost_basis="Saved verified enterprise baseline project cost",
+                source_authority="User Enterprise Profile Baseline",
+                source_year=str(db_biz.financial_year or "2026"),
+                provenance_priority="USER_PROFILE_BASELINE",
+                official_source_url=None,
+                notes="Grounded on saved business profile",
+                traceability=traceability,
+            )
 
         # If still no match, raise error (Never invent costs)
         if not match:

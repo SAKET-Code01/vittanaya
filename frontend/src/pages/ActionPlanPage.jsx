@@ -1543,23 +1543,23 @@ export default function ActionPlanPage({
                       <h3 className="mt-0.5 text-sm font-black text-[#17241D]">Launch Preparedness</h3>
                     </div>
                   </div>
-                  <span className="text-[10px] font-black text-[#4778C8]">72 / 100</span>
+                  <span className="text-[10px] font-black text-[#4778C8]">{progressPct} / 100</span>
                 </div>
 
                 <div className="mt-5 rounded-[20px] border border-[#DDE7F4] bg-gradient-to-br from-[#F5F9FF] via-white to-[#FAFCFF] p-5">
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-4xl font-black tracking-[-0.05em] text-[#263E59]">72</p>
+                      <p className="text-4xl font-black tracking-[-0.05em] text-[#263E59]">{progressPct}</p>
                       <p className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-[#82909D]">Readiness Score</p>
                     </div>
                     <div className="rounded-xl bg-white px-3 py-2 text-right shadow-sm">
                       <p className="text-[9px] font-bold text-[#84919B]">Status</p>
-                      <p className="mt-0.5 text-[10px] font-black text-blue-700">Good Progress</p>
+                      <p className="mt-0.5 text-[10px] font-black text-blue-700">{progressPct >= 75 ? 'Ready for Review' : progressPct >= 50 ? 'Good Progress' : 'Initial Setup'}</p>
                     </div>
                   </div>
                   <div className="mt-5">
-                    <div className="mb-2 flex justify-between text-[9px] font-bold text-[#839099]"><span>Current readiness</span><span>72%</span></div>
-                    <div className="h-2 overflow-hidden rounded-full bg-[#E9EFF3]"><div className="h-full rounded-full bg-gradient-to-r from-[#4D78C6] to-[#79A3E4] transition-all duration-700" style={{ width: '72%' }} /></div>
+                    <div className="mb-2 flex justify-between text-[9px] font-bold text-[#839099]"><span>Current readiness</span><span>{progressPct}%</span></div>
+                    <div className="h-2 overflow-hidden rounded-full bg-[#E9EFF3]"><div className="h-full rounded-full bg-gradient-to-r from-[#4D78C6] to-[#79A3E4] transition-all duration-700" style={{ width: `${progressPct}%` }} /></div>
                   </div>
                 </div>
 

@@ -29,6 +29,8 @@ class ProjectCostRequest(BaseModel):
     business_category: Optional[str] = Field(None, json_schema_extra={"example": "Poultry"})
     location: str = Field("Odisha", json_schema_extra={"example": "Sundargarh, Odisha"})
     scale: Optional[str] = Field(None, json_schema_extra={"example": "1000 birds"})
+    business_name: Optional[str] = Field(None, json_schema_extra={"example": "Maa Tarini Agro Mills"})
+    business_id: Optional[int] = Field(None, json_schema_extra={"example": 7})
 
 
 class ProjectCostResponse(BaseModel):
@@ -61,6 +63,8 @@ class FinancialAnalysisRequest(BaseModel):
     specific_business: str = Field(..., json_schema_extra={"example": "Commercial Broiler Farming"})
     location: str = Field("Odisha", json_schema_extra={"example": "Sundargarh, Odisha"})
     scale: Optional[str] = Field(None, json_schema_extra={"example": "1000 birds"})
+    business_id: Optional[int] = Field(None, json_schema_extra={"example": 7})
+    business_name: Optional[str] = Field(None, json_schema_extra={"example": "Maa Tarini Agro Mills"})
 
 
 class FinancialAnalysisResponse(BaseModel):
@@ -95,6 +99,8 @@ class SchemeMatchRequest(BaseModel):
         "General", json_schema_extra={"example": "General / SC / ST / OBC / Women"}
     )
     area_type: str = Field("Rural", json_schema_extra={"example": "Rural / Urban"})
+    business_id: Optional[int] = Field(None, json_schema_extra={"example": 7})
+    business_name: Optional[str] = Field(None, json_schema_extra={"example": "Maa Tarini Agro Mills"})
 
 
 class MatchedScheme(BaseModel):
@@ -146,6 +152,8 @@ class FeasibilityRequest(BaseModel):
     specific_business: str = Field(..., json_schema_extra={"example": "Commercial Broiler Farming"})
     location: str = Field("Odisha", json_schema_extra={"example": "Sundargarh, Odisha"})
     scale: Optional[str] = Field(None, json_schema_extra={"example": "1000 birds"})
+    business_id: Optional[int] = Field(None, json_schema_extra={"example": 7})
+    business_name: Optional[str] = Field(None, json_schema_extra={"example": "Maa Tarini Agro Mills"})
 
 
 class SWOTAnalysis(BaseModel):
@@ -192,6 +200,8 @@ class RiskAnalysisRequest(BaseModel):
     financing_requirement: float = Field(..., ge=0, json_schema_extra={"example": 582000.0})
     location: str = Field("Odisha", json_schema_extra={"example": "Sundargarh, Odisha"})
     seasonality_factor: Optional[str] = Field(None)
+    business_id: Optional[int] = Field(None, json_schema_extra={"example": 7})
+    business_name: Optional[str] = Field(None, json_schema_extra={"example": "Maa Tarini Agro Mills"})
 
 
 class RiskFactorDetail(BaseModel):
@@ -316,6 +326,9 @@ class UnifiedInsightsRequest(BaseModel):
             }
         },
     )
+    business_id: Optional[int] = Field(None, json_schema_extra={"example": 7})
+    business_activity: Optional[str] = Field(None, json_schema_extra={"example": "Dairy Cattle Milk Production & Chilling"})
+    business_name: Optional[str] = Field(None, json_schema_extra={"example": "Maa Tarini Agro Mills"})
 
 
 class UnifiedInsightsResponse(BaseModel):

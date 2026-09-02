@@ -26,6 +26,7 @@ class FinancialEngine:
         specific_business: str,
         location: str = "Odisha",
         scale: Optional[str] = None,
+        business_id: Optional[int] = None,
     ) -> FinancialAnalysisResponse:
         """Calculate indicative project cost, financing requirement, and margin sufficiency."""
         # Retrieve indicative project cost
@@ -34,6 +35,7 @@ class FinancialEngine:
             business_category=business_category,
             location=location,
             scale=scale,
+            business_id=business_id,
         )
 
         indicative_cost = cost_res.indicative_project_cost

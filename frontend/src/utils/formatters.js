@@ -6,7 +6,10 @@
  * Formats a numeric value into standard Indian Rupee notation (e.g. ₹14,85,000 or ₹14.85 Lakh).
  */
 export const formatINR = (amount, compact = false) => {
-  const num = Number(amount) || 0;
+  if (amount === null || amount === undefined || amount === '' || isNaN(Number(amount))) {
+    return 'Not available';
+  }
+  const num = Number(amount);
   if (compact) {
     if (Math.abs(num) >= 10000000) {
       return `₹${(num / 10000000).toFixed(2)} Cr`;

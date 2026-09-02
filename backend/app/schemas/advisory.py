@@ -1,6 +1,6 @@
 """Pydantic validation schemas for Ask VITTANAYA Chatbot backend API."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -17,7 +17,7 @@ class ChatMessage(BaseModel):
 class BusinessContextInput(BaseModel):
     """Structured business profile context for grounded advisory context building."""
 
-    business_id: Optional[str] = Field(None, description="Optional DB business UUID")
+    business_id: Optional[Union[str, int]] = Field(None, description="Optional DB business ID")
     business_category: Optional[str] = Field(None, description="Industry sector or category")
     specific_business: Optional[str] = Field(None, description="Specific business activity/name")
     location: Optional[str] = Field(None, description="District and state location")
@@ -31,7 +31,7 @@ class ChatRequest(BaseModel):
     """Payload for POST /api/v1/advisory/chat endpoint."""
 
     message: str = Field(..., min_length=1, json_schema_extra={"example": "Can I afford this business?"})
-    business_id: Optional[str] = Field(None, description="Optional UUID of active user business")
+    business_id: Optional[Union[str, int]] = Field(None, description="Optional ID of active user business")
     language: str = Field("English", json_schema_extra={"example": "English"})
     business_context: Optional[BusinessContextInput] = Field(default=None, description="Optional business context")
     history: List[ChatMessage] = Field(default_factory=list, description="Recent conversation turns")

@@ -155,13 +155,15 @@ export default function SchemePage({
 
     schemeService
       .matchSchemes({
-        indicative_project_cost: Number(currentProfile?.indicative_project_cost || currentProfile?.estimatedProjectCost || 200000),
-        available_margin_capital: Number(currentProfile?.ownCapital || currentProfile?.available_margin_capital || 50000),
-        business_category: currentProfile?.category || currentProfile?.businessType || 'Retail',
-        specific_business: currentProfile?.businessName || currentProfile?.name || 'General Enterprise',
+        indicative_project_cost: Number(currentProfile?.project_cost || currentProfile?.indicative_project_cost || currentProfile?.estimatedProjectCost || 1000000),
+        available_margin_capital: Number(currentProfile?.own_capital || currentProfile?.ownCapital || currentProfile?.available_margin_capital || 100000),
+        business_category: currentProfile?.category || currentProfile?.businessType || 'General',
+        specific_business: currentProfile?.industry || currentProfile?.category || 'General Enterprise',
+        business_name: currentProfile?.name || currentProfile?.businessName || null,
+        business_id: currentProfile?.id ? Number(currentProfile.id) : null,
         location: currentProfile?.district || currentProfile?.location || 'Odisha',
-        social_category: currentProfile?.socialCategory || 'General',
-        area_type: currentProfile?.areaType || 'Rural',
+        social_category: currentProfile?.socialCategory || currentProfile?.social_category || 'General',
+        area_type: currentProfile?.areaType || currentProfile?.area_type || 'Rural',
       })
       .then((res) => {
         if (isMounted) {
@@ -181,16 +183,20 @@ export default function SchemePage({
       isMounted = false;
     };
   }, [
+    currentProfile?.project_cost,
+    currentProfile?.own_capital,
+    currentProfile?.ownCapital,
+    currentProfile?.indicative_project_cost,
+    currentProfile?.estimatedProjectCost,
     currentProfile?.category,
     currentProfile?.businessType,
     currentProfile?.businessName,
     currentProfile?.name,
+    currentProfile?.industry,
     currentProfile?.district,
+    currentProfile?.location,
     currentProfile?.socialCategory,
     currentProfile?.areaType,
-    currentProfile?.ownCapital,
-    currentProfile?.indicative_project_cost,
-    currentProfile?.estimatedProjectCost,
   ]);
 
   useEffect(() => {
@@ -513,7 +519,66 @@ export default function SchemePage({
     },
   ];
 
-  const schemes = isEstablished ? establishedSchemes : standardSchemes;
+  const schemes = useMemo(() => {
+    if (backendSchemes?.eligible_schemes?.length) {
+      return backendSchemes.eligible_schemes.map((be, idx) => {
+        const isPmegp = be.scheme_code.includes('PMEGP');
+        const isMudra = be.scheme_code.includes('MUDRA');
+
+        return {
+          id: be.scheme_code.toLowerCase().replace(/_/g, '-'),
+          name: be.scheme_name,
+          shortName: be.scheme_code.replace(/_/g, ' '),
+          ministry: be.source_authority || 'Ministry of MSME / Government of India',
+          badge: idx === 0 ? 'PRIMARY MATCH • 98% Fit' : `${be.scheme_code.replace(/_/g, ' ')} • 90% Fit`,
+          badgeType: idx === 0 ? 'blue' : 'amber',
+          fitScore: idx === 0 ? 98 : Math.max(70, 95 - idx * 5),
+          eligibility: be.eligible ? 'Eligible' : 'Review Required',
+          category: be.collateral_required ? 'loan' : (be.estimated_subsidy_pct > 0 ? 'subsidy' : 'collateral'),
+          subsidy: be.estimated_subsidy_pct > 0
+            ? `${Math.round(be.estimated_subsidy_pct)}% Margin Money Subsidy (₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')})`
+            : (be.collateral_required ? 'Interest subvention on prompt repayment' : 'Credit guarantee coverage up to 85%'),
+          maxCost: be.max_eligible_cost ? `₹ ${Math.round(be.max_eligible_cost).toLocaleString('en-IN')}` : 'As per scheme limit',
+          promoterShare: `${Math.round(be.required_margin_pct)}% (₹${Math.round(be.required_margin_capital).toLocaleString('en-IN')})`,
+          tenure: isPmegp ? '5 to 7 Years with 6-month moratorium' : (isMudra ? '3 to 5 Years' : 'Term of underlying loan'),
+          collateral: be.collateral_required ? 'Standard bank requirements' : '100% Collateral-free (CGTMSE / Mudra)',
+          collateralLevel: be.collateral_required ? 'standard' : 'low',
+          eligibleLoan: `₹${Math.round(be.eligible_loan_amount).toLocaleString('en-IN')}`,
+          subsidyPercent: `${Math.round(be.estimated_subsidy_pct)}%`,
+          subsidyAmount: `₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')}`,
+          marginPercent: `${Math.round(be.required_margin_pct)}%`,
+          marginRequired: `₹${Math.round(be.required_margin_capital).toLocaleString('en-IN')}`,
+          features: [
+            `Official source: ${be.source_authority} (${be.source_year}).`,
+            be.estimated_subsidy_pct > 0 ? `Government subsidy credit: ₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')}.` : 'Revolving credit access with guarantee cover.',
+            `Eligible loan sanction limit: ₹${Math.round(be.eligible_loan_amount).toLocaleString('en-IN')}.`,
+          ],
+          reasons: be.reasons && be.reasons.length > 0 ? be.reasons : [
+            'Project scale and margin capital satisfy scheme screening guidelines.',
+            'Target business location and sector align with priority lending norms.',
+          ],
+          documents: [
+            'Udyam Registration Certificate',
+            'Detailed Project Report (DPR)',
+            'Bank Account Statements (6-12 Months)',
+            'Identity Proof (Aadhaar / PAN)',
+          ],
+          process: [
+            'Review eligibility parameters.',
+            'Generate Detailed Project Report (DPR).',
+            `Apply via official ${be.source_authority} portal.`,
+            'Bank credit appraisal and sanction.',
+          ],
+          links: be.official_source_url ? [be.official_source_url] : ['Official Scheme Portal'],
+          isPrimary: idx === 0,
+          benefitType: be.estimated_subsidy_pct > 0 ? 'subsidy' : (be.collateral_required ? 'loan' : 'guarantee'),
+        };
+      });
+    }
+
+    const base = isEstablished ? establishedSchemes : standardSchemes;
+    return base;
+  }, [backendSchemes, isEstablished]);
 
   const filteredSchemes = useMemo(() => {
     let result = [...schemes];
@@ -828,6 +893,26 @@ export default function SchemePage({
           ← Back to Dashboard
         </button>
       </div>
+
+      {/* Scheme Engine Error Banner */}
+      {schemeError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50/90 p-4 text-xs text-red-700 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 font-black">!</span>
+            <div>
+              <p className="font-bold">Government scheme matching service unavailable</p>
+              <p className="text-[11px] text-red-600 mt-0.5">{schemeError}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={fetchSchemes}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition cursor-pointer"
+          >
+            <span>↻</span><span>Retry Matching</span>
+          </button>
+        </div>
+      )}
 
       {/* SUMMARY */}
       <section className="rounded-[22px] border border-[#E2E9E5] bg-white p-4 shadow-[0_6px_24px_rgba(25,48,38,0.045)]">

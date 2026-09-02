@@ -413,3 +413,152 @@ def test_business_switching_isolation(client: TestClient, db_session: Session):
     assert "Sundargarh" in data_a["answer"] or "Poultry" in data_a["answer"] or "Broiler" in data_a["answer"]
     assert "Balasore" in data_b["answer"] or "Fisheries" in data_b["answer"] or "Fish" in data_b["answer"]
     assert data_a["answer"] != data_b["answer"]
+
+
+def test_chat_profile_identity_and_revenue_intents(client: TestClient, db_session: Session, sample_user):
+    """16. Verify intent recognition for profile identity and revenue/expense queries."""
+    biz = Business(
+        owner_id=sample_user.id,
+        name="Maa Tarini Agro Mills",
+        type="manufacturing",
+        industry="Dairy Cattle Milk Production & Chilling",
+        category="Dairy & Livestock",
+        stage="established",
+        project_cost=1000000.0,
+        own_capital=100000.0,
+        monthly_revenue_estimate=85000.0,
+        monthly_expense_estimate=52000.0,
+        location_district="Sundargarh",
+        location_state="Odisha",
+    )
+    db_session.add(biz)
+    db_session.commit()
+    db_session.refresh(biz)
+
+    # 1. Identity query: "What is my business?"
+    res1 = client.post(
+        "/api/v1/advisory/chat",
+        json={"message": "What is my business?", "business_id": biz.id},
+    )
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert data1["intent"] == "PROFILE_IDENTITY"
+    assert "Maa Tarini Agro Mills" in data1["answer"]
+    assert "Dairy Cattle Milk Production & Chilling" in data1["answer"]
+
+    # 2. Business name query: "What is my business name?"
+    res2 = client.post(
+        "/api/v1/advisory/chat",
+        json={"message": "What is my business name?", "business_id": str(biz.id)},
+    )
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["intent"] == "PROFILE_IDENTITY"
+    assert "Maa Tarini Agro Mills" in data2["answer"]
+
+    # 3. Revenue query: "What is my monthly revenue?"
+    res3 = client.post(
+        "/api/v1/advisory/chat",
+        json={"message": "What is my monthly revenue?", "business_id": biz.id},
+    )
+    assert res3.status_code == 200
+    data3 = res3.json()
+    assert data3["intent"] == "REVENUE_EXPENSE"
+    assert "85,000" in data3["answer"]
+    assert "52,000" in data3["answer"]
+
+    # 4. Expenses query: "What are my monthly expenses?"
+    res4 = client.post(
+        "/api/v1/advisory/chat",
+        json={"message": "What are my monthly expenses?", "business_id": biz.id},
+    )
+    assert res4.status_code == 200
+    data4 = res4.json()
+    assert data4["intent"] == "REVENUE_EXPENSE"
+    assert "52,000" in data4["answer"]
+
+
+def test_chat_trade_name_vs_activity_disambiguation(client: TestClient, db_session: Session, sample_user):
+    """17. Verify trade name does not get confused for industry benchmark in chat key facts."""
+    biz = Business(
+        owner_id=sample_user.id,
+        name="Maa Tarini Agro Mills",
+        type="manufacturing",
+        industry="Dairy Cattle Milk Production & Chilling",
+        category="Dairy & Livestock",
+        stage="established",
+        project_cost=1000000.0,
+        own_capital=100000.0,
+        location_district="Sundargarh",
+        location_state="Odisha",
+    )
+    db_session.add(biz)
+    db_session.commit()
+    db_session.refresh(biz)
+
+    res = client.post(
+        "/api/v1/advisory/chat",
+        json={
+            "message": "Hello, give me an overview",
+            "business_id": biz.id,
+            "business_context": {
+                "specific_business": "Maa Tarini Agro Mills",  # Pass trade name as specific_business
+            },
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    # Check key facts: Business Name should be Maa Tarini Agro Mills, Business Activity should be Dairy Cattle...
+    facts_dict = {f["label"]: f["value"] for f in data["key_facts"]}
+    assert facts_dict.get("Business Name") == "Maa Tarini Agro Mills"
+    assert facts_dict.get("Business Activity") == "Dairy Cattle Milk Production & Chilling"
+
+
+def test_all_14_mandatory_ask_vittanaya_questions(client: TestClient, db_session: Session, sample_user):
+    """18. Test all 14 mandatory Ask VITTANAYA test questions from Phase 20."""
+    biz = Business(
+        owner_id=sample_user.id,
+        name="Maa Tarini Agro Mills",
+        type="manufacturing",
+        industry="Dairy Cattle Milk Production & Chilling",
+        category="Dairy & Livestock",
+        stage="established",
+        project_cost=1000000.0,
+        own_capital=100000.0,
+        monthly_revenue_estimate=85000.0,
+        monthly_expense_estimate=52000.0,
+        location_district="Sundargarh",
+        location_state="Odisha",
+    )
+    db_session.add(biz)
+    db_session.commit()
+    db_session.refresh(biz)
+
+    questions = [
+        ("What is my business?", "PROFILE_IDENTITY"),
+        ("What is my business name?", "PROFILE_IDENTITY"),
+        ("What is my monthly revenue?", "REVENUE_EXPENSE"),
+        ("What are my monthly expenses?", "REVENUE_EXPENSE"),
+        ("Is my business feasible?", "FEASIBILITY"),
+        ("Why?", "EXPLANATION"),
+        ("What is my EMI?", "FINANCIAL"),
+        ("What loan can I afford?", "FINANCIAL"),
+        ("Will I have enough cash?", "CASH_FLOW"),
+        ("What is my biggest risk?", "RISK"),
+        ("Which government scheme is suitable?", "SCHEME"),
+        ("What happens if sales fall 15%?", "WHAT_IF"),
+        ("What does the predictive model say?", "PREDICTIVE_ML"),
+        ("What should I improve first?", "ACTION"),
+    ]
+
+    for question, expected_intent in questions:
+        res = client.post(
+            "/api/v1/advisory/chat",
+            json={"message": question, "business_id": biz.id},
+        )
+        assert res.status_code == 200, f"Question '{question}' returned status {res.status_code}"
+        data = res.json()
+        assert data["intent"] == expected_intent, f"Question '{question}' expected intent {expected_intent}, got {data['intent']}"
+        assert data["answer"] and len(data["answer"]) > 10, f"Empty answer for '{question}'"
+        assert data["confidence"] in ("HIGH", "MEDIUM", "LOW")
+        assert len(data["key_facts"]) > 0, f"Missing key facts for '{question}'"

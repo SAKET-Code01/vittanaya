@@ -46,6 +46,18 @@ class Business(Base):
     email = Column(String(120), nullable=True)
     description = Column(Text, nullable=True)
 
+    # Business Identity & Compliance fields (collected by EditBusinessInfoModal)
+    owner_name = Column(String(150), nullable=True)  # Owner / Contact Name
+    gstin = Column(String(20), nullable=True)  # GST Identification Number
+    pan = Column(String(10), nullable=True)  # Permanent Account Number
+    udyam_registration = Column(String(50), nullable=True)  # Udyam / MSME Registration No.
+    legal_structure = Column(String(50), nullable=True)  # e.g., 'Proprietorship', 'Partnership'
+    financial_year = Column(String(30), nullable=True)  # e.g., 'April - March'
+    tax_regime = Column(String(30), nullable=True)  # e.g., 'Regular', 'Composition'
+    business_since = Column(String(10), nullable=True)  # Year string, e.g., '2022'
+    registered_address = Column(Text, nullable=True)  # Full registered/operational address
+    notes = Column(Text, nullable=True)  # Free-form notes & focus areas
+
     # Baseline monthly parameters (stored as numeric/decimal)
     monthly_revenue_estimate = Column(Numeric(12, 2), default=0.00, nullable=False)
     monthly_expense_estimate = Column(Numeric(12, 2), default=0.00, nullable=False)

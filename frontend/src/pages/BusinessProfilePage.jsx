@@ -617,12 +617,12 @@ function BusinessProfilePage({ onNavigateHome }) {
 
   const businessTypeLabel = resolveBusinessTypeLabel(profile);
   const stageLabel = profile.stage ? formatHumanLabel(profile.stage) : 'Not provided';
-  const villageLabel = profile.village || profile.locationData?.village || 'Not provided';
-  const districtLabel = profile.district || profile.locationData?.district || 'Not provided';
-  const stateLabel = profile.state || profile.locationData?.state || 'Not provided';
-  const pinLabel = profile.pin || profile.locationData?.pin || 'Not provided';
-  const locationLabel = profile.location || [profile.city || profile.village || profile.locationData?.village, profile.district || profile.locationData?.district, profile.state || profile.locationData?.state].filter(Boolean).join(', ') || 'Not provided';
-  const businessSinceLabel = profile.businessSince && profile.businessSince !== '2022' ? profile.businessSince : null;
+  const villageLabel = profile.location_village || profile.village || profile.locationData?.village || 'Not provided';
+  const districtLabel = profile.location_district || profile.district || profile.locationData?.district || 'Not provided';
+  const stateLabel = profile.location_state || profile.state || profile.locationData?.state || 'Not provided';
+  const pinLabel = profile.location_pin || profile.pin || profile.locationData?.pin || 'Not provided';
+  const locationLabel = profile.location || [profile.city || profile.location_village || profile.village || profile.locationData?.village, profile.location_district || profile.district || profile.locationData?.district, profile.location_state || profile.state || profile.locationData?.state].filter(Boolean).join(', ') || 'Not provided';
+  const businessSinceLabel = profile.business_since || (profile.businessSince && profile.businessSince !== '2022' ? profile.businessSince : null);
   const financialLastCalculated = financialData?.lastCalculatedAt || profile.lastUpdatedAt || null;
 
   const usedByLocation = ['Feasibility', 'Scheme Matching', 'Financial Plan'];
@@ -723,6 +723,9 @@ function BusinessProfilePage({ onNavigateHome }) {
 
           <div className="mt-4 space-y-3">
             <InfoRow label="Business / Company Name" value={profile.name} fallback="Not provided" />
+            <InfoRow label="Owner / Contact Person" value={profile.owner_name || profile.ownerName || profile.user_name} fallback="Not provided" />
+            <InfoRow label="Phone Number" value={profile.phone} fallback="Not provided" mono />
+            <InfoRow label="Email Address" value={profile.email} fallback="Not provided" />
             <InfoRow label="Business Stage" value={stageLabel} fallback="Not provided" />
             <InfoRow label="Business Type" value={businessTypeLabel} fallback="Not provided" />
             <InfoRow label="Business Description" value={profile.description} fallback="Not provided" />
@@ -992,20 +995,21 @@ function BusinessProfilePage({ onNavigateHome }) {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 text-xs">
           <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 lg:col-span-2 space-y-2">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Registration</p>
+            <InfoRow label="GSTIN / GST Number" value={profile.gstin} fallback="Not recorded" mono />
             <InfoRow label="PAN Number" value={profile.pan} fallback="Not recorded" mono />
-            <InfoRow label="Business Registration No." value={profile.regNo} fallback="Not recorded" mono />
+            <InfoRow label="Udyam / Business Reg. No." value={profile.udyam_registration || profile.regNo} fallback="Not recorded" mono />
           </div>
 
           <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 space-y-2">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Legal Structure</p>
-            <InfoRow label="Legal Structure" value={profile.legalStructure} fallback="Not recorded" />
-            <InfoRow label="Financial Year" value={profile.financialYear} fallback="Not recorded" />
+            <InfoRow label="Legal Structure" value={profile.legal_structure || profile.legalStructure} fallback="Not recorded" />
+            <InfoRow label="Financial Year" value={profile.financial_year || profile.financialYear} fallback="Not recorded" />
           </div>
 
           <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 space-y-2">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Tax & Currency</p>
-            <InfoRow label="Tax Regime" value={profile.taxRegime} fallback="Not recorded" />
-            <InfoRow label="Currency" value={profile.currency} fallback="Not recorded" />
+            <InfoRow label="Tax Regime" value={profile.tax_regime || profile.taxRegime} fallback="Not recorded" />
+            <InfoRow label="Currency" value={profile.currency || 'INR (₹)'} fallback="INR (₹)" />
           </div>
         </div>
 
@@ -1013,7 +1017,7 @@ function BusinessProfilePage({ onNavigateHome }) {
           <div className="rounded-2xl border border-slate-100 bg-white p-4 space-y-2">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Registered Address</p>
             <p className="text-xs leading-relaxed text-slate-700">
-              {profile.registeredAddress || profile.location || 'Not provided'}
+              {profile.registered_address || profile.registeredAddress || profile.location || 'Not provided'}
             </p>
           </div>
 

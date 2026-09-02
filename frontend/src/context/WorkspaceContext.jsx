@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import {
   buildAdaptiveWorkspace,
   calculateFinancialSummary,
@@ -8,6 +8,7 @@ import {
 
 import { DEFAULT_OPERATIONS_CONFIG } from '../data/defaultOperationsConfig';
 import { DEFAULT_CASH_ACCOUNTS, DEFAULT_TRANSACTIONS } from '../data/cashOverviewMockData.js';
+import { apiClient } from '../services/apiClient';
 
 const WorkspaceContext = createContext(null);
 
@@ -57,6 +58,95 @@ const DEFAULT_FINANCIAL_DATA = {
   expected_outflow: 720000,
   min_cash_buffer: 500000,
 };
+
+// Normalize business database entity into bidirectional frontend profile
+export function normalizeBusinessProfile(data, prev = {}) {
+  if (!data) return prev;
+  const village = data.location_village || data.village || null;
+  const block = data.location_block || data.block || null;
+  const district = data.location_district || data.district || data.location || null;
+  const state = data.location_state || data.state || null;
+  const pin = data.location_pin || data.pin || null;
+  const locationCombined = [district, state].filter(Boolean).join(', ') || district || state || 'Odisha';
+
+  const regNo = data.udyam_registration || data.regNo || null;
+  const legalStructure = data.legal_structure || data.legalStructure || null;
+  const financialYear = data.financial_year || data.financialYear || null;
+  const taxRegime = data.tax_regime || data.taxRegime || null;
+  const businessSince = data.business_since || data.businessSince || null;
+  const registeredAddress = data.registered_address || data.registeredAddress || null;
+  const ownerName = data.owner_name || data.ownerName || data.user_name || null;
+
+  return {
+    ...prev,
+    id: data.id,
+    // Core identity
+    name: data.name,
+    businessName: data.name,
+    business_name: data.name,
+    owner_name: ownerName,
+    ownerName: ownerName,
+    user_name: ownerName,
+    // Business classification
+    category: data.category || data.type,
+    type: data.type || data.category,
+    businessType: data.type || data.category,
+    industry: data.industry,
+    stage: data.stage,
+    // Location
+    location_village: village,
+    village: village,
+    location_block: block,
+    block: block,
+    location_district: district,
+    district: district,
+    location: locationCombined,
+    location_state: state,
+    state: state,
+    location_pin: pin,
+    pin: pin,
+    // Financial baseline
+    own_capital: Number(data.own_capital || 0),
+    ownCapital: Number(data.own_capital || 0),
+    project_cost: Number(data.project_cost || 0),
+    projectCost: Number(data.project_cost || 0),
+    estimatedProjectCost: Number(data.project_cost || 0),
+    monthly_revenue: Number(data.monthly_revenue_estimate ?? data.monthly_revenue ?? 0),
+    monthlyRevenue: Number(data.monthly_revenue_estimate ?? data.monthly_revenue ?? 0),
+    monthly_revenue_estimate: Number(data.monthly_revenue_estimate ?? data.monthly_revenue ?? 0),
+    monthly_expenses: Number(data.monthly_expense_estimate ?? data.monthly_expenses ?? 0),
+    monthlyExpenses: Number(data.monthly_expense_estimate ?? data.monthly_expenses ?? 0),
+    monthly_expense_estimate: Number(data.monthly_expense_estimate ?? data.monthly_expenses ?? 0),
+    // Demographics
+    social_category: data.social_category || null,
+    socialCategory: data.social_category || null,
+    area_type: data.area_type || null,
+    areaType: data.area_type || null,
+    // Contact
+    phone: data.phone || null,
+    email: data.email || null,
+    // Description
+    description: data.description || null,
+    // Business Identity & Compliance
+    gstin: data.gstin || null,
+    pan: data.pan || null,
+    udyam_registration: regNo,
+    regNo: regNo,
+    legal_structure: legalStructure,
+    legalStructure: legalStructure,
+    financial_year: financialYear,
+    financialYear: financialYear,
+    tax_regime: taxRegime,
+    taxRegime: taxRegime,
+    business_since: businessSince,
+    businessSince: businessSince,
+    registered_address: registeredAddress,
+    registeredAddress: registeredAddress,
+    notes: data.notes || null,
+    currency: data.currency || 'INR (₹)',
+    onboardingCompletedAt: prev?.onboardingCompletedAt || new Date().toISOString(),
+  };
+}
 
 export function WorkspaceProvider({ children }) {
   // 0. Demo Mode State (Isolated experience with zero persistence to real data)
@@ -343,106 +433,110 @@ export function WorkspaceProvider({ children }) {
     );
   };
 
+  // Stored list of user businesses
+  const [businessList, setBusinessList] = useState([]);
+
   // Fetch active business profile from SQLite backend DB on mount
+  // Uses /list to get all businesses, then uses the stored active ID or picks the first.
   useEffect(() => {
-    fetch('/api/v1/business')
-      .then((res) => {
-        if (res.ok) return res.json();
-        return null;
-      })
-      .then((data) => {
-        if (data && data.id) {
-          setCurrentProfile((prev) => ({
-            ...prev,
-            id: data.id,
-            businessName: data.name,
-            name: data.name,
-            business_name: data.name,
-            category: data.category || data.type,
-            type: data.type,
-            industry: data.industry,
-            location_district: data.location_district,
-            location_state: data.location_state,
-            own_capital: Number(data.own_capital || 0),
-            project_cost: Number(data.project_cost || 0),
-            monthly_revenue: Number(data.monthly_revenue_estimate || 0),
-            monthly_expenses: Number(data.monthly_expense_estimate || 0),
-            social_category: data.social_category,
-            area_type: data.area_type,
-            phone: data.phone,
-            email: data.email,
-            description: data.description,
-            onboardingCompletedAt: prev?.onboardingCompletedAt || new Date().toISOString(),
-          }));
-        }
+    apiClient.get('/business/list')
+      .then((businesses) => {
+        if (!Array.isArray(businesses) || businesses.length === 0) return;
+        setBusinessList(businesses);
+
+        // Determine which business to load: prefer the stored active ID
+        let storedId = null;
+        try { storedId = parseInt(localStorage.getItem('vittanaya_active_business_id'), 10); } catch (e) {}
+        const data = (storedId && businesses.find((b) => b.id === storedId)) || businesses[0];
+
+        // Persist the active business ID (just the ID, not profile data)
+        try { localStorage.setItem('vittanaya_active_business_id', String(data.id)); } catch (e) {}
+
+        setCurrentProfile((prev) => normalizeBusinessProfile(data, prev));
       })
       .catch((err) => console.warn('Could not fetch active business profile from backend DB', err));
+  }, []);
+
+  // Action: Switch active business workspace
+  const switchBusiness = useCallback(async (businessId) => {
+    try {
+      const data = await apiClient.get(`/business?business_id=${businessId}`);
+      if (data) {
+        try { localStorage.setItem('vittanaya_active_business_id', String(data.id)); } catch (e) {}
+        setCurrentProfile((prev) => normalizeBusinessProfile(data, prev));
+        return data;
+      }
+    } catch (err) {
+      console.error(`Failed to switch to business ${businessId}:`, err);
+    }
   }, []);
 
   // Action: Update user or business identity fields (Server-Authoritative Save)
   const updateProfile = async (fields = {}) => {
     const currentId = currentProfile?.id;
     if (!currentId) {
-      console.warn("No active business selected for updateProfile");
+      console.warn('No active business selected for updateProfile');
       return currentProfile;
     }
 
+    // Build the PUT payload — every DB-backed field must be explicitly included
     const payload = {
+      // Core identity
       name: fields.name ?? fields.business_name ?? fields.businessName ?? currentProfile.name,
+      owner_name: fields.owner_name ?? fields.user_name ?? fields.ownerName ?? currentProfile.owner_name ?? null,
+      // Business classification
       type: fields.type ?? fields.businessType ?? currentProfile.type,
       industry: fields.industry ?? currentProfile.industry,
       category: fields.category ?? currentProfile.category,
-      location_district: fields.location_district ?? fields.location ?? currentProfile.location_district,
-      location_state: fields.location_state ?? currentProfile.location_state,
-      own_capital: typeof fields.own_capital === 'number' ? fields.own_capital : (fields.own_capital ? parseFloat(fields.own_capital) : currentProfile.own_capital),
-      project_cost: typeof fields.project_cost === 'number' ? fields.project_cost : (fields.project_cost ? parseFloat(fields.project_cost) : currentProfile.project_cost),
-      monthly_revenue_estimate: typeof fields.monthly_revenue === 'number' ? fields.monthly_revenue : (fields.monthly_revenue_estimate !== undefined ? parseFloat(fields.monthly_revenue_estimate) : currentProfile.monthly_revenue),
-      monthly_expense_estimate: typeof fields.monthly_expenses === 'number' ? fields.monthly_expenses : (fields.monthly_expense_estimate !== undefined ? parseFloat(fields.monthly_expense_estimate) : currentProfile.monthly_expenses),
-      social_category: fields.social_category ?? currentProfile.social_category,
-      area_type: fields.area_type ?? currentProfile.area_type,
-      description: fields.description ?? currentProfile.description,
-      phone: fields.phone ?? currentProfile.phone,
-      email: fields.email ?? currentProfile.email,
+      stage: fields.stage ?? currentProfile.stage,
+      // Location
+      location_village: fields.location_village ?? fields.village ?? currentProfile.location_village ?? null,
+      location_block: fields.location_block ?? fields.block ?? currentProfile.location_block ?? null,
+      location_district: fields.location_district ?? fields.district ?? fields.location ?? currentProfile.location_district ?? null,
+      location_state: fields.location_state ?? fields.state ?? currentProfile.location_state ?? null,
+      location_pin: fields.location_pin ?? fields.pin ?? currentProfile.location_pin ?? null,
+      // Financial baseline
+      own_capital: typeof fields.own_capital === 'number' ? fields.own_capital
+        : (fields.ownCapital != null ? parseFloat(fields.ownCapital) : (fields.own_capital != null ? parseFloat(fields.own_capital) : (currentProfile.own_capital ?? 0))),
+      project_cost: typeof fields.project_cost === 'number' ? fields.project_cost
+        : (fields.projectCost != null ? parseFloat(fields.projectCost) : (fields.project_cost != null ? parseFloat(fields.project_cost) : (currentProfile.project_cost ?? 0))),
+      monthly_revenue_estimate: typeof fields.monthly_revenue === 'number' ? fields.monthly_revenue
+        : (fields.monthlyRevenue != null ? parseFloat(fields.monthlyRevenue) : (fields.monthly_revenue_estimate != null ? parseFloat(fields.monthly_revenue_estimate) : (currentProfile.monthly_revenue ?? 0))),
+      monthly_expense_estimate: typeof fields.monthly_expenses === 'number' ? fields.monthly_expenses
+        : (fields.monthlyExpenses != null ? parseFloat(fields.monthlyExpenses) : (fields.monthly_expense_estimate != null ? parseFloat(fields.monthly_expense_estimate) : (currentProfile.monthly_expenses ?? 0))),
+      // Demographics
+      social_category: fields.social_category ?? fields.socialCategory ?? currentProfile.social_category ?? null,
+      area_type: fields.area_type ?? fields.areaType ?? currentProfile.area_type ?? null,
+      // Contact
+      phone: fields.phone ?? currentProfile.phone ?? null,
+      email: fields.email ?? currentProfile.email ?? null,
+      // Description
+      description: fields.description ?? currentProfile.description ?? null,
+      // Business Identity & Compliance
+      gstin: fields.gstin ?? currentProfile.gstin ?? null,
+      pan: fields.pan ?? currentProfile.pan ?? null,
+      udyam_registration: fields.udyam_registration ?? fields.regNo ?? currentProfile.udyam_registration ?? null,
+      legal_structure: fields.legal_structure ?? fields.legalStructure ?? currentProfile.legal_structure ?? null,
+      financial_year: fields.financial_year ?? fields.financialYear ?? currentProfile.financial_year ?? null,
+      tax_regime: fields.tax_regime ?? fields.taxRegime ?? currentProfile.tax_regime ?? null,
+      business_since: fields.business_since ?? fields.businessSince ?? currentProfile.business_since ?? null,
+      registered_address: fields.registered_address ?? fields.registeredAddress ?? currentProfile.registered_address ?? null,
+      notes: fields.notes ?? currentProfile.notes ?? null,
     };
 
     try {
-      const response = await fetch(`/api/v1/business/${currentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      const saved = await apiClient.put(`/business/${currentId}`, payload);
+
+      // Persist active business ID
+      try { localStorage.setItem('vittanaya_active_business_id', String(saved.id)); } catch (e) {}
+
+      const normalizedProfile = normalizeBusinessProfile(saved, {
+        ...currentProfile,
+        lastUpdatedAt: getFormattedNow(),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to save business profile');
-      }
-
-      const saved = await response.json();
-
-      const normalizedProfile = {
-        ...currentProfile,
-        id: saved.id,
-        name: saved.name,
-        businessName: saved.name,
-        business_name: saved.name,
-        type: saved.type,
-        industry: saved.industry,
-        category: saved.category,
-        location_district: saved.location_district,
-        location_state: saved.location_state,
-        own_capital: Number(saved.own_capital || 0),
-        project_cost: Number(saved.project_cost || 0),
-        monthly_revenue: Number(saved.monthly_revenue_estimate || 0),
-        monthly_expenses: Number(saved.monthly_expense_estimate || 0),
-        social_category: saved.social_category,
-        area_type: saved.area_type,
-        description: saved.description,
-        phone: saved.phone,
-        email: saved.email,
-        lastUpdatedAt: getFormattedNow(),
-      };
-
       setCurrentProfile(normalizedProfile);
+      setBusinessList((prevList) => prevList.map((b) => (b.id === saved.id ? saved : b)));
       return normalizedProfile;
     } catch (err) {
       console.error('Failed to sync business profile to backend DB', err);
@@ -824,6 +918,8 @@ export function WorkspaceProvider({ children }) {
     updateFinancialValues,
     resetFinancialValues,
     completeOnboarding,
+    businessList,
+    switchBusiness,
   };
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

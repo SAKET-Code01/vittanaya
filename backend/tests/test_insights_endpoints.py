@@ -153,3 +153,67 @@ def test_api_unified_insights_analyze_endpoint(client: TestClient, db_session: S
     assert data["financial"]["indicative_project_cost"] == 647000.0
     assert data["financial"]["financing_requirement"] == 582000.0
     assert data["schemes"]["best_recommendation"]["scheme_code"] == "PMEGP"
+
+
+def test_api_unified_insights_with_trade_name_and_business_id(
+    client: TestClient, db_session: Session, sample_user
+):
+    """Verify that passing trade name 'Maa Tarini Agro Mills' with business_id resolves industry from DB."""
+    from backend.app.models.business import Business
+
+    seed_all_reference_data(db_session)
+    # Ensure test business exists in DB
+    biz = db_session.query(Business).filter(Business.name == "Maa Tarini Agro Mills").first()
+    if not biz:
+        biz = Business(
+            name="Maa Tarini Agro Mills",
+            owner_id=sample_user.id,
+            type="manufacturing",
+            industry="Dairy Cattle Milk Production & Chilling",
+            category="Dairy & Livestock",
+            stage="established",
+            project_cost=1000000.0,
+            own_capital=100000.0,
+            location_district="Sundargarh",
+        )
+        db_session.add(biz)
+        db_session.commit()
+        db_session.refresh(biz)
+
+    response = client.post(
+        "/api/v1/insights/analyze",
+        json={
+            "business_id": biz.id,
+            "available_margin_capital": 100000.0,
+            "business_category": "Dairy & Livestock",
+            "specific_business": "Maa Tarini Agro Mills",
+            "location": "Sundargarh, Odisha",
+            "social_category": "ST",
+            "area_type": "Rural",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["opportunity"]["is_data_sufficient"] is True
+    # Opportunity score for Dairy in Odisha is 88.0 (district matched) or 82.0 (benchmark)
+    assert data["opportunity"]["overall_opportunity_score"] in (88.0, 82.0)
+    assert data["financial"]["indicative_project_cost"] > 0
+    assert len(data["schemes"]["eligible_schemes"]) > 0
+
+
+def test_api_project_cost_unknown_activity_strict_404(
+    client: TestClient, db_session: Session
+):
+    """Verify that completely unverified activity strictly returns 404 per non-fabrication directive."""
+    seed_all_reference_data(db_session)
+    response = client.post(
+        "/api/v1/project-cost",
+        json={
+            "business_activity": "CompletelyFakeNonExistentActivityXYZ123",
+            "business_category": "FakeCategory999",
+            "location": "Sundargarh, Odisha",
+        },
+    )
+    assert response.status_code == 404
+    assert "Data insufficient" in response.json()["detail"]
+

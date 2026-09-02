@@ -192,3 +192,65 @@ def test_advisory_chat_requires_business_context(client: TestClient):
     assert res_with_ctx.status_code == 200
     data_ctx = res_with_ctx.json()
     assert "PMEGP" in data_ctx["answer"] or "subsidy" in data_ctx["answer"].lower()
+
+
+def test_full_profile_persistence_all_15_fields(client: TestClient, db_session: Session, sample_user):
+    """Verify that all 15 identity, contact, compliance, and financial fields persist through PUT and GET."""
+    biz = Business(
+        owner_id=sample_user.id,
+        name="Initial Unit Name",
+        type="manufacturing",
+        industry="Agri",
+        stage="established",
+        location_district="Sundargarh",
+        location_state="Odisha",
+        own_capital=50000.0,
+    )
+    db_session.add(biz)
+    db_session.commit()
+    db_session.refresh(biz)
+
+    update_payload = {
+        "name": "Maa Tarini Agro Mills",
+        "owner_name": "Sitaram Mohapatra",
+        "phone": "+919876543210",
+        "email": "sitaram@maatarini.in",
+        "location_district": "Sundargarh",
+        "location_village": "Bargaon",
+        "location_state": "Odisha",
+        "location_pin": "770016",
+        "gstin": "21ABCDE1234F1Z5",
+        "pan": "ABCDE1234F",
+        "udyam_registration": "UDYAM-OD-27-0012345",
+        "legal_structure": "Proprietorship",
+        "financial_year": "2024-2025",
+        "tax_regime": "Regular",
+        "business_since": "2019",
+        "registered_address": "Plot 42, Industrial Estate, Sundargarh",
+        "description": "Agro and dairy milling unit",
+        "notes": "Audited accounts available",
+        "own_capital": 100000.0,
+        "project_cost": 1000000.0,
+        "monthly_revenue_estimate": 85000.0,
+        "monthly_expense_estimate": 52000.0,
+    }
+
+    # 1. Update via PUT
+    put_res = client.put(f"/api/v1/business/{biz.id}", json=update_payload)
+    assert put_res.status_code == 200
+    put_data = put_res.json()
+
+    # 2. Retrieve via GET
+    get_res = client.get(f"/api/v1/business?business_id={biz.id}")
+    assert get_res.status_code == 200
+    get_data = get_res.json()
+
+    # 3. Assert all 15 fields are preserved exactly in both PUT and GET responses
+    monetary_keys = {"own_capital", "project_cost", "monthly_revenue_estimate", "monthly_expense_estimate"}
+    for key, expected_val in update_payload.items():
+        if key in monetary_keys:
+            assert float(get_data.get(key)) == float(expected_val), f"Field '{key}' mismatch in GET response"
+            assert float(put_data.get(key)) == float(expected_val), f"Field '{key}' mismatch in PUT response"
+        else:
+            assert get_data.get(key) == expected_val, f"Field '{key}' mismatch in GET response"
+            assert put_data.get(key) == expected_val, f"Field '{key}' mismatch in PUT response"
