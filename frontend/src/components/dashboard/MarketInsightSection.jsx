@@ -13,6 +13,7 @@ function LocalMarketMap({
   category = 'Transport & Logistics',
   locationFull = 'Kuarmunda, Kuarmunda Block, Sundargarh, Odisha',
   currentProfile = null,
+  onMapDataLoaded = null,
 }) {
   const [viewMode, setViewMode] = useState('3d'); // '2d' | '3d'
   const [radiusFilter, setRadiusFilter] = useState('15'); // '5' | '10' | '15'
@@ -36,6 +37,7 @@ function LocalMarketMap({
       if (isMounted) {
         if (res && res.pois) {
           setMapData(res);
+          if (onMapDataLoaded) onMapDataLoaded(res);
         }
         setIsLoading(false);
       }
@@ -469,6 +471,7 @@ export default function MarketInsightSection({
   className = '',
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [marketData, setMarketData] = useState(null);
 
   // Connect current VITTANAYA profile location & identity
   const locationName = (
@@ -488,7 +491,11 @@ export default function MarketInsightSection({
   const categoryName = currentProfile?.category || currentProfile?.business_type || 'Transport & Logistics';
   const businessName = currentProfile?.businessName || currentProfile?.name || 'Rural Micro-Enterprise';
 
-  // Deterministic local market opportunity reasons
+  // Deterministic opportunity reasons derived from live spatial market data
+  const pois = marketData?.pois || [];
+  const topPoi = pois[0];
+  const secondPoi = pois[1];
+
   const reasons = [
     {
       id: 1,
@@ -497,8 +504,8 @@ export default function MarketInsightSection({
           <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
         </svg>
       ),
-      title: 'High regional demand momentum',
-      desc: `Surging requirement for verified ${categoryName} operators in ${locationName} catchment.`,
+      title: 'Catchment Demand Trajectory',
+      desc: marketData?.opportunity_summary || `Surging demand signals for verified ${categoryName} in ${districtName} catchment.`,
       impact: 'High Impact',
     },
     {
@@ -509,8 +516,8 @@ export default function MarketInsightSection({
           <path d="M12 6v6l4 2" />
         </svg>
       ),
-      title: 'Rapid route turnaround times',
-      desc: 'Direct highway connectivity minimizes idle transport hours and fuel burn.',
+      title: 'Commercial Corridor Reach',
+      desc: marketData?.market_reach_description || `Direct trade routes and logistical connectivity in ${districtName}.`,
       impact: 'Favorable',
     },
     {
@@ -523,9 +530,9 @@ export default function MarketInsightSection({
           <path d="M16 3.13a4 4 0 010 7.75" />
         </svg>
       ),
-      title: 'Untapped local buyer base',
-      desc: 'Sparse organized competition provides early mover pricing power and stickiness.',
-      impact: 'High Impact',
+      title: topPoi ? topPoi.name : 'Local Commercial Synergy',
+      desc: topPoi ? topPoi.details : `Active local commercial buyers provide recurring trade volume for ${categoryName}.`,
+      impact: topPoi?.impact || 'High Impact',
     },
   ];
 
@@ -538,9 +545,9 @@ export default function MarketInsightSection({
           <path d="M13 16V6a1 1 0 00-1-1H4" />
         </svg>
       ),
-      title: 'Short fleet turnaround cycles',
-      desc: 'Local arterial routes ensure rapid transit and same-day operational turnaround.',
-      impact: 'Medium Impact',
+      title: secondPoi ? secondPoi.name : 'Supply Chain Efficiency',
+      desc: secondPoi ? secondPoi.details : `Local supply chain linkages minimize operational turnaround cycles.`,
+      impact: secondPoi?.impact || 'Medium Impact',
     },
     {
       id: 5,
@@ -549,9 +556,9 @@ export default function MarketInsightSection({
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
         </svg>
       ),
-      title: 'Competitive operator pool',
-      desc: 'High local availability of licensed commercial operators with low wage inflation.',
-      impact: 'High Impact',
+      title: 'Institutional Planning Alignment',
+      desc: `Sector alignment with ${marketData?.source_authority || 'district MSME development benchmarks'}.`,
+      impact: 'Favorable',
     },
   ];
 
@@ -598,6 +605,7 @@ export default function MarketInsightSection({
             category={categoryName}
             locationFull={locationFull}
             currentProfile={currentProfile}
+            onMapDataLoaded={setMarketData}
           />
         </div>
 
@@ -610,10 +618,16 @@ export default function MarketInsightSection({
               Why This Opportunity?
             </h3>
 
-            <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-extrabold text-[10px] border border-blue-200/70 flex items-center space-x-1">
-              <span>Verified Signals</span>
-              <span>✓</span>
-            </span>
+            {marketData?.is_local_verified ? (
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-extrabold text-[10px] border border-emerald-200/70 flex items-center space-x-1" title={marketData?.source_authority || 'Verified Local Data'}>
+                <span>Verified Local Data</span>
+                <span>✓</span>
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-extrabold text-[10px] border border-blue-200/70 flex items-center space-x-1" title={marketData?.source_authority || 'District Benchmark Estimate'}>
+                <span>District Benchmark</span>
+              </span>
+            )}
           </div>
 
           {/* Opportunity Reason Items */}

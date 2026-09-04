@@ -4,14 +4,15 @@ import React from 'react';
  * Circular Donut Gauge for Feasibility Score
  */
 function CircularProgressDonut({
-  value = 78,
+  value = null,
   size = 68,
   strokeWidth = 6,
 }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  const safeValue = Math.max(0, Math.min(100, Number(value) || 0));
+  const hasValue = value !== null && value !== undefined && !isNaN(value);
+  const safeValue = hasValue ? Math.max(0, Math.min(100, Number(value))) : 0;
 
   const strokeDashoffset =
     circumference - (circumference * safeValue) / 100;
@@ -20,7 +21,7 @@ function CircularProgressDonut({
     <div
       className="relative flex items-center justify-center flex-shrink-0"
       style={{ width: size, height: size }}
-      aria-label={`Feasibility score ${safeValue} percent`}
+      aria-label={`Feasibility score ${hasValue ? safeValue : 'Not available'}`}
     >
       <svg
         width={size}
@@ -54,7 +55,7 @@ function CircularProgressDonut({
       </svg>
 
       <span className="absolute text-xs font-black text-slate-900">
-        {safeValue}%
+        {hasValue ? `${safeValue}%` : '—'}
       </span>
     </div>
   );
@@ -73,23 +74,24 @@ export default function TopThreeMetricCards({
   onOpenDetails,
   className = '',
 }) {
-  const score = metricsData?.score ?? 78;
+  const hasScore = metricsData?.score !== undefined && metricsData?.score !== null && !isNaN(metricsData.score);
+  const score = hasScore ? Math.round(Number(metricsData.score)) : null;
 
   const feasibilityStatus =
-    metricsData?.feasibilityStatus || 'Good Feasibility';
+    metricsData?.feasibilityStatus || (hasScore ? (score >= 70 ? 'Good Feasibility' : 'Moderate Feasibility') : 'Evaluating...');
 
   const opportunityLevel =
-    metricsData?.opportunityLevel || 'High';
+    metricsData?.opportunityLevel || (metricsData ? 'Medium' : 'Evaluating...');
 
   const opportunitySummary =
     metricsData?.opportunitySummary ||
-    'Strong demand in local market';
+    'Local catchment demand signals';
 
   const riskLevel =
-    metricsData?.riskLevel || 'Low';
+    metricsData?.riskLevel || 'Evaluating...';
 
   const riskSummary =
-    metricsData?.riskSummary || 'Stable environment';
+    metricsData?.riskSummary || 'Assessing operational & financial risk';
 
   const handleDetails = (type) => {
     if (typeof onOpenDetails === 'function') {
@@ -127,7 +129,7 @@ export default function TopThreeMetricCards({
 
               <div className="flex items-baseline space-x-1">
                 <span className="text-2xl font-black text-slate-900 tracking-tight">
-                  {score}
+                  {score != null ? score : '—'}
                 </span>
 
                 <span className="text-sm font-semibold text-slate-400">
@@ -155,9 +157,9 @@ export default function TopThreeMetricCards({
               type="button"
               onClick={() => handleDetails('feasibility')}
               className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline whitespace-nowrap transition-colors"
-              aria-label={`Why is the feasibility score ${score}?`}
+              aria-label={score != null ? `Why is the feasibility score ${score}?` : 'View feasibility calculation breakdown'}
             >
-              Why {score}? →
+              {score != null ? `Why ${score}? →` : 'Breakdown →'}
             </button>
           </div>
         </div>
