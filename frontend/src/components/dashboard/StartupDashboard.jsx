@@ -164,6 +164,21 @@ export default function StartupDashboard({
     return () => { isMounted = false; };
   }, [businessId]);
 
+  // Synchronize live readiness and metrics when Action Plan tasks are updated
+  useEffect(() => {
+    const handleReadinessUpdate = () => {
+      if (businessId) {
+        financeService.getDashboardSummary(businessId)
+          .then((data) => {
+            if (data) setDashboardSummary(data);
+          })
+          .catch(() => {});
+      }
+    };
+    window.addEventListener('vittanaya-readiness-updated', handleReadinessUpdate);
+    return () => window.removeEventListener('vittanaya-readiness-updated', handleReadinessUpdate);
+  }, [businessId]);
+
   const businessName = profile.businessName;
   const category = profile.category;
   const industry = profile.industry;

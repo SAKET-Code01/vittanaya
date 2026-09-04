@@ -23,6 +23,11 @@ class TaskItemSchema(BaseModel):
     linked_requirement_id: Optional[str] = None
     priority: str = "HIGH"
     due_date: Optional[str] = None
+    completion_pct: Optional[float] = None
+    completed_tasks: Optional[int] = None
+    total_tasks: Optional[int] = None
+    readiness_score: Optional[float] = None
+    readiness_label: Optional[str] = None
 
     def __init__(self, **data: Any):
         if "action_id" not in data and "id" in data:

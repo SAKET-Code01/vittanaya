@@ -216,3 +216,46 @@ def test_scheme_matching_deterministic_and_dynamic(client):
     assert pmegp_urban["estimated_subsidy_amount"] == 75000.0  # 15% of 5L
     assert pmegp_rural["estimated_subsidy_amount"] > pmegp_urban["estimated_subsidy_amount"]
 
+
+def test_action_plan_task_update_persists_and_updates_completion(client):
+    """PATCH /api/v1/action-plan/tasks/{task_id}: updates status, recalculates completion % and syncs readiness."""
+    # 1. Fetch action plan for business 2
+    res = client.get("/api/v1/action-plan/2")
+    assert res.status_code == 200
+    plan = res.json()
+    assert len(plan["tasks"]) > 0
+
+    first_task = plan["tasks"][0]
+    task_id = first_task["id"]
+    original_status = first_task["status"]
+
+    try:
+        # 2. Mark task as completed
+        patch_res = client.patch(
+            f"/api/v1/action-plan/tasks/{task_id}",
+            json={"status": "completed"},
+        )
+        assert patch_res.status_code == 200
+        updated = patch_res.json()
+        assert updated["id"] == task_id
+        assert updated["status"] == "completed"
+        assert updated["completion_pct"] is not None
+        assert updated["completed_tasks"] >= 1
+        assert updated["total_tasks"] == len(plan["tasks"])
+
+        # 3. Confirm persistence via GET
+        res_after = client.get("/api/v1/action-plan/2")
+        assert res_after.status_code == 200
+        plan_after = res_after.json()
+        task_after = next(t for t in plan_after["tasks"] if t["id"] == task_id)
+        assert task_after["status"] == "completed"
+        assert plan_after["completed_tasks"] == updated["completed_tasks"]
+        assert plan_after["completion_pct"] == updated["completion_pct"]
+    finally:
+        # Revert task status back to original
+        client.patch(
+            f"/api/v1/action-plan/tasks/{task_id}",
+            json={"status": original_status},
+        )
+
+

@@ -172,8 +172,22 @@ def update_task_status(
 
     readiness_service = ReadinessService(db)
     readiness_service.sync_from_action_task(task_id, payload.status)
+    overall_readiness = readiness_service.evaluate_readiness(task.business_id)
 
-    return TaskItemSchema.model_validate(task)
+    all_tasks = db.query(ActionPlanTask).filter(ActionPlanTask.business_id == task.business_id).all()
+    completed_count = sum(1 for t in all_tasks if t.status == "completed")
+    total_count = len(all_tasks)
+    completion_pct = (completed_count / total_count * 100.0) if total_count > 0 else 0.0
+
+    task_data = TaskItemSchema.model_validate(task)
+    task_data.completed_tasks = completed_count
+    task_data.total_tasks = total_count
+    task_data.completion_pct = round(completion_pct, 1)
+    if overall_readiness:
+        task_data.readiness_score = overall_readiness.readiness_score
+        task_data.readiness_label = overall_readiness.readiness_label
+
+    return task_data
 
 
 

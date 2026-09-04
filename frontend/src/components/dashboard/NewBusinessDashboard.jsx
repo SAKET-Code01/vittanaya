@@ -92,6 +92,19 @@ export default function NewBusinessDashboard({
     };
   }, [businessId, ownCapital, businessCategory, specificBusiness, location, socialCategory, areaType, profile.project_cost, profile.estimatedProjectCost]);
 
+  // Synchronize live readiness updates from Action Plan task checkoffs
+  useEffect(() => {
+    const handleReadinessUpdate = () => {
+      if (businessId) {
+        readinessService.getReadiness(businessId).then((res) => {
+          if (res) setReadinessData(res);
+        }).catch(() => {});
+      }
+    };
+    window.addEventListener('vittanaya-readiness-updated', handleReadinessUpdate);
+    return () => window.removeEventListener('vittanaya-readiness-updated', handleReadinessUpdate);
+  }, [businessId]);
+
   // Derived Authoritative Values from Backend
   const feasibilityScore = feasibilityData?.final_score != null ? Number(feasibilityData.final_score.toFixed(1)) : null;
 

@@ -79,6 +79,21 @@ export default function EnterpriseDashboard({
     return () => { isMounted = false; };
   }, [businessId]);
 
+  // Synchronize live metrics when Action Plan tasks are updated
+  useEffect(() => {
+    const handleReadinessUpdate = () => {
+      if (businessId) {
+        financeService.getDashboardSummary(businessId)
+          .then((data) => {
+            if (data) setDashboardSummary(data);
+          })
+          .catch(() => {});
+      }
+    };
+    window.addEventListener('vittanaya-readiness-updated', handleReadinessUpdate);
+    return () => window.removeEventListener('vittanaya-readiness-updated', handleReadinessUpdate);
+  }, [businessId]);
+
   const selectedOps = profile.selectedOperations || profile.selectedOps || [
     'sales',
     'purchases',
