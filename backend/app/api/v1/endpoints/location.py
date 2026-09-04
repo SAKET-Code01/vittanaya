@@ -3,6 +3,7 @@
 SIH26091 - Local Government Directory (LGD) Location Database API.
 """
 
+import math
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Query, status
@@ -13,6 +14,35 @@ from backend.app.core.database import get_db
 from backend.app.models.location import LocationRef
 
 router = APIRouter(prefix="/locations", tags=["Administrative Locations"])
+
+ODISHA_COORDINATES: Dict[str, Dict[str, float]] = {
+    "sundargarh": {"lat": 22.1200, "lng": 84.0300},
+    "kuarmunda": {"lat": 22.2858, "lng": 84.7766},
+    "rourkela": {"lat": 22.2604, "lng": 84.8536},
+    "birmitrapur": {"lat": 22.4042, "lng": 84.7431},
+    "khordha": {"lat": 20.1800, "lng": 85.6200},
+    "bhubaneswar": {"lat": 20.2961, "lng": 85.8245},
+    "jatni": {"lat": 20.1650, "lng": 85.7070},
+    "cuttack": {"lat": 20.4625, "lng": 85.8828},
+    "puri": {"lat": 19.8135, "lng": 85.8312},
+    "ganjam": {"lat": 19.3800, "lng": 85.0600},
+    "berhampur": {"lat": 19.3150, "lng": 84.7941},
+    "sambalpur": {"lat": 21.4669, "lng": 83.9812},
+    "balasore": {"lat": 21.4934, "lng": 86.9135},
+    "mayurbhanj": {"lat": 21.9333, "lng": 86.7333},
+    "baripada": {"lat": 21.9333, "lng": 86.7333},
+    "angul": {"lat": 20.8400, "lng": 85.1500},
+    "jajpur": {"lat": 20.8500, "lng": 86.3333},
+    "bhadrak": {"lat": 21.0574, "lng": 86.4957},
+    "dhenkanal": {"lat": 20.6667, "lng": 85.6000},
+    "kendrapara": {"lat": 20.5000, "lng": 86.4167},
+    "jharsuguda": {"lat": 21.8557, "lng": 84.0061},
+    "bolangir": {"lat": 20.7100, "lng": 83.4800},
+    "kalahandi": {"lat": 19.9000, "lng": 83.1600},
+    "koraput": {"lat": 18.8100, "lng": 82.7100},
+    "rayagada": {"lat": 19.1667, "lng": 83.4167},
+    "bargarh": {"lat": 21.3333, "lng": 83.6167},
+}
 
 
 class LocationSchema(BaseModel):
@@ -54,6 +84,8 @@ class MarketPoiSchema(BaseModel):
     demand_score: str
     impact: str
     details: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 class MarketMapResponse(BaseModel):
@@ -70,6 +102,8 @@ class MarketMapResponse(BaseModel):
     market_reach_description: str
     opportunity_summary: str
     pois: List[MarketPoiSchema]
+    center_lat: Optional[float] = None
+    center_lng: Optional[float] = None
 
 
 @router.get(
@@ -452,6 +486,34 @@ def get_market_map(
             },
         ]
 
+    loc_key = loc_name.lower().strip()
+    dist_key = dist_name.lower().strip()
+    coords = ODISHA_COORDINATES.get(loc_key) or ODISHA_COORDINATES.get(dist_key)
+    if not coords:
+        for k, v in ODISHA_COORDINATES.items():
+            if k in loc_key or k in dist_key:
+                coords = v
+                break
+    if not coords:
+        coords = {"lat": 20.9517, "lng": 85.0985}  # Odisha State Centroid
+
+    center_lat = float(coords["lat"])
+    center_lng = float(coords["lng"])
+
+    # Attach geographic coordinates to all POIs deterministically
+    for p in base_pois:
+        pos = p.get("pos_2d", {"x": 225, "y": 150})
+        dx = (pos.get("x", 225) - 225) / 160.0
+        dy = (pos.get("y", 150) - 150) / 100.0
+        angle = math.atan2(dy, dx)
+        dist = float(p.get("distance_km", 2.0))
+        # 1 deg latitude ~ 110.574 km, 1 deg longitude ~ 111.320 * cos(lat) km
+        lat_offset = (dist / 110.574) * math.cos(angle)
+        cos_lat = math.cos(math.radians(center_lat))
+        lng_offset = (dist / (111.320 * (cos_lat if cos_lat != 0 else 1.0))) * math.sin(angle)
+        p["lat"] = round(center_lat + lat_offset, 6)
+        p["lng"] = round(center_lng + lng_offset, 6)
+
     filtered_pois = [MarketPoiSchema(**p) for p in base_pois if p["distance_km"] <= float(radius_km)]
 
     return MarketMapResponse(
@@ -466,5 +528,7 @@ def get_market_map(
         market_reach_description=market_reach,
         opportunity_summary=opp_summary,
         pois=filtered_pois,
+        center_lat=center_lat,
+        center_lng=center_lng,
     )
 
