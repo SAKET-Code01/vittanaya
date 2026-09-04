@@ -52,6 +52,14 @@ class SourceInfo(BaseModel):
     url: Optional[str] = Field(None)
 
 
+class NlpMetadata(BaseModel):
+    """Local offline NLP model inference metadata."""
+
+    pipeline: str = Field("TF-IDF + Logistic Regression", description="NLP architecture description")
+    confidence_score: float = Field(default=0.95, description="Model output confidence probability (0.0 - 1.0)")
+    method: str = Field(default="TF_IDF_LOGISTIC_REGRESSION", description="Classification mechanism used")
+
+
 class ChatResponse(BaseModel):
     """Structured response from Ask VITTANAYA Chatbot backend API."""
 
@@ -65,3 +73,4 @@ class ChatResponse(BaseModel):
     data_status: str = Field("VERIFIED_DETERMINISTIC", description="Data integrity status")
     language: str = Field("English", description="Target language of response")
     traceability: TraceabilityMetadata
+    nlp_metadata: Optional[NlpMetadata] = None

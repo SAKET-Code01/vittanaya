@@ -22,9 +22,11 @@ from backend.app.services.seed_service import seed_all_reference_data
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan context manager: create tables & seed reference data on startup."""
     logger.info("Initializing database schema...")
-    from backend.app.core.database import auto_migrate_sqlite_schema
     Base.metadata.create_all(bind=engine)
-    auto_migrate_sqlite_schema(engine)
+    if engine.dialect.name == "sqlite":
+        from backend.app.core.database import auto_migrate_sqlite_schema
+
+        auto_migrate_sqlite_schema(engine)
     logger.info("Database schema initialized successfully.")
 
     logger.info("Seeding VITTANAYA reference libraries and scheme rules...")
@@ -111,5 +113,34 @@ def root_redirect() -> dict[str, str]:
         "app": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "docs": "/docs",
-        "health": "/api/v1/health",
+        "health": "/health",
+        "api_v1_health": "/api/v1/health",
     }
+
+
+@app.get("/health", tags=["Health"], summary="Service Health Check")
+def health_check() -> dict[str, str]:
+    """Lightweight health check endpoint returning ok status."""
+    return {"status": "ok"}
+
+
+@app.get(
+    "/health/db",
+    tags=["Health"],
+    summary="Database Connectivity Health Check",
+    response_model=None,
+)
+def database_health_check():
+    """Safely verify PostgreSQL / database connectivity without leaking credentials."""
+    from sqlalchemy import text
+
+    try:
+        with Session(engine) as db:
+            db.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception as exc:
+        logger.error(f"Database health probe failed: {exc}")
+        return JSONResponse(
+            status_code=503,
+            content={"status": "error", "database": "unreachable"},
+        )

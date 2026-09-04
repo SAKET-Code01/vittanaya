@@ -11,6 +11,7 @@ class TaskItemSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    action_id: Optional[int] = None
     business_id: int = 1
     phase: str
     title: str
@@ -19,6 +20,15 @@ class TaskItemSchema(BaseModel):
     target_days: int = 7
     is_mandatory: bool = True
     authority_name: Optional[str] = None
+    linked_requirement_id: Optional[str] = None
+    priority: str = "HIGH"
+    due_date: Optional[str] = None
+
+    def __init__(self, **data: Any):
+        if "action_id" not in data and "id" in data:
+            data["action_id"] = data["id"]
+        super().__init__(**data)
+
 
 
 class TaskUpdateSchema(BaseModel):

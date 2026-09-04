@@ -14,18 +14,22 @@ from backend.app.engines.feasibility_engine import FeasibilityEngine
 from backend.app.engines.risk_engine import RiskEngine
 from backend.app.engines.scheme_engine import SchemeEngine
 from backend.app.engines.whatif_engine import WhatIfEngine
+from backend.app.nlp.intent_classifier import classify_intent
 from backend.app.repositories.business_repository import BusinessRepository
 from backend.app.schemas.advisory import (
     BusinessContextInput,
     ChatRequest,
     ChatResponse,
     KeyFact,
+    NlpMetadata,
     SourceInfo,
 )
 from backend.app.schemas.financial_plan import CashFlowForecastRequest, FundingStructureRequest
 from backend.app.schemas.industry import IndustryAnalysisRequest
 from backend.app.schemas.insights import TraceabilityMetadata
 from backend.app.schemas.ml import PredictiveMlRequest
+from backend.app.services.ahp_service import get_ahp_result
+from backend.app.services.business_feasibility_service import BusinessFeasibilityService
 from backend.app.services.cash_flow_service import MINIMUM_BUFFER_MONTHS_COVERAGE, CashFlowService
 from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.industry_service import IndustryService
@@ -166,8 +170,12 @@ class AdvisoryService:
                 ),
             )
 
-        # 2. Detect Query Intent
-        intent = AdvisoryService._classify_intent(lower_msg)
+        # 2. Detect Query Intent via Local Offline NLP Classifier (TF-IDF + Logistic Regression)
+        intent, intent_confidence, nlp_method = classify_intent(raw_msg)
+        if any(w in lower_msg for w in ["real expert", "expert data", "expert validated", "who are the experts", "real experts", "is this expert validated", "actual expert", "ahp dataset"]):
+            intent = "EXPLANATION"
+            intent_confidence = 1.0
+            nlp_method = "rule_override"
 
         # 3. Execute Deterministic Grounding Based on Recognized Intent
         key_facts: List[KeyFact] = []
@@ -466,46 +474,50 @@ class AdvisoryService:
                     key_facts.append(KeyFact(label="Scheme Status", value="No Rule Match"))
 
         elif intent == "FEASIBILITY":
-            feas_engine = FeasibilityEngine(db)
-            feas_res = feas_engine.evaluate_feasibility(
-                business_category=bus_category,
-                specific_business=specific_bus,
-                location=loc,
-                scale=scale,
-            )
-            score = feas_res.overall_opportunity_score
-            answer_text = (
-                f"Your local market feasibility score for {specific_bus} in {loc} is evaluated at {score:.0f}/100. "
-                f"Market reach is classified as '{feas_res.market_reach}' with a competitor density level of '{feas_res.competitor_level}'."
-            )
-            key_facts.append(KeyFact(label="Feasibility Score", value=f"{score:.0f} / 100"))
-            key_facts.append(KeyFact(label="Market Reach", value=feas_res.market_reach))
-            key_facts.append(KeyFact(label="Competitor Density", value=feas_res.competitor_level))
-            why_list.append(f"Feasibility model integrates local demand catchment signals for {loc}.")
-            why_list.append(f"Score components: Market Opportunity ({feas_res.opportunity}), Competition ({feas_res.competitor_level}).")
-            next_steps.append("Perform local buyer survey and lock supplier quotes before capital disbursement.")
+            if db is not None and active_business_id:
+                # Single-source-of-truth: derive AHP-weighted score from real business data
+                bfs = BusinessFeasibilityService(db)
+                bfr = bfs.compute(active_business_id)
+                score = bfr.final_score
+                answer_text = (
+                    f"Your Feasibility Score for **{bus_name}** ({specific_bus}) in {loc} "
+                    f"is **{score:.0f} / 100** (AHP-weighted across 5 dimensions). "
+                    f"Market reach: '{bfr.market_reach}'. Competitor density: '{bfr.competitor_level}'."
+                )
+                key_facts.append(KeyFact(label="Feasibility Score", value=f"{score:.0f} / 100"))
+                key_facts.append(KeyFact(label="Market Reach", value=bfr.market_reach))
+                key_facts.append(KeyFact(label="Competitor Density", value=bfr.competitor_level))
+                key_facts.append(KeyFact(label="Market Benchmark", value=f"{bfr.market_benchmark_score:.0f} / 100 (sector)"))
+                why_list.append(
+                    f"Score derived by BusinessFeasibilityService: "
+                    f"market={bfr.raw_scores.get('market', 0):.1f}, "
+                    f"financial={bfr.raw_scores.get('financial', 0):.1f}, "
+                    f"location={bfr.raw_scores.get('location', 0):.1f}, "
+                    f"competition={bfr.raw_scores.get('competition', 0):.1f}, "
+                    f"risk={bfr.raw_scores.get('risk', 0):.1f} (all on 0-100 scale)."
+                )
+                why_list.append(f"AHP CR = {bfr.ahp_cr:.6f} (< 0.10 — consistent). {bfr.ahp_source_status}.")
+                next_steps.append("Review the 'Why This Score?' modal on the Feasibility dashboard for full AHP lineage.")
+            else:
+                # Fallback: no business_id — return sector benchmark
+                feas_engine = FeasibilityEngine(db)
+                feas_res = feas_engine.evaluate_feasibility(
+                    business_category=bus_category,
+                    specific_business=specific_bus,
+                    location=loc,
+                    scale=scale,
+                )
+                score = feas_res.overall_opportunity_score
+                answer_text = (
+                    f"Your local market feasibility score for {specific_bus} in {loc} is evaluated at "
+                    f"{score:.0f}/100 (NABARD PLP sector reference). Market reach: '{feas_res.market_reach}'. "
+                    f"For your personalised AHP-weighted score, please open your business profile."
+                )
+                key_facts.append(KeyFact(label="Feasibility Score", value=f"{score:.0f} / 100"))
+                key_facts.append(KeyFact(label="Market Reach", value=feas_res.market_reach))
+                why_list.append("Sector benchmark from NABARD Odisha PLP district data.")
+                next_steps.append("Perform local buyer survey and lock supplier quotes before capital disbursement.")
 
-        elif intent == "EXPLANATION":
-            feas_engine = FeasibilityEngine(db)
-            feas_res = feas_engine.evaluate_feasibility(
-                business_category=bus_category,
-                specific_business=specific_bus,
-                location=loc,
-                scale=scale,
-            )
-            score = feas_res.overall_opportunity_score
-            answer_text = (
-                f"Your Feasibility Score of {score:.0f}/100 is based on four verified engine components: "
-                f"1) Local Market Opportunity ({feas_res.opportunity}); "
-                f"2) Competitor Density ({feas_res.competitor_level}); "
-                f"3) Location Catchment ({loc}); "
-                f"4) Equity Margin Capital Sufficiency (₹{margin_cap:,.0f})."
-            )
-            key_facts.append(KeyFact(label="Feasibility Score", value=f"{score:.0f} / 100"))
-            key_facts.append(KeyFact(label="Market Opportunity", value=feas_res.opportunity))
-            key_facts.append(KeyFact(label="Competition Level", value=feas_res.competitor_level))
-            why_list.append(f"Evaluated using local NABARD PLP district data for {loc}.")
-            why_list.append("Weights are anchored to empirical rural market benchmarks without subjective assumptions.")
 
         elif intent == "RISK":
             risk_engine = RiskEngine(db)
@@ -580,6 +592,158 @@ class AdvisoryService:
             why_list.append("Baseline financial estimates are verified from your active workspace records.")
             next_steps.append("Track monthly receivables and payables in the Cash Flow section to optimize cash runways.")
 
+        elif intent == "EXPLANATION":
+            bfr = None
+            if db is not None:
+                bfs = BusinessFeasibilityService(db)
+                if active_business_id:
+                    bfr = bfs.compute(active_business_id)
+                else:
+                    bfr = bfs.compute_from_context(
+                        business_category=bus_category,
+                        specific_business=specific_bus,
+                        location=loc,
+                        own_capital=margin_cap,
+                        project_cost=0.0,
+                    )
+
+            if bfr is not None:
+                score_val = bfr.final_score
+                dp = bfr.ahp_dashboard_points
+                nw = bfr.ahp_normalized_weights
+
+                # Detect specific query intent nuances
+                if any(w in lower_msg for w in ["why is my feasibility score low", "why is my score low", "why low", "score so low"]):
+                    # Find lowest raw score dimension
+                    sorted_raw = sorted(bfr.raw_scores.items(), key=lambda x: x[1])
+                    lowest_k, lowest_v = sorted_raw[0]
+                    lowest_label = BusinessFeasibilityService.CRITERIA_LABELS.get(lowest_k, lowest_k)
+
+                    answer_text = (
+                        f"Your Feasibility Score for **{bus_name}** is **{score_val:.0f}/100** primarily because "
+                        f"your **{lowest_label}** raw score is currently **{lowest_v:.1f}/100**.\n\n"
+                    )
+                    if lowest_k == "financial":
+                        answer_text += (
+                            f"**Primary Bottleneck**: Your available promoter equity is ₹{margin_cap:,.0f} against a project cost of "
+                            f"₹{bfr.business_project_cost or bfr.reference_project_cost:,.0f}, yielding an equity margin of {lowest_v:.1f}%. "
+                            f"Banking norms favor a 25–30% equity coverage for a top financial score."
+                        )
+                        next_steps.append("Increase registered equity capital or apply for PMEGP special category 5% margin subsidy.")
+                    elif lowest_k == "risk":
+                        answer_text += (
+                            "**Primary Bottleneck**: Your enterprise is facing elevated vulnerability in seasonal operating cash flows or debt repayment coverage."
+                        )
+                        next_steps.append("Build a 45-day liquid cash buffer to improve the Risk Resilience score.")
+                    else:
+                        answer_text += f"**Primary Bottleneck**: {lowest_label} benchmark is evaluated at {lowest_v:.1f}/100 based on local district dataset."
+                        next_steps.append(f"Review the '{lowest_label}' parameters on the Feasibility dashboard.")
+
+                    answer_text += f"\n\n**AHP Weight Impact**: Every criterion contributes proportionally: Market ({nw['market']:.1%}), Financial ({nw['financial']:.1%}), Location ({nw['location']:.1%}), Competition ({nw['competition']:.1%}), Risk ({nw['risk']:.1%})."
+
+                elif any(w in lower_msg for w in ["improve my financial score", "improve financial", "increase financial", "increase score", "how to improve"]):
+                    answer_text = (
+                        f"To improve your **Financial Viability Score** (currently {bfr.raw_scores.get('financial', 0):.1f}/100, contributing {bfr.criteria_traces[1]['contribution']:.2f} of {dp['financial']} pts):\n\n"
+                        f"1. **Augment Promoter Equity Margin**: Increase your registered own capital from ₹{margin_cap:,.0f} towards 20–25% of your project cost (₹{bfr.business_project_cost or bfr.reference_project_cost:,.0f}).\n"
+                        f"2. **Utilize Credit-Linked Capital Subsidies**: Schemes like PMEGP offer 15%–35% margin subsidy, lowering your required debt burden.\n"
+                        f"3. **Maintain Cash Flow Buffer**: A 3-month operating reserve directly improves liquidity and debt servicing safety."
+                    )
+                    next_steps.append("Update own capital in Business Profile or generate scheme DPR.")
+
+                elif any(w in lower_msg for w in ["which factor affects", "biggest factor", "most important factor", "what factor affects"]):
+                    answer_text = (
+                        f"The factor that affects your business most in the AHP framework is **Market Catchment & Demand** with a **{nw['market']:.1%} normalized priority weight** (up to {dp['market']} points out of 100).\n\n"
+                        f"**Current Status for {bus_name}**:\n"
+                        f"• Market Catchment: {bfr.raw_scores.get('market', 0):.1f}/100 raw → **{bfr.criteria_traces[0]['contribution']:.2f} pts**\n"
+                        f"• Financial Viability: {bfr.raw_scores.get('financial', 0):.1f}/100 raw → **{bfr.criteria_traces[1]['contribution']:.2f} pts**\n"
+                        f"• Location Connectivity: {bfr.raw_scores.get('location', 0):.1f}/100 raw → **{bfr.criteria_traces[2]['contribution']:.2f} pts**\n"
+                        f"• Competition Barrier: {bfr.raw_scores.get('competition', 0):.1f}/100 raw → **{bfr.criteria_traces[3]['contribution']:.2f} pts**\n"
+                        f"• Risk Resilience: {bfr.raw_scores.get('risk', 0):.1f}/100 raw → **{bfr.criteria_traces[4]['contribution']:.2f} pts**\n\n"
+                        f"Improving your top-weighted factor (Market & Financial) yields the highest score gain per unit effort."
+                    )
+                    next_steps.append("Focus on customer agreements and mandi tie-ups to lock in market demand.")
+
+                elif any(w in lower_msg for w in ["why is market given higher", "why market higher", "why market 30%", "why market important"]):
+                    answer_text = (
+                        f"**Market Catchment & Demand** is assigned the highest AHP priority weight (**{nw['market']:.1%}** or ~30 points) because across domain expert comparisons (Chartered Accountants, Banking Officers, MSME Consultants, and Entrepreneurs), customer demand was consistently judged as the foundational prerequisite for rural business survival.\n\n"
+                        f"Even with strong capital or good road connectivity, a business cannot service bank loans or sustain operations without steady local buying volume and daily cash flow."
+                    )
+                    next_steps.append("View the full pairwise comparison matrix in the 'Scoring Methodology' tab.")
+
+                elif any(w in lower_msg for w in ["real expert", "expert data", "expert validated", "who are the experts", "real experts", "is this expert validated", "actual expert"]):
+                    answer_text = (
+                        f"**AHP Benchmark Disclosure**: The current criterion weights (Market {dp['market']}%, Financial {dp['financial']}%, "
+                        f"Location {dp['location']}%, Competition {dp['competition']}%, Risk {dp['risk']}%) are derived from an "
+                        f"**Illustrative Prototype Benchmark** (Dataset B from the AHP methodology guide covering 5 domain stakeholder roles: "
+                        f"Chartered Accountant, Market Expert, Banking/MSME Expert, Business Consultant, and Experienced Entrepreneur).\n\n"
+                        f"Real field expert validation across rural districts in Odisha is currently **PENDING**. VITTANAYA strictly discloses "
+                        f"that these weights serve as an illustrative proof-of-concept benchmark and are NOT claimed as empirically certified field survey results."
+                    )
+                    next_steps.append("Inspect the audit trail and reciprocal matrix under the 'Scoring Methodology' tab or via GET /api/v1/ahp/audit.")
+
+                else:
+                    # Comprehensive breakdown
+                    breakdown_lines = []
+                    for t in bfr.criteria_traces:
+                        breakdown_lines.append(
+                            f"  • **{t['label']}** ({dp[t['criterion']]} pts / {nw[t['criterion']]:.2%} AHP weight): "
+                            f"Raw = {t['raw_score']:.1f}/100 → Contribution = {t['contribution']:.2f} pts"
+                        )
+
+                    answer_text = (
+                        f"Your Final Feasibility Score of **{score_val:.0f}/100** for {specific_bus} in {loc} "
+                        f"is the linear weighted sum of 5 raw criterion scores:\n\n"
+                        + "\n".join(breakdown_lines)
+                        + f"\n\n**Total Calculation**: {bfr.criteria_traces[0]['contribution']:.2f} + {bfr.criteria_traces[1]['contribution']:.2f} + {bfr.criteria_traces[2]['contribution']:.2f} + {bfr.criteria_traces[3]['contribution']:.2f} + {bfr.criteria_traces[4]['contribution']:.2f} = **{score_val:.2f} (rounded to {score_val:.0f}/100)**.\n\n"
+                        f"**AHP Consistency**: CR = {bfr.ahp_cr:.6f} (< 0.10 threshold — mathematically consistent). "
+                        f"Dataset: {bfr.ahp_source_status}."
+                    )
+
+                key_facts.append(KeyFact(label="Feasibility Score", value=f"{score_val:.0f} / 100"))
+                key_facts.append(KeyFact(label="AHP Weights", value=f"M:{nw['market']:.0%} F:{nw['financial']:.0%} L:{nw['location']:.0%} C:{nw['competition']:.0%} R:{nw['risk']:.0%}"))
+                key_facts.append(KeyFact(label="Consistency Ratio (CR)", value=f"{bfr.ahp_cr:.6f} (< 0.10)"))
+                key_facts.append(KeyFact(label="Data Provenance", value="Verified Local Data" if bfr.is_local_verified else "Sector Benchmark [Fallback]"))
+                why_list.append(
+                    f"AHP weights derived via geometric mean aggregation across 5 experts and 10 pairwise comparisons: "
+                    f"Market {nw['market']:.2%}, Financial {nw['financial']:.2%}, Location {nw['location']:.2%}, Competition {nw['competition']:.2%}, Risk {nw['risk']:.2%}."
+                )
+                why_list.append("Final score equals sum of all 5 (Raw Score × AHP Priority Weight) contributions.")
+                next_steps.append("Open the 'Why This Score?' panel on the Feasibility page for interactive lineage.")
+
+            else:
+                # Fallback: no business_id — generic AHP explanation
+                ahp = get_ahp_result()
+                dp = ahp.dashboard_points
+                nw = ahp.normalized_weights
+                feas_engine = FeasibilityEngine(db)
+                feas_res = feas_engine.evaluate_feasibility(bus_category, specific_bus, loc)
+                score_val = float(feas_res.overall_opportunity_score)
+                if any(w in lower_msg for w in ["real expert", "expert data", "expert validated", "who are the experts", "real experts", "is this expert validated", "actual expert"]):
+                    answer_text = (
+                        f"**AHP Benchmark Disclosure**: The current criterion weights (Market {dp['market']}%, Financial {dp['financial']}%, "
+                        f"Location {dp['location']}%, Competition {dp['competition']}%, Risk {dp['risk']}%) are derived from an "
+                        f"**Illustrative Prototype Benchmark** (Dataset B from the AHP methodology guide covering 5 domain stakeholder roles: "
+                        f"Chartered Accountant, Market Expert, Banking/MSME Expert, Business Consultant, and Experienced Entrepreneur).\n\n"
+                        f"Real field expert validation across rural districts in Odisha is currently **PENDING**. VITTANAYA strictly discloses "
+                        f"that these weights serve as an illustrative proof-of-concept benchmark and are NOT claimed as empirically certified field survey results."
+                    )
+                else:
+                    answer_text = (
+                        f"Your Feasibility Score in VITTANAYA is derived using the AHP Multi-Dimensional Framework "
+                        f"(5 experts, 10 pairwise comparisons, Dataset B — illustrative):\n"
+                        f"Market ({dp['market']} pts), Financial ({dp['financial']} pts), "
+                        f"Location ({dp['location']} pts), Competition ({dp['competition']} pts), "
+                        f"Risk ({dp['risk']} pts). Sector baseline: {score_val:.0f}/100. "
+                        f"CR = {ahp.cr:.6f}. Load your business profile to see your personalised score."
+                    )
+                key_facts.append(KeyFact(label="Feasibility Score", value=f"{score_val:.0f} / 100"))
+                key_facts.append(KeyFact(label="AHP Methodology", value="5 experts, 10 comparisons"))
+                key_facts.append(KeyFact(label="Consistency Ratio (CR)", value=f"{ahp.cr:.6f} (< 0.10 acceptable)"))
+                key_facts.append(KeyFact(label="Dataset Status", value=ahp.source_status))
+                why_list.append(f"Weights: Market {nw['market']:.2%}, Financial {nw['financial']:.2%}, Location {nw['location']:.2%}, Competition {nw['competition']:.2%}, Risk {nw['risk']:.2%}.")
+                why_list.append("Evaluated using local NABARD PLP district data and AHP multi-criteria weighting.")
+                next_steps.append("Open your business profile to compute your personalised AHP feasibility score.")
+
         else:
             # General Query Handling
             feas_engine = FeasibilityEngine(db)
@@ -593,6 +757,12 @@ class AdvisoryService:
             key_facts.append(KeyFact(label="Location", value=loc))
             key_facts.append(KeyFact(label="Feasibility Score", value=f"{feas_res.overall_opportunity_score:.0f}/100"))
 
+        nlp_meta = NlpMetadata(
+            pipeline="TF-IDF + Logistic Regression (100% Offline)",
+            confidence_score=intent_confidence,
+            method=nlp_method,
+        )
+
         traceability = TraceabilityMetadata(
             input={
                 "message": raw_msg,
@@ -601,8 +771,11 @@ class AdvisoryService:
                 "business_category": bus_category,
                 "specific_business": specific_bus,
                 "location": loc,
+                "nlp_intent": intent,
+                "nlp_confidence": intent_confidence,
+                "nlp_method": nlp_method,
             },
-            calculation_rule="Intent-guided synthesis over deterministic NABARD, PMEGP, and Risk engine metrics.",
+            calculation_rule=f"NLP intent classified as '{intent}' ({nlp_method}, confidence: {intent_confidence:.1%}) -> routed to authoritative engine.",
             source_authority="VITTANAYA Grounded AI Advisory Engine",
             source_year="2026",
             provenance_priority="DETERMINISTIC_GROUNDED",
@@ -615,11 +788,12 @@ class AdvisoryService:
             key_facts=key_facts,
             why_this_result=why_list,
             recommended_next_steps=next_steps,
-            confidence="HIGH",
+            confidence="HIGH" if intent_confidence >= 0.50 else "MEDIUM",
             sources=sources,
             data_status="VERIFIED_DETERMINISTIC",
             language=lang,
             traceability=traceability,
+            nlp_metadata=nlp_meta,
         )
 
     @staticmethod

@@ -95,7 +95,7 @@ class ApiClient {
         throw timeoutErr;
       }
       if (error.message && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('Load failed') || error.message.includes('ECONNREFUSED'))) {
-        const netErr = new Error('VITTANAYA calculation service is unavailable. Please verify that the backend is running and try again.');
+        const netErr = new Error('Unable to load business financial data. Please verify that the backend is running and try again.');
         netErr.code = 'NETWORK_ERROR';
         netErr.status = 0;
         throw netErr;

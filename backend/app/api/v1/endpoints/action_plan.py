@@ -31,6 +31,9 @@ DEFAULT_TASKS = [
         "target_days": 3,
         "is_mandatory": True,
         "authority_name": "Commercial / Gramya Bank Branch",
+        "linked_requirement_id": "req_capital",
+        "priority": "HIGH",
+        "due_date": "Day 3",
     },
     {
         "phase": "Phase 1: Pre-Sanction Readiness",
@@ -39,6 +42,9 @@ DEFAULT_TASKS = [
         "target_days": 5,
         "is_mandatory": True,
         "authority_name": "Revenue Department / Tahsildar",
+        "linked_requirement_id": "req_kyc_pan_aadhaar",
+        "priority": "HIGH",
+        "due_date": "Day 5",
     },
     {
         "phase": "Phase 2: Scheme Portal & DPR Submission",
@@ -47,6 +53,9 @@ DEFAULT_TASKS = [
         "target_days": 10,
         "is_mandatory": True,
         "authority_name": "KVIC / KVIB / DIC Odisha",
+        "linked_requirement_id": "req_local_noc",
+        "priority": "MEDIUM",
+        "due_date": "Day 10",
     },
     {
         "phase": "Phase 2: Scheme Portal & DPR Submission",
@@ -55,6 +64,9 @@ DEFAULT_TASKS = [
         "target_days": 15,
         "is_mandatory": True,
         "authority_name": "Lead District Bank Manager",
+        "linked_requirement_id": "req_infra_premises",
+        "priority": "HIGH",
+        "due_date": "Day 15",
     },
     {
         "phase": "Phase 3: Unit Setup & Statutory Compliance",
@@ -63,6 +75,9 @@ DEFAULT_TASKS = [
         "target_days": 20,
         "is_mandatory": True,
         "authority_name": "Ministry of MSME Portal",
+        "linked_requirement_id": "req_udyam",
+        "priority": "HIGH",
+        "due_date": "Day 20",
     },
 ]
 
@@ -101,6 +116,9 @@ def get_action_plan(
                 target_days=item["target_days"],
                 is_mandatory=item["is_mandatory"],
                 authority_name=item["authority_name"],
+                linked_requirement_id=item.get("linked_requirement_id"),
+                priority=item.get("priority", "HIGH"),
+                due_date=item.get("due_date"),
             )
             db.add(t)
         db.commit()
@@ -131,7 +149,7 @@ def update_task_status(
     business_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ) -> TaskItemSchema:
-    """Update execution status of a roadmap task ('pending', 'in_progress', 'completed')."""
+    """Update execution status of a roadmap task ('pending', 'in_progress', 'completed') and sync to readiness."""
     task = db.query(ActionPlanTask).filter(ActionPlanTask.id == task_id).first()
     if not task:
         raise HTTPException(
@@ -148,7 +166,15 @@ def update_task_status(
     task.status = payload.status
     db.commit()
     db.refresh(task)
+
+    # Synchronize to linked requirement in Readiness Engine
+    from backend.app.services.readiness_service import ReadinessService
+
+    readiness_service = ReadinessService(db)
+    readiness_service.sync_from_action_task(task_id, payload.status)
+
     return TaskItemSchema.model_validate(task)
+
 
 
 @router.post(

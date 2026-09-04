@@ -8,7 +8,7 @@ export default function FloatingAiButton({ onClick, className = '' }) {
 
   return (
     <div
-      className={`fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-40 cursor-pointer select-none ${className}`}
+      className={`fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 cursor-pointer select-none ${className}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}

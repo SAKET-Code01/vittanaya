@@ -243,8 +243,8 @@ def test_missing_financial_data(client: TestClient):
     assert "I don't have enough financial information" in data["answer"] or "0" in data["answer"]
 
 
-def test_gemini_api_key_absent_offline(client: TestClient):
-    """10. Verify chatbot functions 100% offline with verified deterministic templates when GEMINI_API_KEY is absent."""
+def test_groq_api_key_absent_offline(client: TestClient):
+    """10. Verify chatbot functions 100% offline with verified deterministic templates when GROQ_API_KEY is absent."""
     with patch.dict(os.environ, {}, clear=True):
         res = client.post(
             "/api/v1/advisory/chat",

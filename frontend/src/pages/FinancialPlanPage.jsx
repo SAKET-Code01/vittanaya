@@ -221,9 +221,17 @@ export default function FinancialPlanPage({
   const activeActivity = currentProfile?.industry || currentProfile?.category || 'General Enterprise';
   const activeLocation = currentProfile?.district || currentProfile?.location || (currentProfile?.location_district ? `${currentProfile.location_district}, ${currentProfile.location_state || 'Odisha'}` : 'Odisha');
 
+  const profileMarginPct = useMemo(() => {
+    if (savedProjectCost && userOwnCapital && savedProjectCost > 0) {
+      const computed = Math.round((userOwnCapital / savedProjectCost) * 100);
+      if (computed >= 5 && computed <= 50) return computed;
+    }
+    return 10;
+  }, [savedProjectCost, userOwnCapital]);
+
   // Primary Input States
   const [projectCostInput, setProjectCostInput] = useState(savedProjectCost);
-  const [marginPct, setMarginPct] = useState(10);
+  const [marginPct, setMarginPct] = useState(profileMarginPct);
   const [loanTenureYears, setLoanTenureYears] = useState(7);
   const [interestRate, setInterestRate] = useState(8.5);
 
@@ -292,7 +300,7 @@ export default function FinancialPlanPage({
         setIsError(true);
         setFundingData(null);
         setErrorMessage(
-          err?.response?.data?.detail || err.message || 'VITTANAYA calculation service is unavailable. Please verify that the backend is running and try again.'
+          err?.response?.data?.detail || err.message || 'Unable to load business financial data. Please verify that the backend is running and try again.'
         );
       } finally {
         setIsLoading(false);
@@ -310,8 +318,9 @@ export default function FinancialPlanPage({
 
     if (savedProjectCost && savedProjectCost > 0) {
       setProjectCostInput(savedProjectCost);
+      setMarginPct(profileMarginPct);
       setCostProvenance('User Profile Configuration');
-      recalculateFundingStructure(savedProjectCost, marginPct, interestRate, loanTenureYears);
+      recalculateFundingStructure(savedProjectCost, profileMarginPct, interestRate, loanTenureYears);
       return;
     }
 
@@ -684,7 +693,7 @@ export default function FinancialPlanPage({
                   Affordability Estimate
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[#64748B]">
-                  Estimated monthly net operating surplus is <strong>{formatINR(estimatedMonthlySurplus)}</strong>.
+                  Estimated monthly net operating surplus is <strong>{formatINR(monthlySurplus)}</strong>.
                   After monthly EMI of <strong>{formatINR(monthlyEmi)}</strong>, your monthly planning cash buffer is <strong>{formatINR(afterEmi)}</strong>.
                 </p>
               </div>

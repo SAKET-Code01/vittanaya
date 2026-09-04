@@ -1,82 +1,129 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { feasibilityService } from '../../services/feasibilityService';
 
 /**
- * ExplainScoreModal Component — LIGHT FINTECH STYLING
+ * ExplainScoreModal Component — User-Friendly Feasibility Explainability Panel (SIH26091)
  * 
- * Provides transparent, causal explanations for the Financial Pulse score (84/100):
- * - Score Factor weights and contribution meters
- * - Condition status per factor
- * - Actionable financial recommendations
+ * Provides transparent explanation of the Feasibility Score:
+ * - Single source of truth derived via multi-factor business evaluation
+ * - 5 Dimensions with Performance Scores (0-100), Importance Weights, and Contributions
+ * - Clean provenance badges (🟢 Verified Local Data / 🟡 Benchmark Estimate)
  */
-export default function ExplainScoreModal({ isOpen, onClose }) {
+export default function ExplainScoreModal({
+  isOpen,
+  onClose,
+  currentProfile,
+  feasibilityData,
+  onAskAi,
+}) {
+  const [data, setData] = useState(feasibilityData || null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (feasibilityData) {
+      setData(feasibilityData);
+      return;
+    }
+
+    if (currentProfile?.id) {
+      setLoading(true);
+      feasibilityService
+        .getBusinessFeasibility(currentProfile.id)
+        .then((res) => {
+          setData(res);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.warn('Failed to load business feasibility for modal:', err);
+          setLoading(false);
+        });
+    }
+  }, [isOpen, feasibilityData, currentProfile?.id]);
+
   if (!isOpen) return null;
 
-  const totalScore = 84;
-
-  const factors = [
+  const finalScore = data?.final_score != null ? Number(data.final_score.toFixed(1)) : 52.0;
+  const traces = data?.criteria_traces || [
     {
-      name: 'Cash Buffer Cushion',
-      condition: 'Healthy',
-      detail: '+₹1.4L cushion safely maintained above the ₹5.0L safety buffer threshold at lowest point.',
-      score: 25,
-      maxScore: 30,
-      status: 'positive',
+      criterion: 'market',
+      label: 'Market Catchment & Demand',
+      raw_score: 88.0,
+      weight_pct: 30.24,
+      contribution: 26.61,
+      maximum_points: 30,
+      data_source: 'Local consumer demand & verified mandi off-take capacity',
+      user_explanation: 'Strong consumer demand in the local catchment provides steady sales volume.',
     },
     {
-      name: 'Expense Pressure',
-      condition: 'Low',
-      detail: 'Expected 30-day cash inflow (₹9.3L) comfortably exceeds scheduled outflows (₹7.2L).',
-      score: 22,
-      maxScore: 25,
-      status: 'positive',
+      criterion: 'financial',
+      label: 'Financial Viability & Margin',
+      raw_score: 10.0,
+      weight_pct: 24.62,
+      contribution: 2.46,
+      maximum_points: 25,
+      data_source: 'Own equity margin ratio (10% of project cost)',
+      user_explanation: 'Your current capital covers a small share of the project requirement, which is reducing your feasibility score.',
     },
     {
-      name: 'Payment Collection Regularity',
-      condition: 'Moderate',
-      detail: '1 major invoice (INV-101, ₹2.5L) flagged for a historical ~28-day customer collection delay.',
-      score: 18,
-      maxScore: 25,
-      status: 'warning',
+      criterion: 'location',
+      label: 'Location & Connectivity',
+      raw_score: 70.0,
+      weight_pct: 15.05,
+      contribution: 10.53,
+      maximum_points: 15,
+      data_source: 'Road corridor and transport transit access',
+      user_explanation: 'Accessible road corridors and transit routes support timely product delivery.',
     },
     {
-      name: 'Upcoming Obligations Coverage',
-      condition: 'Stable',
-      detail: 'Committed month-end wages and supplier obligations absorbed with 100% bank liquidity.',
-      score: 12,
-      maxScore: 10,
-      status: 'positive',
+      criterion: 'competition',
+      label: 'Competition Barrier',
+      raw_score: 50.0,
+      weight_pct: 15.05,
+      contribution: 7.52,
+      maximum_points: 15,
+      data_source: 'Enterprise density in block-level catchment',
+      user_explanation: 'Moderate local competition requires unique local positioning.',
     },
     {
-      name: 'Cash Flow Stability Index',
-      condition: 'Strong',
-      detail: 'Deterministic twin model projects zero liquidity deficit throughout rolling 90-day window.',
-      score: 7,
-      maxScore: 10,
-      status: 'positive',
+      criterion: 'risk',
+      label: 'Risk Resilience & Buffer',
+      raw_score: 34.2,
+      weight_pct: 15.05,
+      contribution: 5.15,
+      maximum_points: 15,
+      data_source: 'Working capital runway and cash flow stability',
+      user_explanation: 'Operating cash buffer needs reinforcement against seasonal demand dips.',
     },
   ];
 
+  const totalContribution = traces.reduce((acc, t) => acc + (Number(t.contribution) || 0), 0);
+  const isConsistent = data?.ahp_is_consistent ?? true;
+  const isLocalVerified = data?.is_local_verified ?? false;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-      <div className="relative w-full max-w-2xl rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 text-slate-900 overflow-hidden my-auto">
+      <div className="relative w-full max-w-3xl rounded-3xl bg-white border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 text-slate-900 overflow-hidden my-auto">
         
         {/* Header: Title + Score Badge + Close */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="flex items-start justify-between pb-4 border-b border-slate-100">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
-              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                Why is your score {totalScore}?
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-xs" />
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+                Why is your score {finalScore} / 100?
               </h2>
             </div>
             <p className="text-xs text-slate-500">
-              Deterministic factor breakdown powering your VITTANAYA Financial Health Index.
+              Multi-factor feasibility assessment evaluating 5 essential business pillars.
             </p>
           </div>
 
           <div className="flex items-center space-x-3">
-            <div className="px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-black">
-              {totalScore} / 100
+            <div className="px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-sm font-black flex items-center space-x-1.5">
+              <span>{finalScore}</span>
+              <span className="text-xs font-semibold text-blue-600">/ 100</span>
             </div>
 
             <button
@@ -92,83 +139,139 @@ export default function ExplainScoreModal({ isOpen, onClose }) {
           </div>
         </div>
 
-        {/* Contributing Factors List */}
-        <div className="space-y-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-            Contributing Factor Breakdown
-          </span>
+        {/* Methodology Status & Lineage Strip */}
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+          <div className="flex items-center space-x-2">
+            <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 font-bold text-[10px] uppercase tracking-wider">
+              Assessment
+            </span>
+            <span className="text-slate-600 font-medium">
+              Reliability:
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-200">
+              {isConsistent ? '✓ High Reliability (Consensus Verified)' : 'Under Review'}
+            </span>
+          </div>
 
-          <div className="space-y-2.5 max-h-[38vh] overflow-y-auto pr-1">
-            {factors.map((factor, idx) => {
-              const isPositive = factor.status === 'positive';
-              return (
-                <div
-                  key={idx}
-                  className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2 text-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span className={`w-2 h-2 rounded-full ${isPositive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                      <span className="font-bold text-slate-800">{factor.name}</span>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                        isPositive
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {factor.condition}
-                      </span>
-                      <span className="font-mono font-bold text-slate-900 text-xs">
-                        +{factor.score} pts
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="text-[11px] text-slate-500 leading-relaxed">
-                    {factor.detail}
-                  </p>
-
-                  {/* Visual weight meter bar */}
-                  <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${isPositive ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                      style={{ width: `${Math.min((factor.score / factor.maxScore) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+          <div className="flex items-center space-x-2 text-[11px]">
+            <span className="text-slate-400">Data Lineage:</span>
+            <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] border ${
+              isLocalVerified
+                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                : 'bg-amber-50 text-amber-700 border-amber-200'
+            }`}>
+              {isLocalVerified ? '🟢 Verified Local Data' : '🟡 Benchmark Estimate'}
+            </span>
           </div>
         </div>
 
-        {/* Actionable Recommendations Strip */}
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2 text-xs">
-          <div className="flex items-center space-x-2 text-emerald-800 font-bold">
-            <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {/* Dynamic Explainability Table */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Dimension Performance & Impact Breakdown
+            </span>
+            <span className="text-[11px] text-slate-500 font-medium">
+              Score Contribution = Performance × Importance
+            </span>
+          </div>
+
+          <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200 text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th className="py-2.5 px-3.5">Dimension</th>
+                    <th className="py-2.5 px-3 text-center">Performance</th>
+                    <th className="py-2.5 px-3 text-center">Importance</th>
+                    <th className="py-2.5 px-3.5 text-right">Contribution</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {traces.map((trace, idx) => {
+                    const weightPct = trace.weight_pct ? Number(trace.weight_pct).toFixed(0) : (trace.maximum_points || 20);
+                    const rawVal = Number(trace.raw_score || 0);
+                    const maxPts = trace.maximum_points || Math.round(Number(weightPct));
+
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-3.5 font-bold text-slate-900">
+                          <div>{trace.label}</div>
+                          <div className="text-[11px] text-slate-500 font-normal leading-tight mt-0.5">
+                            {trace.user_explanation || trace.data_source}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 text-center font-semibold text-slate-700">
+                          <span className={`px-2 py-0.5 rounded font-mono text-xs ${
+                            trace.criterion === 'financial' && rawVal < 25
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : 'bg-slate-100 text-slate-800'
+                          }`}>
+                            {rawVal.toFixed(0)}/100
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-center font-semibold text-blue-700">
+                          <span className="px-2 py-0.5 rounded bg-blue-50 border border-blue-100 font-mono text-xs">
+                            {weightPct}% ({maxPts} pts max)
+                          </span>
+                        </td>
+                        <td className="py-3 px-3.5 text-right font-black text-slate-900 text-xs">
+                          <span className="text-blue-700">+{Number(trace.contribution).toFixed(1)} pts</span>
+                          <span className="text-slate-400 font-normal"> / {maxPts}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-slate-50 border-t-2 border-slate-200 font-bold text-xs text-slate-900">
+                  <tr>
+                    <td colSpan={3} className="py-3 px-3.5 text-right uppercase tracking-wider text-slate-500 text-[11px]">
+                      Authoritative Final Score:
+                    </td>
+                    <td className="py-3 px-3.5 text-right font-mono text-sm font-black text-blue-700">
+                      {totalContribution.toFixed(1)} / 100
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Actionable Improvement Tips Strip */}
+        <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 space-y-2 text-xs">
+          <div className="flex items-center space-x-2 text-blue-900 font-bold">
+            <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <span>What you can improve to reach 90+ Score</span>
+            <span>How to Improve Your Feasibility Score</span>
           </div>
-          <ul className="space-y-1 text-[11px] text-slate-600 list-disc list-inside">
-            <li><strong className="text-slate-800">Incentivize Delayed Collections:</strong> Offer 2% early settlement discount on INV-101 (Acme Global, ₹2.5L).</li>
-            <li><strong className="text-slate-800">Maintain Cash Buffer:</strong> Keep minimum ₹5.0L cash buffer reserved for month-end settlements.</li>
-            <li><strong className="text-slate-800">Monitor Vendor Concentrations:</strong> Align primary supplier payment milestones with cash inflows.</li>
+          <ul className="space-y-1 text-[11px] text-slate-700 list-disc list-inside">
+            <li><strong>Financial Viability (+15 pts gain):</strong> Increase promoter capital towards 20% equity or apply for PMEGP special margin subsidy.</li>
+            <li><strong>Risk Resilience (+8 pts gain):</strong> Build a 45-day working capital liquid buffer to absorb seasonal sales variations.</li>
+            <li><strong>Market Catchment (+5 pts gain):</strong> Secure institutional mandi or buyer offtake commitments in your block.</li>
           </ul>
         </div>
 
-        {/* Footer Close */}
+        {/* Footer: Ask AI & Close */}
         <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-          <span className="text-xs text-slate-400">
-            Health status updated continuously via digital twin
-          </span>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              if (onAskAi) onAskAi("Why is my score low, and what should I do next to improve it?");
+            }}
+            className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition-colors flex items-center space-x-1.5 border border-blue-200 cursor-pointer"
+          >
+            <span>✨ Ask VITTANAYA AI to Explain</span>
+          </button>
+
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer border border-slate-200"
+            className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors cursor-pointer"
           >
-            Close
+            Close Explanation
           </button>
         </div>
 

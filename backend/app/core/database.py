@@ -1,4 +1,4 @@
-"""Database setup and session management with SQLAlchemy and SQLite."""
+"""Database setup and session management with SQLAlchemy."""
 
 from collections.abc import Generator
 from typing import Any
@@ -8,15 +8,42 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 from backend.app.core.config import settings
 
-# Engine configuration for SQLite (enforce check_same_thread=False for FastAPI concurrency)
+
+def normalize_database_url(url: str) -> str:
+    """
+    Normalize DATABASE_URL for Psycopg 3 compatibility and cloud hosting providers.
+
+    Converts legacy 'postgres://' or driverless 'postgresql://' to 'postgresql+psycopg://'.
+    """
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+psycopg://", 1)
+    if url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
+
+
+db_url = normalize_database_url(settings.DATABASE_URL)
+
 connect_args: dict[str, Any] = {}
-if settings.DATABASE_URL.startswith("sqlite"):
+engine_kwargs: dict[str, Any] = {
+    "echo": settings.DEBUG,
+    "pool_pre_ping": True,
+}
+
+if db_url.startswith("sqlite"):
     connect_args["check_same_thread"] = False
+else:
+    # Production PostgreSQL connection pool parameters
+    engine_kwargs.update({
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_recycle": 300,
+    })
 
 engine = create_engine(
-    settings.DATABASE_URL,
+    db_url,
     connect_args=connect_args,
-    echo=settings.DEBUG,
+    **engine_kwargs,
 )
 
 SessionLocal = sessionmaker(
@@ -30,6 +57,8 @@ Base = declarative_base()
 
 def auto_migrate_sqlite_schema(target_engine: Any) -> None:
     """Automatically add missing columns to SQLite tables defined in Base.metadata."""
+    if target_engine.dialect.name != "sqlite":
+        return
     from sqlalchemy import inspect, text
 
     import backend.app.models  # noqa: F401
