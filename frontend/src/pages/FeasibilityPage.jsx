@@ -181,15 +181,19 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
 
   const fetchFeasibility = useCallback(() => {
     let isMounted = true;
+    if (!profile?.id) {
+      setIsLoadingFeasibility(false);
+      return;
+    }
     setIsLoadingFeasibility(true);
     setFeasibilityError(null);
 
-    const bizId = profile?.id ? Number(profile.id) : 1;
+    const bizId = Number(profile.id);
 
     feasibilityService
       .getBusinessFeasibility(bizId)
       .then((data) => {
-        if (isMounted && data) {
+        if (isMounted) {
           setBusinessFeasibility(data);
           setIsLoadingFeasibility(false);
         }
@@ -218,112 +222,50 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
     fetchFeasibility();
   }, [fetchFeasibility]);
 
-  // Grounded Single Source of Truth Values
-  const defaultCriteria = useMemo(() => [
-    {
-      criterion: 'market',
-      label: 'Market Catchment & Demand',
-      raw_score: 88.0,
-      maximum_points: 30,
-      weight_pct: 30.24,
-      contribution: 26.61,
-      data_source: 'Local consumer demand & verified mandi off-take capacity',
-      provenance: 'Verified Local Data',
-      user_explanation: 'Strong consumer demand in the local catchment provides steady sales volume.',
-    },
-    {
-      criterion: 'financial',
-      label: 'Financial Viability & Margin',
-      raw_score: 10.0,
-      maximum_points: 25,
-      weight_pct: 24.62,
-      contribution: 2.46,
-      data_source: 'Own equity margin ratio (10% of project cost)',
-      provenance: 'Verified Workspace Profile',
-      user_explanation: 'Your current capital covers a small share of the project requirement, which is reducing your feasibility score.',
-    },
-    {
-      criterion: 'location',
-      label: 'Location & Connectivity',
-      raw_score: 70.0,
-      maximum_points: 15,
-      weight_pct: 15.05,
-      contribution: 10.53,
-      data_source: 'Road corridor and transport transit access',
-      provenance: 'Verified Local Data',
-      user_explanation: 'Accessible road corridors and transit routes support timely product delivery.',
-    },
-    {
-      criterion: 'competition',
-      label: 'Competition Barrier',
-      raw_score: 50.0,
-      maximum_points: 15,
-      weight_pct: 15.05,
-      contribution: 7.52,
-      data_source: 'Enterprise density in block-level catchment',
-      provenance: 'Benchmark Estimate',
-      user_explanation: 'Moderate local competition requires unique local positioning.',
-    },
-    {
-      criterion: 'risk',
-      label: 'Risk Resilience & Buffer',
-      raw_score: 34.2,
-      maximum_points: 15,
-      weight_pct: 15.05,
-      contribution: 5.15,
-      data_source: 'Working capital runway and cash flow stability',
-      provenance: 'Benchmark Estimate',
-      user_explanation: 'Operating cash buffer needs reinforcement against seasonal demand dips.',
-    },
-  ], []);
-
+  // Grounded Single Source of Truth Values from Backend
   const criteriaTraces = useMemo(() => {
     if (businessFeasibility?.criteria_traces && businessFeasibility.criteria_traces.length === 5) {
-      return businessFeasibility.criteria_traces.map((t) => {
-        const def = defaultCriteria.find((d) => d.criterion === t.criterion);
-        return {
-          ...t,
-          user_explanation: t.user_explanation || def?.user_explanation || 'Dimension evaluated against local benchmark.',
-        };
-      });
+      return businessFeasibility.criteria_traces;
     }
-    return defaultCriteria;
-  }, [businessFeasibility?.criteria_traces, defaultCriteria]);
+    return [];
+  }, [businessFeasibility?.criteria_traces]);
 
   // SINGLE AUTHORITATIVE SCORE (No secondary calculation)
   const finalScoreExact = businessFeasibility?.final_score != null
     ? Number(businessFeasibility.final_score.toFixed(1))
-    : 52.0;
-  const overallScore = Math.round(finalScoreExact);
+    : null;
+  const overallScore = finalScoreExact != null ? Math.round(finalScoreExact) : null;
 
   // Criteria lookups for card rendering
-  const marketTrace = criteriaTraces.find((t) => t.criterion === 'market') || defaultCriteria[0];
-  const financialTrace = criteriaTraces.find((t) => t.criterion === 'financial') || defaultCriteria[1];
-  const locationTrace = criteriaTraces.find((t) => t.criterion === 'location') || defaultCriteria[2];
-  const competitionTrace = criteriaTraces.find((t) => t.criterion === 'competition') || defaultCriteria[3];
-  const riskTrace = criteriaTraces.find((t) => t.criterion === 'risk') || defaultCriteria[4];
+  const getTrace = (crit) => criteriaTraces.find((t) => t.criterion === crit) || null;
+  const marketTrace = getTrace('market');
+  const financialTrace = getTrace('financial');
+  const locationTrace = getTrace('location');
+  const competitionTrace = getTrace('competition');
+  const riskTrace = getTrace('risk');
 
   // Business Decision Status
   const decisionLabel = useMemo(() => {
+    if (overallScore == null) return 'EVALUATING BUSINESS FEASIBILITY...';
     if (overallScore >= 75) return 'HIGH FEASIBILITY — READY TO PROCEED';
     if (overallScore >= 60) return 'GOOD POTENTIAL — MINOR OPTIMIZATION';
     if (overallScore >= 45) return 'MODERATE POTENTIAL — REVIEW REQUIRED';
     return 'HIGH RISK — SIGNIFICANT ADJUSTMENTS NEEDED';
   }, [overallScore]);
 
-  const decisionTone = overallScore >= 75 ? 'emerald' : overallScore >= 60 ? 'blue' : overallScore >= 45 ? 'amber' : 'rose';
+  const decisionTone = overallScore == null ? 'slate' : overallScore >= 75 ? 'emerald' : overallScore >= 60 ? 'blue' : overallScore >= 45 ? 'amber' : 'rose';
 
   const openAIExplanation = (promptText) => {
     const prompt = promptText || [
       `Explain the feasibility assessment for ${businessName} in ${businessLocation}.`,
-      `Overall score is ${overallScore}/100.`,
-      `Market demand: ${marketTrace.raw_score}/100 (impact: +${Number(marketTrace.contribution).toFixed(1)} pts).`,
-      `Financial viability: ${financialTrace.raw_score}/100 (impact: +${Number(financialTrace.contribution).toFixed(1)} pts).`,
-      `Location connectivity: ${locationTrace.raw_score}/100 (impact: +${Number(locationTrace.contribution).toFixed(1)} pts).`,
-      `Competition barrier: ${competitionTrace.raw_score}/100 (impact: +${Number(competitionTrace.contribution).toFixed(1)} pts).`,
-      `Risk resilience: ${riskTrace.raw_score}/100 (impact: +${Number(riskTrace.contribution).toFixed(1)} pts).`,
+      overallScore != null ? `Overall score is ${overallScore}/100.` : 'Overall score is currently being computed.',
+      marketTrace ? `Market demand: ${marketTrace.raw_score}/100 (impact: +${Number(marketTrace.contribution).toFixed(1)} pts).` : '',
+      financialTrace ? `Financial viability: ${financialTrace.raw_score}/100 (impact: +${Number(financialTrace.contribution).toFixed(1)} pts).` : '',
+      locationTrace ? `Location connectivity: ${locationTrace.raw_score}/100 (impact: +${Number(locationTrace.contribution).toFixed(1)} pts).` : '',
+      competitionTrace ? `Competition barrier: ${competitionTrace.raw_score}/100 (impact: +${Number(competitionTrace.contribution).toFixed(1)} pts).` : '',
+      riskTrace ? `Risk resilience: ${riskTrace.raw_score}/100 (impact: +${Number(riskTrace.contribution).toFixed(1)} pts).` : '',
       `What specific actions should I take to improve my score?`,
-    ].join(' ');
+    ].filter(Boolean).join(' ');
 
     window.dispatchEvent(
       new CustomEvent('vittanaya-open-ai', {
@@ -446,42 +388,45 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
       {/* TAB 1: FEASIBILITY OVERVIEW (Primary Product View) */}
       {activeTab === 'overview' && (
         <div className="space-y-5 animate-fadeIn">
-          {/* Top Row: Overall Score Card + Supporting High-Level Cards */}
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
-            {/* 1. Overall Score Hero Card */}
-            <div className="xl:col-span-4 rounded-[26px] border border-blue-500/25 bg-gradient-to-br from-[#060D1D] via-[#0B1736] to-[#0A1128] p-5 sm:p-6 text-white shadow-[0_16px_40px_rgba(6,13,29,0.35)] flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-200/80">Overall Feasibility Index</p>
-                  <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold">
-                    Authoritative
-                  </span>
-                </div>
-
-                <div className="flex flex-col items-center justify-center py-5">
-                  {isLoadingFeasibility ? (
-                    <div className="text-center py-8">
-                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-400 border-r-transparent" />
-                      <p className="mt-3 text-xs text-blue-200/80">Evaluating multi-dimension evidence...</p>
+          {isLoadingFeasibility ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center text-slate-500 space-y-3">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent" />
+              <p className="text-xs font-semibold text-slate-600">Evaluating multi-dimension feasibility evidence...</p>
+            </div>
+          ) : !businessFeasibility || criteriaTraces.length === 0 ? (
+            <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center text-slate-500 space-y-2">
+              <p className="text-sm font-bold text-slate-700">Feasibility evaluation pending or unavailable.</p>
+              <p className="text-xs text-slate-400">Complete enterprise intake details to run authoritative multi-factor feasibility scoring.</p>
+            </div>
+          ) : (
+            <>
+              {/* Top Row: Overall Score Card + Supporting High-Level Cards */}
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
+                {/* 1. Overall Score Hero Card */}
+                <div className="xl:col-span-4 rounded-[26px] border border-blue-500/25 bg-gradient-to-br from-[#060D1D] via-[#0B1736] to-[#0A1128] p-5 sm:p-6 text-white shadow-[0_16px_40px_rgba(6,13,29,0.35)] flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-200/80">Overall Feasibility Index</p>
+                      <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-[10px] font-bold">
+                        Authoritative
+                      </span>
                     </div>
-                  ) : (
-                    <>
-                      <CircularScoreGauge score={clamp(overallScore, 0, 100)} size={150} strokeWidth={10} stroke="#3B82F6" />
+
+                    <div className="flex flex-col items-center justify-center py-5">
+                      <CircularScoreGauge score={clamp(overallScore || 0, 0, 100)} size={150} strokeWidth={10} stroke="#3B82F6" />
                       <div className="mt-3 text-center">
                         <div className="text-2xl sm:text-3xl font-black text-blue-400">
-                          {overallScore} <span className="text-base text-slate-300 font-normal">/ 100</span>
+                          {overallScore != null ? overallScore : '—'} <span className="text-base text-slate-300 font-normal">/ 100</span>
                         </div>
                         <p className="mt-1 text-xs font-bold text-white tracking-wide">
                           {decisionLabel}
                         </p>
                         <p className="mt-2 max-w-md text-xs leading-relaxed text-blue-100/75">
-                          Each factor has a different importance in the overall feasibility assessment. Strong local demand (+{Number(marketTrace.contribution).toFixed(1)} pts) provides healthy customer volume, while financial capital coverage (+{Number(financialTrace.contribution).toFixed(1)} pts) requires optimization.
+                          Multi-factor feasibility calculated from {criteriaTraces.length} core domain criteria with verified AHP weights.
                         </p>
                       </div>
-                    </>
-                  )}
-                </div>
-              </div>
+                    </div>
+                  </div>
 
               <div className="space-y-2 pt-2 border-t border-white/10">
                 <div className="grid grid-cols-2 gap-2 text-center text-xs">
@@ -745,13 +690,13 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
                 </div>
                 <div className="space-y-2.5 text-xs">
                   <div className="rounded-xl bg-white/80 p-3 border border-emerald-100">
-                    <p className="font-bold text-slate-900">High Local Catchment Demand (+{Number(marketTrace.contribution).toFixed(1)} pts)</p>
+                    <p className="font-bold text-slate-900">High Local Catchment Demand (+{marketTrace?.contribution != null ? Number(marketTrace.contribution).toFixed(1) : '0.0'} pts)</p>
                     <p className="text-slate-600 text-[11px] mt-0.5">
                       Strong customer density and steady daily consumption provide an immediate customer base.
                     </p>
                   </div>
                   <div className="rounded-xl bg-white/80 p-3 border border-emerald-100">
-                    <p className="font-bold text-slate-900">Strategic Location Connectivity (+{Number(locationTrace.contribution).toFixed(1)} pts)</p>
+                    <p className="font-bold text-slate-900">Strategic Location Connectivity (+{locationTrace?.contribution != null ? Number(locationTrace.contribution).toFixed(1) : '0.0'} pts)</p>
                     <p className="text-slate-600 text-[11px] mt-0.5">
                       Proximity to transit routes and district road networks keeps distribution overhead low.
                     </p>
@@ -767,13 +712,13 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
                 </div>
                 <div className="space-y-2.5 text-xs">
                   <div className="rounded-xl bg-white/80 p-3 border border-amber-100">
-                    <p className="font-bold text-slate-900">Low Equity Margin Capital (+{Number(financialTrace.contribution).toFixed(1)} pts / 25)</p>
+                    <p className="font-bold text-slate-900">Low Equity Margin Capital (+{financialTrace?.contribution != null ? Number(financialTrace.contribution).toFixed(1) : '0.0'} pts / 25)</p>
                     <p className="text-slate-600 text-[11px] mt-0.5">
-                      Your current capital covers 10% of the project cost. Increasing your margin capital to 20% or applying for a government subsidy is the single highest-leverage way to raise your score.
+                      Increasing your margin capital or applying for a credit-linked subsidy is the single highest-leverage way to raise your score.
                     </p>
                   </div>
                   <div className="rounded-xl bg-white/80 p-3 border border-amber-100">
-                    <p className="font-bold text-slate-900">Operating Runway & Resilience (+{Number(riskTrace.contribution).toFixed(1)} pts / 15)</p>
+                    <p className="font-bold text-slate-900">Operating Runway & Resilience (+{riskTrace?.contribution != null ? Number(riskTrace.contribution).toFixed(1) : '0.0'} pts / 15)</p>
                     <p className="text-slate-600 text-[11px] mt-0.5">
                       Maintaining a dedicated 45-day cash buffer will protect against slow receivable collection cycles.
                     </p>
@@ -820,17 +765,17 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between space-y-3">
                 <div className="space-y-1.5">
                   <span className="text-[10px] font-black uppercase tracking-wider text-blue-600">Step 02</span>
-                  <h4 className="font-extrabold text-slate-900 text-sm">Apply for Credit Subsidy</h4>
+                  <h4 className="font-extrabold text-slate-900 text-sm">Target Subsidies & Grants</h4>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Qualify for PMEGP (up to 35% subsidy) or PM-FME capital grants to reduce bank debt requirements.
+                    Explore PMEGP / PM-FME credit-linked capital assistance to reduce upfront debt requirements.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => navigateTo('scheme')}
-                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 font-bold text-xs py-2.5 transition cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 font-bold text-xs py-2.5 transition cursor-pointer"
                 >
-                  <span>Explore Eligible Schemes</span>
+                  <span>Explore Schemes</span>
                   <span>→</span>
                 </button>
               </div>
@@ -854,8 +799,10 @@ function FeasibilityPage({ currentProfile: propProfile, onNavigateHome }) {
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
+    </div>
+  )}
 
       {/* TAB 2: WHY THIS SCORE? (Explainability View) */}
       {activeTab === 'why_this_score' && (

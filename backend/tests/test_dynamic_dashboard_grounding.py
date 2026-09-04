@@ -280,3 +280,36 @@ def test_dashboard_operational_priorities_rule_derived_and_traceable(client):
         assert p["urgency"] in ["URGENT", "ACTION_REQUIRED", "RECOMMENDED", "STABLE"]
 
 
+def test_feasibility_single_source_of_truth(client):
+    """GET /api/v1/ahp/business-feasibility/{id}: final_score strictly equals sum of the 5 criteria contributions."""
+    res = client.get("/api/v1/ahp/business-feasibility/9")
+    assert res.status_code == 200
+    data = res.json()
+
+    assert data["business_id"] == 9
+    assert len(data["criteria_traces"]) == 5
+    calculated_sum = sum(t["contribution"] for t in data["criteria_traces"])
+    assert abs(data["final_score"] - calculated_sum) < 0.2
+
+
+def test_switching_business_id_returns_distinct_identity_and_metrics(client):
+    """Switching business query returns distinct identity, stage, and metrics without stale data crossover."""
+    # Established business 2
+    res2 = client.get("/api/v1/dashboard/summary?business_id=2")
+    assert res2.status_code == 200
+    b2 = res2.json()
+
+    # Startup business 5
+    res5 = client.get("/api/v1/dashboard/summary?business_id=5")
+    assert res5.status_code == 200
+    b5 = res5.json()
+
+    # Assert identity isolation
+    assert b2["business_id"] == 2
+    assert b5["business_id"] == 5
+    assert b2["business_name"] != b5["business_name"]
+
+    # Cash balance and operating metrics must be isolated
+    assert b2["cash_balance"] != b5["cash_balance"]
+
+

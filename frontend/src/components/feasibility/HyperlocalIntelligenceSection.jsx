@@ -14,14 +14,16 @@ export default function HyperlocalIntelligenceSection({
   onOpenAiExplainer,
 }) {
   const profile = currentProfile || {};
-  const isLocalVerified = businessFeasibility?.is_local_verified ?? false;
+  const isLocalVerified = Boolean(businessFeasibility?.is_local_verified);
 
-  const district = businessFeasibility?.district_name || profile.location_district || profile.district || 'Sundargarh';
-  const state = businessFeasibility?.state_name || profile.location_state || profile.state || 'Odisha';
-  const block = businessFeasibility?.block_name || profile.location_block || profile.block || 'Block Central';
-  const village = businessFeasibility?.village_or_town || profile.location_village || profile.village || 'Gram Panchayat Area';
-  const pin = businessFeasibility?.pincode || profile.location_pin || profile.pincode || '770001';
-  const sector = businessFeasibility?.specific_business || profile.industry || profile.category || 'Agro-Processing & Value Addition';
+  const district = businessFeasibility?.district_name || profile.location_district || profile.district || profile.location || 'Local Catchment';
+  const state = businessFeasibility?.state_name || profile.location_state || profile.state || '';
+  const block = businessFeasibility?.block_name || profile.location_block || profile.block || null;
+  const village = businessFeasibility?.village_or_town || profile.location_village || profile.village || null;
+  const pin = businessFeasibility?.pincode || profile.location_pin || profile.pincode || null;
+  const sector = businessFeasibility?.specific_business || profile.industry || profile.category || profile.type || 'Enterprise';
+
+  const adminLocationText = [village, block, district, state].filter(Boolean).join(' → ') + (pin ? ` (PIN: ${pin})` : '');
 
   const categories = [
     {
@@ -30,11 +32,11 @@ export default function HyperlocalIntelligenceSection({
       status: isLocalVerified ? 'Verified Local Data' : 'Benchmark Estimate',
       isVerified: isLocalVerified,
       summary: isLocalVerified
-        ? `Empirical market data matched for ${district} District. Steady cash flow velocity with established retail procurement networks.`
-        : `Local data unavailable — benchmark estimate used. Field verification recommended before major capital expansion.`,
+        ? `Empirical market data verified for ${district}. Steady commercial velocity with established retail procurement networks.`
+        : `Local empirical data unavailable for this micro-market. Sector benchmark estimate applied for ${sector} in ${district}.`,
       metrics: [
-        { label: 'Demand Level', value: isLocalVerified ? 'High / Steady' : 'Moderate (Benchmark)' },
-        { label: 'Offtake Guarantee', value: 'Local Mandi / Weekly Haat' },
+        { label: 'Demand Level', value: isLocalVerified ? 'High / Steady' : 'Benchmark Estimate' },
+        { label: 'Offtake Channel', value: isLocalVerified ? 'Verified Local Mandi / Offtake' : 'District Benchmark' },
       ],
     },
     {
@@ -42,10 +44,12 @@ export default function HyperlocalIntelligenceSection({
       icon: '👥',
       status: isLocalVerified ? 'Verified Local Data' : 'Benchmark Estimate',
       isVerified: isLocalVerified,
-      summary: `Target catchment area: ${businessFeasibility?.market_reach || '5–15 km radius'}. Local consumption demand supports immediate operational capacity.`,
+      summary: isLocalVerified
+        ? `Target catchment radius: ${businessFeasibility?.market_reach || '5–15 km'}. Verified local consumption demand supports initial planned throughput.`
+        : `Target catchment window: ${businessFeasibility?.market_reach || '5–15 km'}. Demand benchmarked against district micro-enterprises.`,
       metrics: [
-        { label: 'Primary Market', value: businessFeasibility?.market_reach || 'Local Block Catchment' },
-        { label: 'Demand Driver', value: businessFeasibility?.opportunity || 'Essential Household Consumption' },
+        { label: 'Market Scope', value: businessFeasibility?.market_reach || 'Block Catchment' },
+        { label: 'Demand Type', value: isLocalVerified ? 'Verified Local Need' : 'Sector Benchmark' },
       ],
     },
     {
@@ -53,21 +57,21 @@ export default function HyperlocalIntelligenceSection({
       icon: '🚛',
       status: isLocalVerified ? 'Verified Local Data' : 'Benchmark Estimate',
       isVerified: isLocalVerified,
-      summary: `Road and transport connectivity mapped for ${district} agricultural corridor. Year-round accessibility for light commercial vehicles.`,
+      summary: `Road and transport transit mapped for ${district}. Year-round accessibility for light commercial vehicles.`,
       metrics: [
-        { label: 'Corridor Access', value: 'District PWD / State Highway' },
-        { label: 'Mandi Distance', value: 'Within 12–18 km' },
+        { label: 'Corridor Access', value: isLocalVerified ? 'Verified Highway Access' : 'District PWD Road' },
+        { label: 'Transit Access', value: isLocalVerified ? 'Within 15 km' : 'District Benchmark' },
       ],
     },
     {
-      title: '4. Competition Density & Moats',
-      icon: '🏢',
+      title: '4. Local Competition Density',
+      icon: '⚖️',
       status: isLocalVerified ? 'Verified Local Data' : 'Benchmark Estimate',
       isVerified: isLocalVerified,
-      summary: `Local competitor density: ${businessFeasibility?.competitor_level || 'Moderate'}. Differentiation through product purity and local relationship pricing.`,
+      summary: `Competitor density in catchment: ${businessFeasibility?.competitor_level || 'Moderate'}. Differentiation through product quality and direct producer pricing.`,
       metrics: [
-        { label: 'Density Level', value: businessFeasibility?.competitor_level || 'Moderate' },
-        { label: 'Barrier to Entry', value: 'Moderate Capital & Quality Moat' },
+        { label: 'Density Level', value: businessFeasibility?.competitor_level || 'Moderate (Benchmark)' },
+        { label: 'Market Moat', value: 'Local Relationship & Quality Moat' },
       ],
     },
     {
@@ -75,10 +79,10 @@ export default function HyperlocalIntelligenceSection({
       icon: '📜',
       status: 'Rule Matched',
       isVerified: true,
-      summary: `Eligible for credit-linked capital subsidies under PMEGP (up to 35% rural subsidy) and MUDRA credit support without collateral.`,
+      summary: `Statutory eligibility matched under central/state credit schemes (PMEGP, Stand-Up India, Mudra) based on location and enterprise category.`,
       metrics: [
-        { label: 'Top Scheme', value: 'PMEGP / PM-FME' },
-        { label: 'Subsidy Support', value: '15% – 35% Capital Grant' },
+        { label: 'Applicable Authority', value: 'KVIC / MSME / Commercial Banks' },
+        { label: 'Assistance Type', value: 'Capital Subsidy & Working Capital' },
       ],
     },
   ];
@@ -95,7 +99,7 @@ export default function HyperlocalIntelligenceSection({
             </h3>
           </div>
           <p className="text-xs text-slate-500">
-            Administrative area: <strong className="text-slate-800">{village}</strong> → <strong className="text-slate-800">{block}</strong> → <strong className="text-slate-800">{district}</strong>, <strong className="text-slate-800">{state}</strong> (PIN: {pin})
+            Administrative area: <strong className="text-slate-800">{adminLocationText}</strong>
           </p>
         </div>
 

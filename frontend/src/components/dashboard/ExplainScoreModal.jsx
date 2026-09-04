@@ -44,60 +44,8 @@ export default function ExplainScoreModal({
 
   if (!isOpen) return null;
 
-  const finalScore = data?.final_score != null ? Number(data.final_score.toFixed(1)) : 52.0;
-  const traces = data?.criteria_traces || [
-    {
-      criterion: 'market',
-      label: 'Market Catchment & Demand',
-      raw_score: 88.0,
-      weight_pct: 30.24,
-      contribution: 26.61,
-      maximum_points: 30,
-      data_source: 'Local consumer demand & verified mandi off-take capacity',
-      user_explanation: 'Strong consumer demand in the local catchment provides steady sales volume.',
-    },
-    {
-      criterion: 'financial',
-      label: 'Financial Viability & Margin',
-      raw_score: 10.0,
-      weight_pct: 24.62,
-      contribution: 2.46,
-      maximum_points: 25,
-      data_source: 'Own equity margin ratio (10% of project cost)',
-      user_explanation: 'Your current capital covers a small share of the project requirement, which is reducing your feasibility score.',
-    },
-    {
-      criterion: 'location',
-      label: 'Location & Connectivity',
-      raw_score: 70.0,
-      weight_pct: 15.05,
-      contribution: 10.53,
-      maximum_points: 15,
-      data_source: 'Road corridor and transport transit access',
-      user_explanation: 'Accessible road corridors and transit routes support timely product delivery.',
-    },
-    {
-      criterion: 'competition',
-      label: 'Competition Barrier',
-      raw_score: 50.0,
-      weight_pct: 15.05,
-      contribution: 7.52,
-      maximum_points: 15,
-      data_source: 'Enterprise density in block-level catchment',
-      user_explanation: 'Moderate local competition requires unique local positioning.',
-    },
-    {
-      criterion: 'risk',
-      label: 'Risk Resilience & Buffer',
-      raw_score: 34.2,
-      weight_pct: 15.05,
-      contribution: 5.15,
-      maximum_points: 15,
-      data_source: 'Working capital runway and cash flow stability',
-      user_explanation: 'Operating cash buffer needs reinforcement against seasonal demand dips.',
-    },
-  ];
-
+  const finalScore = data?.final_score != null ? Number(data.final_score.toFixed(1)) : null;
+  const traces = data?.criteria_traces || [];
   const totalContribution = traces.reduce((acc, t) => acc + (Number(t.contribution) || 0), 0);
   const isConsistent = data?.ahp_is_consistent ?? true;
   const isLocalVerified = data?.is_local_verified ?? false;
@@ -112,19 +60,13 @@ export default function ExplainScoreModal({
             <div className="flex items-center space-x-2">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-xs" />
               <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                Why is your score {finalScore} / 100?
+                {finalScore != null ? `Why is your score ${finalScore} / 100?` : 'Feasibility Assessment'}
               </h2>
             </div>
             <p className="text-xs text-slate-500">
               Multi-factor feasibility assessment evaluating 5 essential business pillars.
             </p>
           </div>
-
-          <div className="flex items-center space-x-3">
-            <div className="px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-sm font-black flex items-center space-x-1.5">
-              <span>{finalScore}</span>
-              <span className="text-xs font-semibold text-blue-600">/ 100</span>
-            </div>
 
             <button
               type="button"
