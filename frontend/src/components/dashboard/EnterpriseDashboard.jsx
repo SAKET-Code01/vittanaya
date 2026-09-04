@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { financeService } from '../../services/financeService';
 import MarketInsightSection from './MarketInsightSection';
 import VittanayaInsightsCard from './VittanayaInsightsCard';
 import DashboardFooter from './DashboardFooter';
@@ -10,9 +11,8 @@ import { formatINR } from '../../mocks/dashboardMockData';
  * EnterpriseDashboard Component
  * 
  * Production Dashboard for the "Established Business" stage.
- * Engineered to 100% exact UI, layout, grid, spacing, and component parity
- * with the reference New Business Dashboard while presenting authoritative
- * operating performance, working capital, cash flow, and expansion intelligence.
+ * Grounded 100% in authoritative backend financial and operational calculations
+ * from `/api/v1/dashboard/summary`.
  */
 export default function EnterpriseDashboard({
   currentProfile: propProfile,
@@ -26,28 +26,58 @@ export default function EnterpriseDashboard({
   } = useWorkspace();
 
   const [isChangeBusinessOpen, setIsChangeBusinessOpen] = useState(false);
+  const [dashboardSummary, setDashboardSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
 
+  const rawProfile = propProfile || contextProfile || {};
   const profile = {
-    ...(propProfile || contextProfile || {}),
+    ...rawProfile,
+    id: rawProfile?.id,
     name:
-      propProfile?.name ||
-      propProfile?.businessName ||
-      contextProfile?.name ||
-      contextProfile?.businessName ||
-      'Apex Precision Engineering',
+      rawProfile?.name ||
+      rawProfile?.businessName ||
+      rawProfile?.business_name ||
+      'Selected Enterprise',
     category:
-      propProfile?.category ||
-      contextProfile?.category ||
-      'Precision Manufacturing & Fabrication',
+      rawProfile?.category ||
+      rawProfile?.industry ||
+      rawProfile?.businessType ||
+      'Commercial Enterprise',
     location:
-      propProfile?.location ||
-      contextProfile?.location ||
-      'Cuttack Industrial Estate, Odisha',
+      rawProfile?.location ||
+      [rawProfile?.location_district || rawProfile?.district, rawProfile?.location_state || rawProfile?.state]
+        .filter(Boolean)
+        .join(', ') ||
+      'Odisha',
     businessType:
-      propProfile?.businessType ||
-      contextProfile?.businessType ||
-      'manufacturing',
+      rawProfile?.businessType ||
+      rawProfile?.type ||
+      'enterprise',
   };
+
+  const businessId = profile?.id;
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!businessId) {
+      setLoadingSummary(false);
+      return;
+    }
+    setLoadingSummary(true);
+    financeService.getDashboardSummary(businessId)
+      .then((data) => {
+        if (isMounted && data) {
+          setDashboardSummary(data);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not fetch established dashboard summary:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingSummary(false);
+      });
+    return () => { isMounted = false; };
+  }, [businessId]);
 
   const selectedOps = profile.selectedOperations || profile.selectedOps || [
     'sales',
@@ -57,14 +87,20 @@ export default function EnterpriseDashboard({
     'employees',
   ];
 
-  // Established operating metrics (from context financial data / defaults)
-  const cashBalance = financialData?.cash_balance || 1485000;
-  const receivables = financialData?.receivables_total || 1920000;
-  const payables = financialData?.payables_total || 1240000;
-  const monthlyRevenue = financialData?.expected_inflow || 2850000;
-  const monthlyExpenses = financialData?.expected_outflow || 2170000;
-  const operatingProfit = Math.max(0, monthlyRevenue - monthlyExpenses);
-  const profitMargin = Math.round((operatingProfit / monthlyRevenue) * 100);
+  // Authoritative established operating metrics derived strictly from backend summary or live financial context
+  const cashBalance = dashboardSummary ? Number(dashboardSummary.cash_balance) : (financialData?.cash_balance ?? null);
+  const receivables = dashboardSummary ? Number(dashboardSummary.pending_receivables_total) : (financialData?.receivables_total ?? null);
+  const payables = dashboardSummary ? Number(dashboardSummary.pending_payables_total) : (financialData?.payables_total ?? null);
+  const monthlyRevenue = dashboardSummary ? Number(dashboardSummary.monthly_revenue) : (financialData?.expected_inflow ?? null);
+  const monthlyExpenses = dashboardSummary ? Number(dashboardSummary.monthly_expenses) : (financialData?.expected_outflow ?? null);
+  const operatingProfit = dashboardSummary ? Number(dashboardSummary.operating_profit) : (monthlyRevenue != null && monthlyExpenses != null ? Math.max(0, monthlyRevenue - monthlyExpenses) : null);
+  const profitMargin = dashboardSummary ? Number(dashboardSummary.ebitda_margin) : (monthlyRevenue && operatingProfit != null ? Math.round((operatingProfit / monthlyRevenue) * 100) : null);
+  const healthScore = dashboardSummary ? dashboardSummary.health_score : null;
+  const healthStatus = dashboardSummary ? dashboardSummary.health_status : (loadingSummary ? 'CALCULATING...' : 'INSUFFICIENT DATA');
+  const runwayDays = dashboardSummary ? dashboardSummary.runway_days : null;
+  const runwayMonths = dashboardSummary ? dashboardSummary.runway_months : (runwayDays != null ? (runwayDays / 30).toFixed(1) : null);
+  const workingCapitalRatio = dashboardSummary ? dashboardSummary.working_capital_ratio : null;
+  const dataProvenance = dashboardSummary?.data_provenance;
 
   const handleAction = (destination) => {
     if (typeof onNavigate === 'function') {
@@ -168,8 +204,14 @@ export default function EnterpriseDashboard({
                 <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
                   Health Index
                 </span>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold text-[11px] border border-emerald-500/30">
-                  HEALTHY & OPTIMIZED
+                <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] border ${
+                  (healthScore || 0) >= 75
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : (healthScore || 0) >= 50
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                }`}>
+                  {healthStatus}
                 </span>
               </div>
 
@@ -177,10 +219,18 @@ export default function EnterpriseDashboard({
               <div className="flex items-center justify-between space-x-4">
                 <div>
                   <div className="text-4xl font-black text-white tracking-tight">
-                    78<span className="text-xl text-blue-400 font-bold">/100</span>
+                    {loadingSummary ? (
+                      <span className="text-2xl text-slate-400">Loading…</span>
+                    ) : healthScore != null ? (
+                      <>
+                        {healthScore}<span className="text-xl text-blue-400 font-bold">/100</span>
+                      </>
+                    ) : (
+                      <span className="text-xl text-slate-400">Not available</span>
+                    )}
                   </div>
                   <div className="text-xs text-slate-300 font-medium mt-0.5">
-                    Tier-1 Commercial Rating
+                    {healthScore != null ? 'Operational & Liquidity Health' : 'Calculation pending'}
                   </div>
                 </div>
 
@@ -196,7 +246,7 @@ export default function EnterpriseDashboard({
                     />
                     <path
                       className="text-emerald-400 transition-all duration-1000 ease-out"
-                      strokeDasharray="78, 100"
+                      strokeDasharray={`${healthScore || 0}, 100`}
                       strokeWidth="3.5"
                       strokeLinecap="round"
                       stroke="currentColor"
@@ -204,7 +254,9 @@ export default function EnterpriseDashboard({
                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     />
                   </svg>
-                  <span className="absolute text-xs font-black text-white">78%</span>
+                  <span className="absolute text-xs font-black text-white">
+                    {healthScore != null ? `${healthScore}%` : '—'}
+                  </span>
                 </div>
               </div>
 
@@ -212,11 +264,15 @@ export default function EnterpriseDashboard({
               <div className="pt-2 border-t border-white/10 space-y-2 text-xs">
                 <div className="flex items-center justify-between text-slate-300">
                   <span>Operating Margin:</span>
-                  <span className="font-bold text-white">{profitMargin}% EBITDA</span>
+                  <span className="font-bold text-white">
+                    {profitMargin != null ? `${profitMargin}% EBITDA` : 'Insufficient data'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-slate-300">
                   <span>Cash Runway:</span>
-                  <span className="font-bold text-emerald-400">8.2 Months Buffer</span>
+                  <span className="font-bold text-emerald-400">
+                    {runwayMonths != null ? `${runwayMonths} Mo Buffer` : (runwayDays != null ? `${runwayDays} d Buffer` : 'Insufficient data')}
+                  </span>
                 </div>
               </div>
 
@@ -246,12 +302,12 @@ export default function EnterpriseDashboard({
               </div>
             </div>
             <div className="text-2xl font-black text-[#0F172A] tracking-tight">
-              {formatINR(monthlyRevenue)}
+              {monthlyRevenue != null ? formatINR(monthlyRevenue) : 'Not available'}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="text-slate-500">Gross Monthly Inflows</span>
               <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
-                +6.2% MoM
+                Authoritative
               </span>
             </div>
           </div>
@@ -267,12 +323,12 @@ export default function EnterpriseDashboard({
               </div>
             </div>
             <div className="text-2xl font-black text-[#0F172A] tracking-tight">
-              {formatINR(operatingProfit)}
+              {operatingProfit != null ? formatINR(operatingProfit) : 'Not available'}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="text-slate-500">EBITDA Margin</span>
               <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
-                {profitMargin}% Retained
+                {profitMargin != null ? `${profitMargin}% Retained` : '—'}
               </span>
             </div>
           </div>
@@ -288,12 +344,12 @@ export default function EnterpriseDashboard({
               </div>
             </div>
             <div className="text-2xl font-black text-[#0F172A] tracking-tight">
-              {formatINR(cashBalance)}
+              {cashBalance != null ? formatINR(cashBalance) : 'Not available'}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="text-slate-500">Immediate Liquidity</span>
               <span className="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">
-                38 Days Buffer
+                {runwayDays != null ? `${runwayDays} d Buffer` : 'Insufficient data'}
               </span>
             </div>
           </div>
@@ -309,12 +365,12 @@ export default function EnterpriseDashboard({
               </div>
             </div>
             <div className="text-2xl font-black text-[#0F172A] tracking-tight">
-              {formatINR(receivables)}
+              {receivables != null ? formatINR(receivables) : '₹0'}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="text-slate-500">Customer Dues</span>
               <span className="text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md">
-                34 Days Avg Cycle
+                Ledger Grounded
               </span>
             </div>
           </div>
@@ -335,12 +391,12 @@ export default function EnterpriseDashboard({
               </div>
             </div>
             <div className="text-2xl font-black text-[#0F172A] tracking-tight">
-              1.48x
+              {workingCapitalRatio != null ? `${workingCapitalRatio}x` : 'Not available'}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="text-slate-500">Current Ratio</span>
               <span className="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
-                Well Covered
+                {workingCapitalRatio != null && workingCapitalRatio >= 1.2 ? 'Well Covered' : (workingCapitalRatio != null && workingCapitalRatio >= 1.0 ? 'Adequate' : 'Tight')}
               </span>
             </div>
           </div>
@@ -356,12 +412,12 @@ export default function EnterpriseDashboard({
               </div>
             </div>
             <div className="text-2xl font-black text-[#0F172A] tracking-tight">
-              8.2 Mo
+              {runwayMonths != null ? `${runwayMonths} Mo` : (runwayDays != null ? `${runwayDays} d` : 'Insufficient data')}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="text-slate-500">At Current Net Burn</span>
               <span className="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md">
-                Secure Buffer
+                {runwayDays != null && runwayDays >= 45 ? 'Secure Buffer' : 'Monitor Flow'}
               </span>
             </div>
           </div>
@@ -377,12 +433,12 @@ export default function EnterpriseDashboard({
               </div>
             </div>
             <div className="text-2xl font-black text-emerald-600 tracking-tight">
-              LOW • STABLE
+              {dashboardSummary ? `${dashboardSummary.liquidity_risk_level} • ${dashboardSummary.liquidity_risk_level === 'CRITICAL' ? 'ELEVATED' : 'STABLE'}` : 'MONITORING'}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Credit Rating Factor</span>
+              <span className="text-slate-500">Liquidity Rating</span>
               <span className="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md">
-                Tier-1 Rating
+                {dashboardSummary?.liquidity_risk_level || 'Evaluated'}
               </span>
             </div>
           </div>
@@ -398,12 +454,12 @@ export default function EnterpriseDashboard({
               </div>
             </div>
             <div className="text-2xl font-black text-blue-600 tracking-tight">
-              HIGH • 86%
+              {dashboardSummary?.readiness_score != null ? `${Math.round(dashboardSummary.readiness_score)}%` : 'Insufficient data'}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Capacity & Capital</span>
+              <span className="text-slate-500">Capacity & Compliance</span>
               <span className="text-cyan-700 font-bold bg-cyan-50 px-2 py-0.5 rounded-md">
-                Scale Ready
+                {dashboardSummary?.readiness_status || 'Evaluating'}
               </span>
             </div>
           </div>
@@ -447,10 +503,10 @@ export default function EnterpriseDashboard({
                 <span className="text-xs font-bold text-amber-600">Priority 1</span>
               </div>
               <h3 className="font-bold text-sm text-[#0F172A]">
-                Accelerate Q3 Customer Collections & Factoring
+                Accelerate Customer Collections & Factoring
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                ₹19.20L in outstanding accounts. Enforce early discount terms to convert receivables into liquid working capital.
+                {receivables != null ? formatINR(receivables) : 'Active dues'} in outstanding customer accounts. Enforce early discount terms to convert receivables into liquid working capital.
               </p>
             </div>
             <button
@@ -476,7 +532,7 @@ export default function EnterpriseDashboard({
                 Collateral-Free MSME Credit Facility
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Eligible for up to ₹15.00 Lakh under CGTMSE credit guarantee with 2% interest subvention for MSME manufacturing.
+                Eligible for working capital credit facility under CGTMSE credit guarantee with priority interest subvention for rural enterprises.
               </p>
             </div>
             <button
@@ -494,15 +550,17 @@ export default function EnterpriseDashboard({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="px-2.5 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold text-[11px]">
-                  03 • Shift Scale-Up
+                  03 • Operational Scale
                 </span>
-                <span className="text-xs font-bold text-blue-600">Capacity 68%</span>
+                <span className="text-xs font-bold text-blue-600">
+                  {dashboardSummary ? `${dashboardSummary.total_employees} Workforce` : 'Active'}
+                </span>
               </div>
               <h3 className="font-bold text-sm text-[#0F172A]">
-                Machinist Apprentice Onboarding
+                Capacity & Workforce Alignment
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Onboard 4 apprentice operators under NAPS to increase CNC machining capacity to secondary shift operations.
+                Reconcile payroll obligations ({formatINR(dashboardSummary?.payroll_amount || 0)}) and statutory compliances to scale operational output.
               </p>
             </div>
             <button
@@ -567,31 +625,39 @@ export default function EnterpriseDashboard({
           </div>
 
           {/* Cash Flow Distribution Stack */}
-          <div className="space-y-3 bg-[#F8FAFC] rounded-2xl p-4 border border-slate-200/70">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700">Cash Flow Ratio</span>
-              <span className="font-extrabold text-blue-600">76% Inflow Efficiency</span>
-            </div>
-            <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden flex">
-              <div className="bg-emerald-500 h-full" style={{ width: '55%' }} title="Operating Inflows" />
-              <div className="bg-blue-500 h-full" style={{ width: '30%' }} title="Operating Expenses" />
-              <div className="bg-amber-400 h-full" style={{ width: '15%' }} title="Payables Dues" />
-            </div>
-            <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 pt-1">
-              <span className="flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <span>Inflows: {formatINR(monthlyRevenue)}</span>
-              </span>
-              <span className="flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                <span>Outflows: {formatINR(monthlyExpenses)}</span>
-              </span>
-              <span className="flex items-center space-x-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                <span>Payables: {formatINR(payables)}</span>
-              </span>
-            </div>
-          </div>
+          {(() => {
+            const tot = (monthlyRevenue || 0) + (monthlyExpenses || 0) + (payables || 0) || 1;
+            const inW = Math.max(5, Math.round(((monthlyRevenue || 0) / tot) * 100));
+            const outW = Math.max(5, Math.round(((monthlyExpenses || 0) / tot) * 100));
+            const payW = Math.max(0, 100 - inW - outW);
+            return (
+              <div className="space-y-3 bg-[#F8FAFC] rounded-2xl p-4 border border-slate-200/70">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-700">Cash Flow Ratio</span>
+                  <span className="font-extrabold text-blue-600">{profitMargin != null ? `${profitMargin}% Margin` : 'Live Flow'}</span>
+                </div>
+                <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden flex">
+                  <div className="bg-emerald-500 h-full" style={{ width: `${inW}%` }} title="Operating Inflows" />
+                  <div className="bg-blue-500 h-full" style={{ width: `${outW}%` }} title="Operating Expenses" />
+                  <div className="bg-amber-400 h-full" style={{ width: `${payW}%` }} title="Payables Dues" />
+                </div>
+                <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 pt-1">
+                  <span className="flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span>Inflows: {monthlyRevenue != null ? formatINR(monthlyRevenue) : 'Not available'}</span>
+                  </span>
+                  <span className="flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    <span>Outflows: {monthlyExpenses != null ? formatINR(monthlyExpenses) : 'Not available'}</span>
+                  </span>
+                  <span className="flex items-center space-x-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                    <span>Payables: {payables != null ? formatINR(payables) : '₹0'}</span>
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="pt-2 flex items-center justify-between">
             <div>
@@ -616,7 +682,7 @@ export default function EnterpriseDashboard({
               <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
                 Enterprise Roadmap
               </span>
-              <span className="text-xs font-bold text-slate-500">78% Optimized</span>
+              <span className="text-xs font-bold text-slate-500">{dashboardSummary?.readiness_label || 'Evaluating'}</span>
             </div>
             <h3 className="text-xl font-bold text-[#0F172A]">
               Optimization Tracker

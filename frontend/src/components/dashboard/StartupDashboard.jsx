@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWorkspace } from '../../context/WorkspaceContext';
+import { financeService } from '../../services/financeService';
 import MarketInsightSection from './MarketInsightSection';
 import VittanayaInsightsCard from './VittanayaInsightsCard';
 import DashboardFooter from './DashboardFooter';
@@ -117,33 +118,70 @@ function DashboardIcon({ name, size = 18, className = '' }) {
 /**
  * StartupDashboard Component
  * 
- * Production-grade dashboard specifically tailored for the "Startup Phase" ("Is my business working and how do I grow it?"):
- * - Shared Blue + Black + White design tokens
- * - Dark Navy Hero with Startup Health score (82/100)
- * - Row 1 Operating Metrics: Capital Deployed, Monthly Revenue, Operating Cost, Cash Runway
- * - Row 2 Decision Metrics: Monthly Surplus, Funding Readiness, Business Risk, Growth Readiness
- * - Startup Attention Center: Cash Flow, Expansion Funding, Capacity Scaling
- * - Hyper-Local Market Intelligence + VITTANAYA Insights
- * - Cash Flow Outlook & Growth Readiness Tracker
+ * Production-grade dashboard specifically tailored for the "Startup Phase"
+ * Grounded 100% in authoritative backend financial and operational calculations.
  */
 export default function StartupDashboard({
   currentProfile: propProfile,
   onNavigate,
 }) {
   const { currentProfile: contextProfile } = useWorkspace();
-  const profile = propProfile || contextProfile || {};
+  const rawProfile = propProfile || contextProfile || {};
+  const profile = {
+    ...rawProfile,
+    id: rawProfile?.id,
+    businessName: rawProfile?.businessName || rawProfile?.name || rawProfile?.business_name || 'Selected Startup',
+    name: rawProfile?.name || rawProfile?.businessName || rawProfile?.business_name || 'Selected Startup',
+    category: rawProfile?.category || rawProfile?.industry || rawProfile?.businessType || 'Micro-Enterprise',
+    industry: rawProfile?.industry || rawProfile?.description || rawProfile?.category || 'Emerging Rural Business',
+    location: rawProfile?.location || [rawProfile?.location_district || rawProfile?.district, rawProfile?.location_state || rawProfile?.state].filter(Boolean).join(', ') || 'Odisha',
+  };
 
-  const businessName = profile.businessName || profile.name || 'Apex Precision Engineering';
-  const category = profile.category || 'Light Manufacturing & Fabrication';
-  const industry = profile.industry || profile.description || 'Custom Metal Fabrication & Job Work';
-  const location = profile.location || ([profile.village, profile.district, profile.state].filter(Boolean).join(', ') || 'Sundargarh, Odisha');
-  const ownCapital = Number(profile.ownCapital || profile.available_margin_capital || 150000);
-  const capitalDeployed = Number(profile.existingInvestment || ownCapital || 250000);
-  const monthlyRevenue = Number(profile.startupDetails?.existingMonthlySales || 185000);
-  const operatingCost = Math.round(monthlyRevenue * 0.65) || 120000;
-  const monthlySurplus = Math.max(0, monthlyRevenue - operatingCost);
-  const cashBalance = Number(profile.financialData?.cash_balance || 340000);
-  const runwayMonths = (cashBalance / (operatingCost || 1)).toFixed(1);
+  const [dashboardSummary, setDashboardSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+
+  const businessId = profile?.id;
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!businessId) {
+      setLoadingSummary(false);
+      return;
+    }
+    setLoadingSummary(true);
+    financeService.getDashboardSummary(businessId)
+      .then((data) => {
+        if (isMounted && data) {
+          setDashboardSummary(data);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not fetch startup dashboard summary:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingSummary(false);
+      });
+    return () => { isMounted = false; };
+  }, [businessId]);
+
+  const businessName = profile.businessName;
+  const category = profile.category;
+  const industry = profile.industry;
+  const location = profile.location;
+
+  const ownCapital = Number(profile.own_capital || profile.ownCapital || 0);
+  const capitalDeployed = Number(profile.existing_investment || profile.existingInvestment || ownCapital || 0);
+  const monthlyRevenue = dashboardSummary ? Number(dashboardSummary.monthly_revenue) : Number(profile.monthly_revenue || 0);
+  const operatingCost = dashboardSummary ? Number(dashboardSummary.monthly_expenses) : Number(profile.monthly_expenses || 0);
+  const monthlySurplus = dashboardSummary ? Number(dashboardSummary.operating_profit) : Math.max(0, monthlyRevenue - operatingCost);
+  const profitMargin = dashboardSummary ? Number(dashboardSummary.ebitda_margin) : (monthlyRevenue > 0 ? Math.round((monthlySurplus / monthlyRevenue) * 100) : 0);
+  const cashBalance = dashboardSummary ? Number(dashboardSummary.cash_balance) : Number(profile.financialData?.cash_balance || 0);
+  const runwayMonths = dashboardSummary ? dashboardSummary.runway_months : (operatingCost > 0 ? (cashBalance / operatingCost).toFixed(1) : null);
+  const healthScore = dashboardSummary ? dashboardSummary.health_score : null;
+  const healthStatus = dashboardSummary ? dashboardSummary.health_status : (loadingSummary ? 'CALCULATING...' : 'INSUFFICIENT DATA');
+  const readinessScore = dashboardSummary ? Math.round(dashboardSummary.readiness_score) : null;
+  const readinessLabel = dashboardSummary?.readiness_label || 'Evaluating';
+  const riskLevel = dashboardSummary?.liquidity_risk_level || 'EVALUATING';
 
   const handleAction = (destination) => {
     if (typeof onNavigate === 'function') {
@@ -208,12 +246,26 @@ export default function StartupDashboard({
                 Startup Health Index
               </span>
               <div className="flex items-baseline justify-center gap-1 mt-1">
-                <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">82</span>
-                <span className="text-base font-bold text-blue-300/70">/100</span>
+                {loadingSummary ? (
+                  <span className="text-2xl font-bold text-slate-300">Loading…</span>
+                ) : healthScore != null ? (
+                  <>
+                    <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">{healthScore}</span>
+                    <span className="text-base font-bold text-blue-300/70">/100</span>
+                  </>
+                ) : (
+                  <span className="text-base font-bold text-slate-400">Not available</span>
+                )}
               </div>
               <div className="pt-1">
-                <span className="inline-block px-3 py-1 rounded-md text-[10px] font-black bg-blue-500/20 text-blue-300 border border-blue-400/30 uppercase tracking-wider">
-                  STABLE & GROWING
+                <span className={`inline-block px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${
+                  (healthScore || 0) >= 75
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                    : (healthScore || 0) >= 50
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-400/30'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-400/30'
+                }`}>
+                  {healthStatus}
                 </span>
               </div>
             </div>
@@ -249,13 +301,15 @@ export default function StartupDashboard({
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                ₹{(capitalDeployed / 100000).toFixed(2)} L
+                {capitalDeployed > 0 ? `₹${(capitalDeployed / 100000).toFixed(2)} L` : 'Not recorded'}
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">Active equity & asset seed</p>
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
               <span className="text-slate-400 font-semibold">Verified Cap</span>
-              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Fully Seeded</span>
+              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">
+                {capitalDeployed > 0 ? 'Seeded' : 'Pending'}
+              </span>
             </div>
           </div>
 
@@ -269,13 +323,13 @@ export default function StartupDashboard({
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                ₹{(monthlyRevenue / 100000).toFixed(2)} L
+                {monthlyRevenue > 0 ? `₹${(monthlyRevenue / 100000).toFixed(2)} L` : 'Not available'}
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">Active customer billing</p>
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
               <span className="text-slate-400 font-semibold">Monthly Pace</span>
-              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">+8.4% MoM</span>
+              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Authoritative</span>
             </div>
           </div>
 
@@ -289,13 +343,15 @@ export default function StartupDashboard({
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                ₹{(operatingCost / 100000).toFixed(2)} L
+                {operatingCost > 0 ? `₹${(operatingCost / 100000).toFixed(2)} L` : 'Not available'}
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">Materials & fixed overhead</p>
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-              <span className="text-slate-400 font-semibold">Cost Efficiency</span>
-              <span className="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md">64.8% of Rev</span>
+              <span className="text-slate-400 font-semibold">Cost Ratio</span>
+              <span className="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md">
+                {monthlyRevenue > 0 && operatingCost > 0 ? `${Math.round((operatingCost / monthlyRevenue) * 100)}% of Rev` : 'Baseline'}
+              </span>
             </div>
           </div>
 
@@ -309,13 +365,15 @@ export default function StartupDashboard({
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                {runwayMonths} Mo
+                {runwayMonths != null ? `${runwayMonths} Mo` : 'Insufficient data'}
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">Liquidity survival cushion</p>
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
               <span className="text-slate-400 font-semibold">Cash Buffer</span>
-              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Healthy Runway</span>
+              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">
+                {runwayMonths && Number(runwayMonths) >= 3 ? 'Healthy Runway' : 'Monitor Cushion'}
+              </span>
             </div>
           </div>
 
@@ -334,13 +392,15 @@ export default function StartupDashboard({
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                +₹{(monthlySurplus / 1000).toFixed(0)}k
+                {monthlySurplus > 0 ? `+₹${(monthlySurplus / 1000).toFixed(0)}k` : (monthlyRevenue > 0 ? 'Break-even' : 'Not available')}
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">Net operating cash buffer</p>
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
               <span className="text-slate-400 font-semibold">Operating Margin</span>
-              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">35.2% Margin</span>
+              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">
+                {profitMargin > 0 ? `${profitMargin}% Margin` : 'Operational'}
+              </span>
             </div>
           </div>
 
@@ -354,13 +414,15 @@ export default function StartupDashboard({
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                78%
+                {readinessScore != null ? `${readinessScore}%` : 'Not available'}
               </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">Sanction ready with DPR</p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Statutory & operational gates</p>
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-              <span className="text-slate-400 font-semibold">Debt Appetite</span>
-              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">High Capacity</span>
+              <span className="text-slate-400 font-semibold">Status</span>
+              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">
+                {readinessLabel}
+              </span>
             </div>
           </div>
 
@@ -374,13 +436,15 @@ export default function StartupDashboard({
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                LOW-MEDIUM
+                {riskLevel || 'EVALUATING'}
               </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">Manageable operational spread</p>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">Liquidity & credit stress index</p>
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-              <span className="text-slate-400 font-semibold">Mitigation</span>
-              <span className="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md">Controlled</span>
+              <span className="text-slate-400 font-semibold">Tier</span>
+              <span className="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md">
+                {riskLevel === 'LOW' ? 'Low Risk' : (riskLevel === 'CRITICAL' ? 'Elevated Risk' : 'Moderate')}
+              </span>
             </div>
           </div>
 
@@ -394,13 +458,15 @@ export default function StartupDashboard({
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                HIGH • 84%
+                {readinessScore != null ? `${readinessScore}%` : 'Not available'}
               </div>
               <p className="text-xs text-slate-500 font-medium mt-0.5">Expanding regional catchment</p>
             </div>
             <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
               <span className="text-slate-400 font-semibold">Scale Trajectory</span>
-              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">Growth Phase</span>
+              <span className="text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-md">
+                {dashboardSummary?.readiness_status || 'Evaluating'}
+              </span>
             </div>
           </div>
 
@@ -558,32 +624,52 @@ export default function StartupDashboard({
           </div>
 
           {/* 3-Tier Flow Bar */}
-          <div className="space-y-3">
-            <div className="h-3.5 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
-              <div style={{ width: '55%' }} className="bg-blue-600 transition-all duration-500" title="Monthly Inflows (₹1.85L)" />
-              <div style={{ width: '35%' }} className="bg-slate-600 transition-all duration-500" title="Monthly Outflows (₹1.20L)" />
-              <div style={{ width: '10%' }} className="bg-blue-400 transition-all duration-500" title="Net Surplus Buffer (+₹65k)" />
-            </div>
+          {(() => {
+            const tot = (monthlyRevenue || 0) + (operatingCost || 0) + (monthlySurplus || 0) || 1;
+            const inW = Math.max(5, Math.round(((monthlyRevenue || 0) / tot) * 100));
+            const outW = Math.max(5, Math.round(((operatingCost || 0) / tot) * 100));
+            const surW = Math.max(0, 100 - inW - outW);
+            return (
+              <div className="space-y-3">
+                <div className="h-3.5 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
+                  <div style={{ width: `${inW}%` }} className="bg-blue-600 transition-all duration-500" title="Monthly Inflows" />
+                  <div style={{ width: `${outW}%` }} className="bg-slate-600 transition-all duration-500" title="Monthly Outflows" />
+                  <div style={{ width: `${surW}%` }} className="bg-blue-400 transition-all duration-500" title="Net Surplus Buffer" />
+                </div>
 
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 px-1">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-600 inline-block" /> Inflows (₹1.85L)</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-600 inline-block" /> Operating Costs (₹1.20L)</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> Net Retained (+₹65k)</span>
-            </div>
-          </div>
+                <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 px-1">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" /> Inflows ({monthlyRevenue > 0 ? `₹${(monthlyRevenue / 100000).toFixed(2)}L` : '—'})
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-slate-600 inline-block" /> Operating Costs ({operatingCost > 0 ? `₹${(operatingCost / 100000).toFixed(2)}L` : '—'})
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> Net Retained ({monthlySurplus > 0 ? `+₹${(monthlySurplus / 1000).toFixed(0)}k` : '—'})
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="grid grid-cols-3 gap-2.5 pt-1">
             <div className="p-3 rounded-2xl bg-blue-50/50 border border-blue-100 text-center">
               <span className="text-[10px] font-bold text-slate-500 uppercase block">Expected Inflow</span>
-              <span className="text-sm font-black text-slate-900 mt-0.5 block">₹1,85,000</span>
+              <span className="text-sm font-black text-slate-900 mt-0.5 block">
+                {monthlyRevenue > 0 ? formatINR(monthlyRevenue) : 'Not available'}
+              </span>
             </div>
             <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-center">
               <span className="text-[10px] font-bold text-slate-500 uppercase block">Monthly Burn</span>
-              <span className="text-sm font-black text-slate-900 mt-0.5 block">₹1,20,000</span>
+              <span className="text-sm font-black text-slate-900 mt-0.5 block">
+                {operatingCost > 0 ? formatINR(operatingCost) : 'Not available'}
+              </span>
             </div>
             <div className="p-3 rounded-2xl bg-blue-50/30 border border-blue-100 text-center">
               <span className="text-[10px] font-bold text-slate-500 uppercase block">Net Buffer</span>
-              <span className="text-sm font-black text-blue-700 mt-0.5 block">+₹65,000</span>
+              <span className="text-sm font-black text-blue-700 mt-0.5 block">
+                {monthlySurplus > 0 ? `+${formatINR(monthlySurplus)}` : (monthlyRevenue > 0 ? 'Break-even' : 'Not available')}
+              </span>
             </div>
           </div>
 
@@ -608,7 +694,7 @@ export default function StartupDashboard({
               </h2>
             </div>
             <span className="text-xs font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100/80">
-              68% Ready
+              {readinessLabel}
             </span>
           </div>
 

@@ -34,3 +34,24 @@ class DashboardSummaryResponse(BaseModel):
     payroll_amount: Decimal = Decimal("0.00")
     payroll_due_date: Optional[str] = None
 
+    # Established Business Health & Operations (SIH26091)
+    health_score: int = Field(default=75, description="Authoritative Business Health Index (0-100)")
+    health_status: str = Field(default="STABLE & GROWING", description="Health rating label")
+    monthly_revenue: Decimal = Field(default=Decimal("0.00"), description="Authoritative monthly revenue")
+    monthly_expenses: Decimal = Field(default=Decimal("0.00"), description="Authoritative monthly expenses")
+    operating_profit: Decimal = Field(default=Decimal("0.00"), description="Operating profit")
+    ebitda_margin: float = Field(default=0.0, description="EBITDA / Operating margin %")
+    working_capital: Decimal = Field(default=Decimal("0.00"), description="Net working capital")
+    working_capital_ratio: float = Field(default=1.0, description="Working capital coverage ratio")
+    runway_months: float = Field(default=0.0, description="Cash runway in months")
+    growth_readiness: float = Field(default=0.0, description="Growth readiness percentage")
+    operational_readiness: float = Field(default=0.0, description="Operational readiness percentage")
+    data_provenance: Optional[dict] = Field(
+        default_factory=lambda: {
+            "source_type": "CALCULATED",
+            "source_name": "Deterministic Financial & Liquidity Engines",
+            "confidence": "HIGH",
+            "explanation": "Calculated from recorded transactions, ledger dues, and baseline capital.",
+        }
+    )
+
