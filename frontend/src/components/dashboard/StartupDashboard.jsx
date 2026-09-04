@@ -508,87 +508,79 @@ export default function StartupDashboard({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-          {/* Gate 1: Working Capital & Invoices */}
-          <div className="p-4 rounded-2xl border bg-blue-50/40 border-blue-200/70 shadow-xs flex flex-col justify-between space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-[12px] font-black text-white">
-                  01
-                </span>
-                <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-blue-600 text-white">
-                  Priority 1 • Cash Flow
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-900 leading-snug pt-1">
-                Maintain 30-Day Debtor Collections & Buffer
-              </h3>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Streamline supplier payables and invoice factoring to preserve a minimum 45-day cash safety cushion.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleAction('financial-plan')}
-              className="w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer text-center"
+          {(dashboardSummary?.operational_priorities && dashboardSummary.operational_priorities.length > 0
+            ? dashboardSummary.operational_priorities
+            : [
+                {
+                  step_num: '01',
+                  priority_label: 'Priority 1 • Cash Flow',
+                  urgency: 'ACTION_REQUIRED',
+                  title: 'Maintain Cash Cushion & Collections',
+                  description: 'Streamline debtor collections and supplier payables to preserve cash runway.',
+                  cta_label: 'Manage Cash Flow →',
+                  route: 'financial-plan',
+                },
+                {
+                  step_num: '02',
+                  priority_label: 'Priority 2 • Growth Funding',
+                  urgency: 'RECOMMENDED',
+                  title: 'Mudra / Scheme Working Capital Facility',
+                  description: 'Explore working capital line with interest subvention under micro-enterprise credit schemes.',
+                  cta_label: 'View Expansion Schemes →',
+                  route: 'scheme',
+                },
+                {
+                  step_num: '03',
+                  priority_label: 'Priority 3 • Capacity',
+                  urgency: 'STABLE',
+                  title: 'Execute Scaling & Compliance Roadmap',
+                  description: 'Procure secondary equipment, complete statutory GST filings, and track milestone execution.',
+                  cta_label: 'Action Roadmap →',
+                  route: 'action-plan',
+                },
+              ]
+          ).map((gate, idx) => (
+            <div
+              key={gate.step_num || idx}
+              className={`p-4 rounded-2xl border flex flex-col justify-between space-y-4 ${
+                idx === 0
+                  ? 'bg-blue-50/40 border-blue-200/70 shadow-xs'
+                  : 'bg-slate-50/70 border-slate-200/70 hover:bg-slate-50'
+              }`}
             >
-              Manage Cash Flow →
-            </button>
-          </div>
-
-          {/* Gate 2: Expansion Financing */}
-          <div className="p-4 rounded-2xl border bg-slate-50/70 border-slate-200/70 hover:bg-slate-50 flex flex-col justify-between space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-[12px] font-black text-white">
-                  02
-                </span>
-                <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-slate-200 text-slate-700">
-                  Priority 2 • Growth Funding
-                </span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-[12px] font-black text-white">
+                    {gate.step_num || `0${idx + 1}`}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                      idx === 0 ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    {gate.priority_label}
+                  </span>
+                </div>
+                <h3 className="text-xs font-bold text-slate-900 leading-snug pt-1">
+                  {gate.title}
+                </h3>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  {gate.description}
+                </p>
               </div>
-              <h3 className="text-xs font-bold text-slate-900 leading-snug pt-1">
-                PMEGP Expansion / Mudra Working Capital Facility
-              </h3>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Qualify for institutional credit line up to ₹10 Lakh with interest subvention under micro-enterprise credit schemes.
-              </p>
+              <button
+                type="button"
+                onClick={() => handleAction(gate.route || 'financial-plan')}
+                className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
+                  idx === 0
+                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs'
+                    : 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-2xs'
+                }`}
+              >
+                {gate.cta_label || 'View Action →'}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => handleAction('scheme')}
-              className="w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-2xs cursor-pointer text-center"
-            >
-              View Expansion Schemes →
-            </button>
-          </div>
-
-          {/* Gate 3: Capacity Scaling */}
-          <div className="p-4 rounded-2xl border bg-slate-50/70 border-slate-200/70 hover:bg-slate-50 flex flex-col justify-between space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-[12px] font-black text-white">
-                  03
-                </span>
-                <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-slate-200 text-slate-700">
-                  Priority 3 • Capacity
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-900 leading-snug pt-1">
-                Execute 60-Day Scaling & Compliance Roadmap
-              </h3>
-              <p className="text-[11px] text-slate-600 leading-relaxed">
-                Procure secondary equipment, complete statutory GST filings and onboard 2 technical apprentices.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleAction('action-plan')}
-              className="w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-2xs cursor-pointer text-center"
-            >
-              Action Roadmap →
-            </button>
-          </div>
-
+          ))}
         </div>
       </section>
 

@@ -259,3 +259,24 @@ def test_action_plan_task_update_persists_and_updates_completion(client):
         )
 
 
+def test_dashboard_operational_priorities_rule_derived_and_traceable(client):
+    """GET /api/v1/dashboard/summary: returns rule-based, traceable operational priorities without hardcoded mocks."""
+    res = client.get("/api/v1/dashboard/summary?business_id=2")
+    assert res.status_code == 200
+    data = res.json()
+
+    assert "operational_priorities" in data
+    priorities = data["operational_priorities"]
+    assert len(priorities) == 3
+
+    for p in priorities:
+        assert "step_num" in p
+        assert "priority_label" in p
+        assert "title" in p
+        assert "description" in p
+        assert "trigger_reason" in p
+        assert "route" in p
+        assert "urgency" in p
+        assert p["urgency"] in ["URGENT", "ACTION_REQUIRED", "RECOMMENDED", "STABLE"]
+
+

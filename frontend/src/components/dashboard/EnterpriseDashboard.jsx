@@ -507,87 +507,85 @@ export default function EnterpriseDashboard({
 
         {/* 3 Priority Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          
-          {/* Priority 1: Cash Preservation */}
-          <div className="bg-[#F8FAFC] rounded-2xl p-5 border border-slate-200/80 flex flex-col justify-between space-y-4 hover:border-blue-300 transition-all">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-700 font-bold text-[11px]">
-                  01 • Cash Preservation
-                </span>
-                <span className="text-xs font-bold text-amber-600">Priority 1</span>
-              </div>
-              <h3 className="font-bold text-sm text-[#0F172A]">
-                Accelerate Customer Collections & Factoring
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                {receivables != null ? formatINR(receivables) : 'Active dues'} in outstanding customer accounts. Enforce early discount terms to convert receivables into liquid working capital.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleAction('financial-plan')}
-              className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-blue-700 font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-1 cursor-pointer"
+          {(dashboardSummary?.operational_priorities && dashboardSummary.operational_priorities.length > 0
+            ? dashboardSummary.operational_priorities
+            : [
+                {
+                  step_num: '01',
+                  priority_label: '01 • Cash Preservation',
+                  urgency: receivables > 0 ? 'ACTION_REQUIRED' : 'STABLE',
+                  title: 'Accelerate Customer Collections & Factoring',
+                  description: receivables != null
+                    ? `${formatINR(receivables)} in outstanding customer accounts. Enforce early settlement terms to convert receivables into liquid working capital.`
+                    : 'Monitor receivables to preserve cash buffer.',
+                  cta_label: 'Review Cash Flow →',
+                  route: 'financial-plan',
+                },
+                {
+                  step_num: '02',
+                  priority_label: '02 • Growth Credit',
+                  urgency: 'RECOMMENDED',
+                  title: 'Working Capital MSME Credit Facility',
+                  description: 'Explore working capital facility under CGTMSE credit guarantee with priority interest subvention for rural enterprises.',
+                  cta_label: 'Explore Schemes →',
+                  route: 'scheme',
+                },
+                {
+                  step_num: '03',
+                  priority_label: '03 • Operational Scale',
+                  urgency: 'STABLE',
+                  title: 'Workforce & Operational Scaling',
+                  description: dashboardSummary
+                    ? `Maintain ${dashboardSummary.total_employees} employee commitments (${formatINR(dashboardSummary.payroll_amount || 0)}/mo) with active compliance tracking.`
+                    : 'Reconcile operational commitments and statutory filings to scale output.',
+                  cta_label: 'Review Action Plan →',
+                  route: 'action-plan',
+                },
+              ]
+          ).map((p, idx) => (
+            <div
+              key={p.step_num || idx}
+              className="bg-[#F8FAFC] rounded-2xl p-5 border border-slate-200/80 flex flex-col justify-between space-y-4 hover:border-blue-300 transition-all"
             >
-              <span>Review Cash Flow</span>
-              <span>→</span>
-            </button>
-          </div>
-
-          {/* Priority 2: Growth Credit */}
-          <div className="bg-[#F8FAFC] rounded-2xl p-5 border border-slate-200/80 flex flex-col justify-between space-y-4 hover:border-blue-300 transition-all">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 font-bold text-[11px]">
-                  02 • Growth Credit
-                </span>
-                <span className="text-xs font-bold text-emerald-600">Pre-Approved</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-700 font-bold text-[11px]">
+                    {p.priority_label || `0${idx + 1} • Directive`}
+                  </span>
+                  <span
+                    className={`text-xs font-bold ${
+                      p.urgency === 'URGENT'
+                        ? 'text-red-600'
+                        : p.urgency === 'ACTION_REQUIRED'
+                        ? 'text-amber-600'
+                        : 'text-emerald-600'
+                    }`}
+                  >
+                    {p.urgency === 'URGENT'
+                      ? 'Urgent'
+                      : p.urgency === 'ACTION_REQUIRED'
+                      ? 'Action Required'
+                      : p.urgency === 'RECOMMENDED'
+                      ? 'Recommended'
+                      : 'On Track'}
+                  </span>
+                </div>
+                <h3 className="font-bold text-sm text-[#0F172A]">{p.title}</h3>
+                <p className="text-xs text-slate-600 leading-relaxed">{p.description}</p>
               </div>
-              <h3 className="font-bold text-sm text-[#0F172A]">
-                Collateral-Free MSME Credit Facility
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Eligible for working capital credit facility under CGTMSE credit guarantee with priority interest subvention for rural enterprises.
-              </p>
+              <button
+                type="button"
+                onClick={() => handleAction(p.route || 'financial-plan')}
+                className={`w-full py-2.5 rounded-xl font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-1 cursor-pointer ${
+                  idx === 0
+                    ? 'bg-blue-600 hover:bg-blue-500 text-white'
+                    : 'bg-white hover:bg-slate-50 border border-slate-200 text-blue-700'
+                }`}
+              >
+                <span>{p.cta_label || 'View Details →'}</span>
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => handleAction('scheme')}
-              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-1 cursor-pointer"
-            >
-              <span>Explore Scheme Details</span>
-              <span>→</span>
-            </button>
-          </div>
-
-          {/* Priority 3: Operations & Scale */}
-          <div className="bg-[#F8FAFC] rounded-2xl p-5 border border-slate-200/80 flex flex-col justify-between space-y-4 hover:border-blue-300 transition-all">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="px-2.5 py-0.5 rounded-md bg-indigo-100 text-indigo-700 font-bold text-[11px]">
-                  03 • Operational Scale
-                </span>
-                <span className="text-xs font-bold text-blue-600">
-                  {dashboardSummary ? `${dashboardSummary.total_employees} Workforce` : 'Active'}
-                </span>
-              </div>
-              <h3 className="font-bold text-sm text-[#0F172A]">
-                Capacity & Workforce Alignment
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Reconcile payroll obligations ({formatINR(dashboardSummary?.payroll_amount || 0)}) and statutory compliances to scale operational output.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleAction('action-plan')}
-              className="w-full py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-blue-700 font-bold text-xs shadow-xs transition-colors flex items-center justify-center space-x-1 cursor-pointer"
-            >
-              <span>Review Action Plan</span>
-              <span>→</span>
-            </button>
-          </div>
-
+          ))}
         </div>
 
       </section>

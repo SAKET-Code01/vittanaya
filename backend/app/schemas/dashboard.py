@@ -46,6 +46,10 @@ class DashboardSummaryResponse(BaseModel):
     runway_months: float = Field(default=0.0, description="Cash runway in months")
     growth_readiness: float = Field(default=0.0, description="Growth readiness percentage")
     operational_readiness: float = Field(default=0.0, description="Operational readiness percentage")
+    operational_priorities: List[dict] = Field(
+        default_factory=list,
+        description="Traceable rule-derived operational priorities for the action center",
+    )
     data_provenance: Optional[dict] = Field(
         default_factory=lambda: {
             "source_type": "CALCULATED",

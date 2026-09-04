@@ -174,6 +174,76 @@ class DashboardService:
             total_reqs = 0
             crit_reqs = []
 
+        # 10. Traceable Rule-Based Operational Priorities (Phase 11)
+        priorities = []
+        
+        # Priority A: Receivables / Cash buffer check
+        if pending_rec_total > Decimal("0.00") or runway_days < 45:
+            urgency = "URGENT" if runway_days < 30 else "ACTION_REQUIRED"
+            priorities.append({
+                "step_num": f"0{len(priorities)+1}",
+                "priority_label": f"Priority {len(priorities)+1} • Cash & Receivables",
+                "urgency": urgency,
+                "title": "Accelerate Customer Collections & Invoicing",
+                "description": (
+                    f"Outstanding customer dues stand at ₹{pending_rec_total:,.0f} with a {runway_days}-day cash runway. "
+                    "Expedite collections to preserve liquid working capital buffer."
+                    if pending_rec_total > Decimal("0.00")
+                    else f"Cash runway is constrained at {runway_days} days. Tighten expenditure commitments."
+                ),
+                "cta_label": "Manage Receivables →",
+                "route": "financial-plan",
+                "trigger_reason": f"Runway {runway_days}d < 45d or pending receivables ₹{pending_rec_total:,.0f} > 0",
+            })
+            
+        # Priority B: Working Capital / Scheme Gap
+        if funding_gap_val > Decimal("0.00") or working_cap_ratio < 1.3:
+            urgency = "URGENT" if working_cap_ratio < 1.0 else "RECOMMENDED"
+            priorities.append({
+                "step_num": f"0{len(priorities)+1}",
+                "priority_label": f"Priority {len(priorities)+1} • Working Capital Credit",
+                "urgency": urgency,
+                "title": "Institutional Working Capital Credit Facility",
+                "description": (
+                    f"Working capital coverage is {working_cap_ratio:.2f}x with an identified funding gap of ₹{funding_gap_val:,.0f}. "
+                    "Explore collateral-free credit under CGTMSE or Mudra schemes."
+                ),
+                "cta_label": "Explore Credit Schemes →",
+                "route": "scheme",
+                "trigger_reason": f"Working capital ratio {working_cap_ratio:.2f}x < 1.3x or funding gap ₹{funding_gap_val:,.0f} > 0",
+            })
+
+        # Priority C: Statutory & Compliance / Critical Road Map
+        if crit_reqs or r_score < 75.0:
+            crit_count = len(crit_reqs)
+            priorities.append({
+                "step_num": f"0{len(priorities)+1}",
+                "priority_label": f"Priority {len(priorities)+1} • Statutory Compliance",
+                "urgency": "ACTION_REQUIRED" if crit_count > 0 else "RECOMMENDED",
+                "title": "Clear Statutory & Operational Road Map Gates",
+                "description": (
+                    f"{crit_count} critical statutory gate(s) pending verification. Overall business readiness is {r_label}."
+                    if crit_count > 0
+                    else f"Execution readiness is at {r_score:.0f}%. Complete remaining roadmap milestones to ensure full banking compliance."
+                ),
+                "cta_label": "Action Plan Roadmap →",
+                "route": "action-plan",
+                "trigger_reason": f"Pending critical gates: {crit_count}, readiness score: {r_score:.0f}%",
+            })
+
+        # Fallback if fewer than 3 priorities (for highly optimized healthy businesses)
+        while len(priorities) < 3:
+            priorities.append({
+                "step_num": f"0{len(priorities)+1}",
+                "priority_label": f"Priority {len(priorities)+1} • Operational Scaling",
+                "urgency": "STABLE",
+                "title": "Workforce & Production Capacity Optimization",
+                "description": f"Operating margin is healthy at {ebitda_margin}%. Maintain operational cadence and review monthly employee payroll commitments.",
+                "cta_label": "Review Operations →",
+                "route": "action-plan",
+                "trigger_reason": f"Operating margin {ebitda_margin}% is stable; no critical liquidity threats detected",
+            })
+
         return DashboardSummaryResponse(
             business_id=business.id,
             business_name=business.name,
@@ -208,6 +278,7 @@ class DashboardService:
             runway_months=runway_months,
             growth_readiness=r_score,
             operational_readiness=r_score,
+            operational_priorities=priorities[:3],
             data_provenance={
                 "source_type": "CALCULATED",
                 "source_name": "Authoritative Deterministic Financial & Liquidity Engines",
