@@ -1,10 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { AiMascotAvatar } from '../common/JapaneseArtwork';
 import { advisoryService } from '../../services/advisoryService';
 
 /**
  * AskVittanayaModal Component — Grounded Multilingual AI Business Advisory Dialog
- * Integrates real backend FastAPI chatbot endpoint with verified decision engines.
+ * Supports 3 Responsive Display Modes:
+ * - MODE 1: DEFAULT (Compact, centered dialog 600-680px)
+ * - MODE 2: EXPANDED (Comfortable workspace modal 88-94vw x 88-92vh)
+ * - MODE 3: FULL SCREEN (100vw x 100dvh immersive view)
+ * 
+ * Includes voice recognition compatibility, body scroll locking, keyboard accessibility (Esc),
+ * and dynamic flexible viewport sizing without losing conversation or input state.
  */
 export default function AskVittanayaModal({
   isOpen,
@@ -13,12 +19,22 @@ export default function AskVittanayaModal({
   financialSummary,
   initialPrompt = '',
 }) {
+  // Responsive display mode: 'default' | 'expanded' | 'fullscreen'
+  const [chatMode, setChatMode] = useState('default');
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+
+  // Voice Speech Recognition & TTS States
+  const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState(null);
+  const [isSpeakingId, setIsSpeakingId] = useState(null);
+  const recognitionRef = useRef(null);
+
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+
   const businessName = currentProfile?.businessName || currentProfile?.name || currentProfile?.business_name || '';
   const businessCategory = currentProfile?.category || currentProfile?.businessType || currentProfile?.type || currentProfile?.industry || '';
   const businessLocation = currentProfile?.location_district
@@ -29,12 +45,42 @@ export default function AskVittanayaModal({
   const activeReqIdRef = useRef(0);
   const lastUserTextRef = useRef('');
 
-  // Reset conversation context whenever the active business profile changes
+  // 1. Lock Background Page Scrolling when Chat is Open
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  // 2. Keyboard Navigation & Escape Handler
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (chatMode === 'fullscreen') {
+          setChatMode('expanded');
+        } else if (chatMode === 'expanded') {
+          setChatMode('default');
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, chatMode, onClose]);
+
+  // 3. Reset conversation context when the active business profile changes
   useEffect(() => {
     activeReqIdRef.current += 1;
     setMessages([]);
   }, [currentProfile?.id, currentProfile?.name, currentProfile?.business_name]);
 
+  // 4. Initialize welcome message
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const isProfileValid = Boolean(businessName || businessCategory || currentProfile?.id);
@@ -71,12 +117,14 @@ export default function AskVittanayaModal({
     'What should I do next?',
   ];
 
+  // 5. Auto-scroll message container on updates or mode change
   useEffect(() => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages, isTyping, chatMode]);
 
+  // 6. Handle Initial Prompt Injection
   useEffect(() => {
     if (!isOpen) return;
     if (initialPrompt) {
@@ -86,8 +134,105 @@ export default function AskVittanayaModal({
     setInputText('');
   }, [isOpen, initialPrompt]);
 
+  // 7. Voice Recognition Setup
+  useEffect(() => {
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRec) {
+      const recognition = new SpeechRec();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+
+      const langMap = {
+        'English': 'en-IN',
+        'हिन्दी (Hindi)': 'hi-IN',
+        'ଓଡ଼ିଆ (Odia)': 'or-IN',
+        'मराठी (Marathi)': 'mr-IN',
+        'বাংলা (Bengali)': 'bn-IN',
+        'தமிழ் (Tamil)': 'ta-IN',
+        'తెలుగు (Telugu)': 'te-IN',
+        'ગુજરાતી (Gujarati)': 'gu-IN',
+      };
+      recognition.lang = langMap[selectedLanguage] || 'en-IN';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setSpeechError(null);
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map((res) => res[0].transcript)
+          .join('');
+        setInputText(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.warn('Speech recognition warning:', event.error);
+        setIsListening(false);
+        if (event.error !== 'no-speech') {
+          setSpeechError(`Microphone notice: ${event.error}`);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch (e) {}
+      }
+    };
+  }, [selectedLanguage]);
+
+  const toggleVoiceInput = () => {
+    if (!recognitionRef.current) {
+      alert('Speech recognition is not supported on this browser. Voice features work best on Chrome and Edge.');
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      setSpeechError(null);
+      try {
+        recognitionRef.current.start();
+      } catch (e) {
+        console.warn('Voice start exception:', e);
+      }
+    }
+  };
+
+  // 8. Text-to-Speech (TTS) Reader for AI Answers
+  const handleToggleSpeak = useCallback((msgId, text) => {
+    if (!('speechSynthesis' in window)) return;
+
+    if (isSpeakingId === msgId) {
+      window.speechSynthesis.cancel();
+      setIsSpeakingId(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/[*_#`[\]()]/g, '');
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'en-IN';
+    utterance.rate = 1.0;
+    utterance.onend = () => setIsSpeakingId(null);
+    utterance.onerror = () => setIsSpeakingId(null);
+
+    setIsSpeakingId(msgId);
+    window.speechSynthesis.speak(utterance);
+  }, [isSpeakingId]);
+
   if (!isOpen) return null;
 
+  // 9. Send Chat Message to FastAPI Advisory Backend
   const handleSendMessage = async (textToSend, isRetry = false) => {
     const text = textToSend || inputText;
     if (!text.trim() || isTyping) return;
@@ -110,7 +255,6 @@ export default function AskVittanayaModal({
     setIsTyping(true);
 
     try {
-      // Build past history turns for context
       const historyPayload = messages
         .filter((m) => m.text && !m.error)
         .slice(-4)
@@ -119,7 +263,6 @@ export default function AskVittanayaModal({
           text: m.text,
         }));
 
-      // Call real backend API chatbot endpoint
       const response = await advisoryService.sendChatMessage({
         message: text,
         business_id: currentProfile?.id ? String(currentProfile.id) : null,
@@ -140,7 +283,6 @@ export default function AskVittanayaModal({
         history: historyPayload,
       });
 
-      // Ignore stale response if user switched business or sent a newer request
       if (reqId !== activeReqIdRef.current || currentProfile?.id !== reqProfileId) return;
 
       const resData = response.data || response;
@@ -187,34 +329,64 @@ export default function AskVittanayaModal({
     }
   };
 
+  // Determine Modal Container & Sizing Classes based on chatMode
+  const getContainerClasses = () => {
+    if (chatMode === 'fullscreen') {
+      return 'fixed inset-0 z-50 flex flex-col bg-black/60 animate-fadeIn p-0';
+    }
+    if (chatMode === 'expanded') {
+      return 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 md:p-6 animate-fadeIn';
+    }
+    // Default mode
+    return 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-fadeIn';
+  };
+
+  const getCardClasses = () => {
+    if (chatMode === 'fullscreen') {
+      return 'bg-[#FAF7F2] w-full h-[100dvh] flex flex-col overflow-hidden shadow-none border-0 rounded-none animate-fadeIn';
+    }
+    if (chatMode === 'expanded') {
+      return 'bg-[#FAF7F2] rounded-2xl sm:rounded-3xl border border-[#E8E2D5] shadow-2xl w-full max-w-[94vw] h-[92vh] max-h-[94vh] flex flex-col overflow-hidden animate-fadeInScale transition-all duration-200';
+    }
+    // Default mode: responsive clamp (compact on desktop, comfortably fills mobile screen)
+    return 'bg-[#FAF7F2] rounded-2xl sm:rounded-3xl border border-[#E8E2D5] shadow-2xl w-full max-w-2xl h-[94dvh] sm:h-[min(740px,86vh)] flex flex-col overflow-hidden animate-fadeInScale transition-all duration-200';
+  };
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+    <div
+      className={getContainerClasses()}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Ask VITTANAYA AI Business Advisory"
+    >
       {/* Modal Card */}
-      <div className="bg-[#FAF7F2] rounded-3xl border border-[#E8E2D5] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh] animate-fadeInScale">
+      <div className={getCardClasses()}>
 
         {/* Modal Header */}
-        <div className="bg-[#0F291E] text-white p-4 sm:p-5 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <AiMascotAvatar size={42} />
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <h3 className="text-base font-extrabold text-white">
+        <header className="flex-shrink-0 bg-[#0F291E] text-white p-3.5 sm:p-5 flex items-center justify-between border-b border-emerald-900/40 select-none">
+          <div className="flex items-center space-x-3 min-w-0">
+            <AiMascotAvatar size={chatMode === 'fullscreen' ? 44 : 38} />
+            <div className="min-w-0">
+              <div className="flex items-center space-x-1.5 truncate">
+                <h3 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate">
                   Ask VITTANAYA
                 </h3>
-                <span className="text-xs text-amber-400">✨</span>
+                <span className="text-xs text-amber-400 shrink-0">✨</span>
               </div>
-              <p className="text-xs text-[#A6B5AC] font-medium">
+              <p className="text-[11px] sm:text-xs text-[#A6B5AC] font-medium truncate">
                 Grounded AI Business Advisory • FastAPI Powered
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          {/* Header Controls: Language Selector + Mode Controls + Close */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             {/* Language Selector */}
             <select
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
-              className="bg-white/10 text-white text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-white/20 focus:outline-none cursor-pointer"
+              className="bg-white/10 hover:bg-white/15 text-white text-[11px] sm:text-xs font-semibold rounded-xl px-2 sm:px-2.5 py-1 sm:py-1.5 border border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer transition-colors max-w-[110px] sm:max-w-none"
+              aria-label="Select Advisory Language"
             >
               {languages.map((lang, idx) => (
                 <option key={idx} value={lang} className="bg-[#0F291E] text-white">
@@ -223,26 +395,87 @@ export default function AskVittanayaModal({
               ))}
             </select>
 
+            {/* Mode 1 Switcher: Default / Minimize (Visible when in Expanded or Full Screen) */}
+            {chatMode !== 'default' && (
+              <button
+                type="button"
+                onClick={() => setChatMode('default')}
+                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                title="Default Compact View (680px)"
+                aria-label="Restore default compact view"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="5" width="14" height="14" rx="2" />
+                  <path d="M9 9h6v6H9z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Mode 2 Switcher: Expanded Window (Visible when in Default or Full Screen) */}
+            {chatMode !== 'expanded' && (
+              <button
+                type="button"
+                onClick={() => setChatMode('expanded')}
+                className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 hidden sm:flex"
+                title="Expanded Workspace View (92% viewport)"
+                aria-label="Expand chat to large workspace"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              </button>
+            )}
+
+            {/* Mode 3 Switcher: Full Screen / Exit Full Screen */}
+            <button
+              type="button"
+              onClick={() => setChatMode(chatMode === 'fullscreen' ? 'default' : 'fullscreen')}
+              className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              title={chatMode === 'fullscreen' ? 'Exit Full Screen' : 'Full Screen View'}
+              aria-label={chatMode === 'fullscreen' ? 'Exit Full Screen' : 'Enter Full Screen'}
+            >
+              {chatMode === 'fullscreen' ? (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 14 10 14 10 20" />
+                  <polyline points="20 10 14 10 14 4" />
+                  <line x1="14" y1="10" x2="21" y2="3" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                </svg>
+              )}
+            </button>
+
             {/* Close Button */}
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
-              title="Close"
-              aria-label="Close"
+              className="w-8 h-8 rounded-xl bg-white/10 hover:bg-rose-600/80 active:bg-rose-700 text-white flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ml-1"
+              title="Close (Esc)"
+              aria-label="Close Ask VITTANAYA"
             >
               ✕
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* Message History */}
-        <div ref={messagesContainerRef} className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 max-h-[50vh] bg-[#FAF7F2]">
+        {/* Message History Area (flex-1 dynamically stretches to viewport) */}
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 min-h-0 p-4 sm:p-6 overflow-y-auto space-y-4 bg-[#FAF7F2] select-text"
+        >
           {initialPrompt && (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-800 font-medium">
-              Feasibility context loaded. You can send the suggested question or edit it first.
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[11px] sm:text-xs text-emerald-800 font-medium flex items-center justify-between">
+              <span>Feasibility context loaded. You can send the suggested question or edit it below.</span>
+              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider ml-2">Active</span>
             </div>
           )}
+
           {messages.map((msg) => {
             const isAi = msg.sender === 'ai';
             const details = msg.details;
@@ -252,13 +485,17 @@ export default function AskVittanayaModal({
                 className={`flex items-start space-x-3 ${isAi ? 'justify-start' : 'justify-end'}`}
               >
                 {isAi && (
-                  <div className="w-8 h-8 rounded-full bg-[#0F291E] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#0F291E] text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm">
                     V
                   </div>
                 )}
 
                 <div
-                  className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed shadow-xs ${
+                  className={`rounded-2xl p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed shadow-xs break-words ${
+                    chatMode === 'fullscreen' || chatMode === 'expanded'
+                      ? 'max-w-[85%] sm:max-w-[75%]'
+                      : 'max-w-[88%]'
+                  } ${
                     isAi
                       ? msg.error || details?.data_status === 'UNAVAILABLE'
                         ? 'bg-amber-50/90 border border-amber-200 text-amber-900'
@@ -267,7 +504,7 @@ export default function AskVittanayaModal({
                   }`}
                 >
                   {/* Primary Text Answer */}
-                  <p>{msg.text}</p>
+                  <div className="whitespace-pre-wrap">{msg.text}</div>
 
                   {/* Unavailable / Error Retry Box */}
                   {isAi && (msg.error || details?.data_status === 'UNAVAILABLE') ? (
@@ -307,7 +544,7 @@ export default function AskVittanayaModal({
                             Why this result:
                           </span>
                           <ul className="list-disc list-inside space-y-0.5 text-[11px] text-[#425047]">
-                            {details.why_this_result.slice(0, 2).map((item, idx) => (
+                            {details.why_this_result.slice(0, 3).map((item, idx) => (
                               <li key={idx}>{item}</li>
                             ))}
                           </ul>
@@ -339,15 +576,26 @@ export default function AskVittanayaModal({
                         </div>
                       )}
 
-                      {/* Source & Confidence Footer */}
-                      {isAi && details && (
-                        <div className="mt-2 pt-1 border-t border-[#E8E2D5]/40 flex items-center justify-between text-[9px] text-[#819388]">
-                          <span className="font-semibold text-emerald-700">
-                            ✓ {details.data_status || 'VERIFIED'}
-                          </span>
-                          {details.sources && details.sources[0] && (
-                            <span>Source: {details.sources[0].authority}</span>
-                          )}
+                      {/* Source & Confidence Footer + TTS Read Aloud Control */}
+                      {isAi && (
+                        <div className="mt-2 pt-1.5 border-t border-[#E8E2D5]/40 flex items-center justify-between text-[9px] text-[#819388]">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-semibold text-emerald-700">
+                              ✓ {details?.data_status || 'VERIFIED'}
+                            </span>
+                            {details?.sources && details.sources[0] && (
+                              <span className="truncate max-w-[160px]">Source: {details.sources[0].authority}</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSpeak(msg.id, msg.text)}
+                            className="text-slate-500 hover:text-emerald-700 font-medium flex items-center space-x-1 px-1.5 py-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                            title={isSpeakingId === msg.id ? 'Stop speaking' : 'Read response aloud'}
+                            aria-label={isSpeakingId === msg.id ? 'Stop reading' : 'Read response aloud'}
+                          >
+                            <span>{isSpeakingId === msg.id ? '⏹ Stop' : '🔊 Listen'}</span>
+                          </button>
                         </div>
                       )}
                     </>
@@ -363,7 +611,7 @@ export default function AskVittanayaModal({
                 </div>
 
                 {!isAi && (
-                  <div className="w-8 h-8 rounded-full bg-[#D4A343] text-white flex items-center justify-center font-bold text-xs flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[#D4A343] text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm">
                     You
                   </div>
                 )}
@@ -373,7 +621,7 @@ export default function AskVittanayaModal({
 
           {/* Typing Indicator */}
           {isTyping && (
-            <div className="flex items-center space-x-2 text-xs text-[#607267] italic p-2">
+            <div className="flex items-center space-x-2 text-xs text-[#607267] italic p-2 bg-emerald-50/50 rounded-xl border border-emerald-100 max-w-sm">
               <span className="w-2 h-2 rounded-full bg-[#2F7757] animate-ping" />
               <span>VITTANAYA AI is retrieving verified calculations...</span>
             </div>
@@ -382,8 +630,8 @@ export default function AskVittanayaModal({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Suggested Quick Questions */}
-        <div className="px-4 sm:px-6 py-2 bg-[#F4EFE6] border-t border-[#E8E2D5] flex items-center space-x-2 overflow-x-auto">
+        {/* Suggested Quick Questions Bar */}
+        <div className="flex-shrink-0 px-4 sm:px-6 py-2 bg-[#F4EFE6] border-t border-[#E8E2D5] flex items-center space-x-2 overflow-x-auto scrollbar-none">
           <span className="text-[11px] font-bold text-[#607267] whitespace-nowrap">
             Suggested:
           </span>
@@ -392,32 +640,82 @@ export default function AskVittanayaModal({
               key={idx}
               type="button"
               onClick={() => handleSendMessage(q)}
-              className="px-2.5 py-1 rounded-full bg-white border border-[#E8E2D5] text-[11px] font-medium text-[#1A211D] hover:bg-[#E8F1EC] hover:text-[#2F7757] transition-colors whitespace-nowrap cursor-pointer"
+              className="px-3 py-1 rounded-full bg-white border border-[#E8E2D5] text-[11px] font-medium text-[#1A211D] hover:bg-[#E8F1EC] hover:text-[#2F7757] hover:border-emerald-300 transition-colors whitespace-nowrap cursor-pointer shadow-2xs"
             >
               {q}
             </button>
           ))}
         </div>
 
-        {/* Input Bar */}
+        {/* Voice Listening Feedback Banner */}
+        {isListening && (
+          <div className="flex-shrink-0 px-4 py-2 bg-emerald-900 text-white text-xs font-semibold flex items-center justify-between animate-fadeIn">
+            <div className="flex items-center space-x-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+              <span>🎙️ Listening in {selectedLanguage}... speak your question</span>
+            </div>
+            <button
+              type="button"
+              onClick={toggleVoiceInput}
+              className="text-[10px] uppercase font-bold bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded cursor-pointer"
+            >
+              Done / Stop
+            </button>
+          </div>
+        )}
+
+        {/* Speech Error Notice */}
+        {speechError && (
+          <div className="flex-shrink-0 px-4 py-1.5 bg-amber-100 text-amber-900 text-[11px] font-medium flex items-center justify-between border-t border-amber-200">
+            <span>{speechError}</span>
+            <button
+              type="button"
+              onClick={() => setSpeechError(null)}
+              className="text-amber-800 hover:text-amber-950 font-bold ml-2 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Input Bar — Anchored at Bottom */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSendMessage();
           }}
-          className="p-3 sm:p-4 bg-white border-t border-[#E8E2D5] flex items-center space-x-2"
+          className="flex-shrink-0 p-3 sm:p-4 bg-white border-t border-[#E8E2D5] flex items-center space-x-2"
         >
+          {/* Voice Input Microphone Button */}
+          <button
+            type="button"
+            onClick={toggleVoiceInput}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+              isListening
+                ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-md animate-pulse'
+                : 'bg-[#F4EFE6] hover:bg-[#E8E2D5] text-[#0F291E] border border-[#E8E2D5]'
+            }`}
+            title={isListening ? 'Stop Voice Listening' : 'Voice Input (Click and speak)'}
+            aria-label={isListening ? 'Stop voice listening' : 'Start voice input'}
+          >
+            <span className="text-base">{isListening ? '⏹' : '🎙️'}</span>
+          </button>
+
+          {/* Text Input */}
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder={`Ask in ${selectedLanguage}... (e.g. subsidy eligibility, market competition, repayment)`}
-            className="flex-1 px-4 py-2.5 rounded-2xl bg-[#FAF7F2] border border-[#E8E2D5] text-xs sm:text-sm text-[#1A211D] placeholder-[#819388] focus:outline-none focus:border-[#2F7757]"
+            className="flex-1 px-4 py-2.5 rounded-2xl bg-[#FAF7F2] border border-[#E8E2D5] text-xs sm:text-sm text-[#1A211D] placeholder-[#819388] focus:outline-none focus:border-[#2F7757] focus:ring-1 focus:ring-[#2F7757]"
           />
+
+          {/* Send Button */}
           <button
             type="submit"
             disabled={!inputText.trim() || isTyping}
-            className="px-5 py-2.5 rounded-2xl bg-[#102A1E] hover:bg-[#153928] disabled:opacity-40 text-white font-bold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center space-x-1.5"
+            className="px-5 py-2.5 rounded-2xl bg-[#102A1E] hover:bg-[#153928] disabled:opacity-40 text-white font-bold text-xs sm:text-sm transition-all shadow-xs cursor-pointer flex items-center space-x-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            aria-label="Send Message"
           >
             <span>Send</span>
             <span>→</span>
