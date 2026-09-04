@@ -86,6 +86,7 @@ class MarketPoiSchema(BaseModel):
     details: str
     lat: Optional[float] = None
     lng: Optional[float] = None
+    provenance: Optional[str] = "VERIFIED_LOCAL"
 
 
 class MarketMapResponse(BaseModel):
@@ -104,6 +105,7 @@ class MarketMapResponse(BaseModel):
     pois: List[MarketPoiSchema]
     center_lat: Optional[float] = None
     center_lng: Optional[float] = None
+    provenance: Optional[str] = "VERIFIED_LOCAL"
 
 
 @router.get(
@@ -514,7 +516,15 @@ def get_market_map(
         p["lat"] = round(center_lat + lat_offset, 6)
         p["lng"] = round(center_lng + lng_offset, 6)
 
-    filtered_pois = [MarketPoiSchema(**p) for p in base_pois if p["distance_km"] <= float(radius_km)]
+    filtered_pois = []
+    provenance_code = "VERIFIED_LOCAL" if is_local_verified else "BENCHMARK_ESTIMATE"
+    for p in base_pois:
+        if p["distance_km"] <= float(radius_km):
+            p["provenance"] = provenance_code
+            filtered_pois.append(MarketPoiSchema(**p))
+
+    if not filtered_pois:
+        provenance_code = "INSUFFICIENT_DATA"
 
     return MarketMapResponse(
         location_name=loc_name,
@@ -530,5 +540,6 @@ def get_market_map(
         pois=filtered_pois,
         center_lat=center_lat,
         center_lng=center_lng,
+        provenance=provenance_code,
     )
 
