@@ -129,11 +129,9 @@ export default function SchemePage({
   const navigateBack =
     onNavigateHome || (() => window.history.back());
 
-  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
-
-  const [expandedId, setExpandedId] = useState(isEstablished ? 'pmegp-expansion' : 'pmegp');
+  const [expandedId, setExpandedId] = useState(null);
   const [activeTab, setActiveTab] = useState('why');
-  const [selectedIds, setSelectedIds] = useState(isEstablished ? ['pmegp-expansion'] : ['pmegp']);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('fit');
   const [collateralFilter, setCollateralFilter] = useState('all');
@@ -203,382 +201,105 @@ export default function SchemePage({
     fetchSchemes();
   }, [fetchSchemes]);
 
-  const establishedSchemes = [
-    {
-      id: 'pmegp-expansion',
-      name: 'PMEGP 2nd Financial Assistance for Upgradation of Existing Units',
-      shortName: 'PMEGP Upgradation',
-      ministry: 'Ministry of MSME',
-      badge: 'EXPANSION MATCH • 98% Fit',
-      badgeType: 'blue',
-      fitScore: 98,
-      eligibility: 'Likely Eligible',
-      category: 'subsidy',
-      subsidy: '15% to 20% Subsidy on Project Cost (up to ₹25 Lakhs)',
-      maxCost: '₹ 1,00,00,000 for Manufacturing / ₹ 25,00,000 for Service',
-      promoterShare: '10%',
-      tenure: '5 to 7 Years with flexible working capital CC/OD',
-      collateral: 'Covered under CGTMSE guarantee',
-      collateralLevel: 'low',
-      features: [
-        'Dedicated expansion capital for successful profit-making MSMEs.',
-        'Supports automation, CNC machinery addition, and secondary shift scaling.',
-        'Subsidized interest rate with government DBT subsidy credit.',
-      ],
-      reasons: [
-        'Existing operational commercial unit with positive operating margins.',
-        'Expansion and technology upgradation matches scheme priority.',
-        'GST and Udyam registrations satisfy statutory pre-requisites.',
-      ],
-      documents: [
-        'Audited Financial Statements (Last 2 Years)',
-        'Detailed Project Report (DPR) for Expansion',
-        'GST Returns (GSTR-3B) & Udyam Certificate',
-        'Bank Account Statements (12 Months)',
-      ],
-      process: [
-        'Prepare Expansion Detailed Project Report.',
-        'Submit online via KVIC PMEGP 2nd Loan Portal.',
-        'Bank appraisal & physical verification by DIC/KVIC.',
-        'Sanction & release of expansion working capital.',
-      ],
-      links: [
-        'Official PMEGP 2nd Loan Portal',
-        'Ministry of MSME Expansion Guidelines',
-      ],
-      isPrimary: true,
-      benefitType: 'subsidy',
-    },
-    {
-      id: 'cgtmse',
-      name: 'CGTMSE (Credit Guarantee Scheme for Micro & Small Enterprises)',
-      shortName: 'CGTMSE Credit Line',
-      ministry: 'Ministry of MSME & SIDBI',
-      badge: 'WORKING CAPITAL • 96% Fit',
-      badgeType: 'blue',
-      fitScore: 96,
-      eligibility: 'Likely Eligible',
-      category: 'collateral',
-      subsidy: 'Credit guarantee coverage up to 85%',
-      maxCost: 'Working Capital Line up to ₹ 2,00,00,000',
-      promoterShare: 'Standard Bank Norms (15% Margin)',
-      tenure: 'Revolving 12-Month Overdraft / CC Facility',
-      collateral: '100% Third-party collateral free',
-      collateralLevel: 'low',
-      features: [
-        'Provides working capital credit line without mortgaging personal real estate.',
-        'Guarantee fee subsidised under MSME Champions programme.',
-      ],
-      reasons: [
-        'Provides revolving liquidity to bridge customer receivables gap.',
-        'Backed by central credit guarantee trust.',
-        'Operational cash flow directly supports debt serviceability.',
-      ],
-      documents: [
-        'Udyam Registration Certificate',
-        '12-Month GST Reconciliation (GSTR-3B)',
-        'Audited Balance Sheet & Profit & Loss',
-        'Sanction Application to Principal Bank',
-      ],
-      process: [
-        'Request CGTMSE coverage through lending bank.',
-        'Submit credit line proposal and GST filings.',
-        'Bank issues sanction letter with CGTMSE endorsement.',
-      ],
-      links: [
-        'CGTMSE Official Portal',
-        'SIDBI MSME Credit Facilitation Desk',
-      ],
-      isPrimary: false,
-      benefitType: 'guarantee',
-    },
-    {
-      id: 'mudra-tarun',
-      name: 'Pradhan Mantri Mudra Yojana (Tarun Category)',
-      shortName: 'MUDRA Tarun',
-      ministry: 'Ministry of Finance',
-      badge: 'GROWTH CREDIT • 92% Fit',
-      badgeType: 'amber',
-      fitScore: 92,
-      eligibility: 'Likely Eligible',
-      category: 'loan',
-      subsidy: 'Interest Subvention on prompt quarterly repayment',
-      maxCost: '₹ 5,00,000 to ₹ 10,00,000',
-      promoterShare: '15%',
-      tenure: '5 Years with flexible cash credit / term loan',
-      collateral: 'Zero collateral required under Mudra guarantee',
-      collateralLevel: 'low',
-      features: [
-        'Instant digital processing with simplified MSME checklist.',
-        'Mudra Card for seamless working capital drawdowns.',
-      ],
-      reasons: [
-        'MSME financing need matches working-capital requirement.',
-        'Commercial operating track record satisfies bank credit criteria.',
-        'Zero-collateral feature preserves promoter assets.',
-      ],
-      documents: [
-        'Identity / KYC documents',
-        'Business proof & GST registration',
-        'Banking details (6 Months)',
-        'Working capital quotation set',
-      ],
-      process: [
-        'Review lender-specific eligibility.',
-        'Prepare KYC and business documents.',
-        'Approach participating public/private bank.',
-        'Complete credit appraisal and limit activation.',
-      ],
-      links: [
-        'MUDRA Official Information Portal',
-        'Participating Public Sector Banks',
-      ],
-      isPrimary: false,
-      benefitType: 'loan',
-    },
-  ];
-
-  const standardSchemes = [
-    {
-      id: 'pmegp',
-      name: 'PMEGP (Prime Minister Employment Generation Programme)',
-      shortName: 'PMEGP',
-      ministry: 'Ministry of Micro, Small and Medium Enterprises (MSME)',
-      badge: 'TOP MATCH • 98% Fit',
-      badgeType: 'blue',
-      fitScore: 98,
-      eligibility: 'Likely Eligible',
-      category: 'subsidy',
-      subsidy: 'Up to 35% Margin Money Subsidy',
-      maxCost: '₹ 50,00,000 for Manufacturing / ₹ 20,00,000 for Service',
-      promoterShare: '5% to 10%',
-      tenure: '7 Years with 6–12 months moratorium',
-      collateral: 'Collateral-free up to ₹10 Lakhs (CGTMSE)',
-      collateralLevel: 'low',
-      features: [
-        'Direct DBT subsidy credit after physical verification.',
-        'Supported through KVIC / KVIB / DIC / State Nodal Banks.',
-        'Entrepreneurship Development Programme (EDP) training included.',
-      ],
-      reasons: [
-        'Manufacturing business aligns with the scheme objective.',
-        'Project cost sits within the displayed project-cap range.',
-        'Promoter contribution falls inside the displayed 5%–10% range.',
-        'Location and business profile are available for matching.',
-      ],
-      documents: [
-        'Business registration / identity proof',
-        'Project report / DPR',
-        'Banking details',
-        'Promoter contribution evidence',
-      ],
-      process: [
-        'Review eligibility requirements.',
-        'Prepare the DPR and required documents.',
-        'Apply through the relevant government / banking channel.',
-        'Complete required verification / training steps.',
-      ],
-      links: [
-        'Official scheme portal',
-        'KVIC / KVIB / DIC information',
-        'Participating bank information',
-      ],
-      isPrimary: true,
-      benefitType: 'subsidy',
-    },
-    {
-      id: 'mudra-tarun',
-      name: 'Pradhan Mantri Mudra Yojana (Tarun Scheme)',
-      shortName: 'MUDRA Tarun',
-      ministry: 'Ministry of Finance',
-      badge: 'SECONDARY MATCH • 85% Fit',
-      badgeType: 'amber',
-      fitScore: 85,
-      eligibility: 'Review Required',
-      category: 'loan',
-      subsidy: 'Interest Subvention on prompt repayment',
-      maxCost: '₹ 5,00,000 to ₹ 10,00,000',
-      promoterShare: '15%',
-      tenure: '5 Years with flexible working capital CC/OD',
-      collateral: 'Zero collateral required under Mudra guarantee',
-      collateralLevel: 'low',
-      features: [
-        'Instant digital processing with simplified MSME checklist.',
-        'Mudra Card for seamless working capital drawdowns.',
-      ],
-      reasons: [
-        'MSME-style financing need aligns with a working-capital / loan use case.',
-        'Displayed scheme range covers part of the current demo financing band.',
-        'Zero-collateral language makes it relevant for low-security financing.',
-      ],
-      documents: [
-        'Identity / KYC documents',
-        'Business proof',
-        'Banking details',
-        'Loan-purpose / business documents',
-      ],
-      process: [
-        'Review lender-specific eligibility.',
-        'Prepare KYC and business documents.',
-        'Approach the participating lender.',
-        'Complete credit appraisal and sanction process.',
-      ],
-      links: [
-        'MUDRA / lender information',
-        'Participating bank information',
-      ],
-      isPrimary: false,
-      benefitType: 'loan',
-    },
-    {
-      id: 'cgtmse',
-      name: 'CGTMSE (Credit Guarantee Fund Trust for MSEs)',
-      shortName: 'CGTMSE',
-      ministry: 'Ministry of MSME',
-      badge: 'COLLATERAL COVER • 100% Fit',
-      badgeType: 'blue',
-      fitScore: 100,
-      eligibility: 'Likely Eligible',
-      category: 'collateral',
-      subsidy: 'Credit guarantee coverage up to 85%',
-      maxCost: 'Up to ₹ 5,00,000',
-      promoterShare: 'Standard Bank Norms',
-      tenure: 'Synchronized with underlying term loan',
-      collateral: '100% Third-party collateral free',
-      collateralLevel: 'low',
-      features: [
-        'Eliminates need for mortgage or property collateral.',
-        'Annual guarantee fee supported under MSME ministry.',
-      ],
-      reasons: [
-        'Directly addresses the collateral burden in business financing.',
-        'Useful as a credit-guarantee layer alongside an underlying loan.',
-        'Relevant when the lender requires additional credit support.',
-      ],
-      documents: [
-        'Business / MSME proof',
-        'Identity and KYC documents',
-        'Underlying loan documents',
-        'Lender-required financial documents',
-      ],
-      process: [
-        'Discuss guarantee coverage with the lender.',
-        'Submit the underlying loan application.',
-        'Lender assesses and processes the guarantee request.',
-        'Complete the lender documentation process.',
-      ],
-      links: [
-        'CGTMSE information',
-        'Participating lender information',
-      ],
-      isPrimary: false,
-      benefitType: 'guarantee',
-    },
-    {
-      id: 'muvy',
-      name: 'Maharashtra Udyog Vridhhi Yojana (MUVY)',
-      shortName: 'MUVY',
-      ministry: 'Government of Maharashtra',
-      badge: 'POTENTIAL MATCH • 72% Fit',
-      badgeType: 'blue',
-      fitScore: 72,
-      eligibility: 'Review Required',
-      category: 'subsidy',
-      subsidy: 'Capital Investment Subsidy',
-      maxCost: 'As per government notification',
-      promoterShare: 'Minimum 25%',
-      tenure: 'As per applicable notification / lender terms',
-      collateral: 'As per bank requirements',
-      collateralLevel: 'standard',
-      features: [
-        'Potential support for capital investment under applicable conditions.',
-        'Eligibility depends on the relevant government notification.',
-      ],
-      reasons: [
-        'State-specific support can be relevant because the current business is in Maharashtra.',
-        'Capital investment support may complement the financial plan.',
-        'Detailed eligibility needs to be confirmed against the current notification.',
-      ],
-      documents: [
-        'Business registration',
-        'Capital investment details',
-        'Project report',
-        'State-specific supporting documents',
-      ],
-      process: [
-        'Check the current Maharashtra notification.',
-        'Validate eligibility with the relevant authority.',
-        'Prepare investment and project documents.',
-        'Submit through the applicable channel.',
-      ],
-      links: [
-        'Maharashtra government scheme information',
-      ],
-      isPrimary: false,
-      benefitType: 'subsidy',
-    },
-  ];
-
   const schemes = useMemo(() => {
-    if (backendSchemes?.eligible_schemes?.length) {
-      return backendSchemes.eligible_schemes.map((be, idx) => {
-        const isPmegp = be.scheme_code.includes('PMEGP');
-        const isMudra = be.scheme_code.includes('MUDRA');
+    if (!backendSchemes) return [];
 
-        return {
-          id: be.scheme_code.toLowerCase().replace(/_/g, '-'),
-          name: be.scheme_name,
-          shortName: be.scheme_code.replace(/_/g, ' '),
-          ministry: be.source_authority || 'Ministry of MSME / Government of India',
-          badge: idx === 0 ? 'PRIMARY MATCH • 98% Fit' : `${be.scheme_code.replace(/_/g, ' ')} • 90% Fit`,
-          badgeType: idx === 0 ? 'blue' : 'amber',
-          fitScore: idx === 0 ? 98 : Math.max(70, 95 - idx * 5),
-          eligibility: be.eligible ? 'Eligible' : 'Review Required',
-          category: be.collateral_required ? 'loan' : (be.estimated_subsidy_pct > 0 ? 'subsidy' : 'collateral'),
-          subsidy: be.estimated_subsidy_pct > 0
-            ? `${Math.round(be.estimated_subsidy_pct)}% Margin Money Subsidy (₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')})`
-            : (be.collateral_required ? 'Interest subvention on prompt repayment' : 'Credit guarantee coverage up to 85%'),
-          maxCost: be.max_eligible_cost ? `₹ ${Math.round(be.max_eligible_cost).toLocaleString('en-IN')}` : 'As per scheme limit',
-          promoterShare: `${Math.round(be.required_margin_pct)}% (₹${Math.round(be.required_margin_capital).toLocaleString('en-IN')})`,
-          tenure: isPmegp ? '5 to 7 Years with 6-month moratorium' : (isMudra ? '3 to 5 Years' : 'Term of underlying loan'),
-          collateral: be.collateral_required ? 'Standard bank requirements' : '100% Collateral-free (CGTMSE / Mudra)',
-          collateralLevel: be.collateral_required ? 'standard' : 'low',
-          eligibleLoan: `₹${Math.round(be.eligible_loan_amount).toLocaleString('en-IN')}`,
-          subsidyPercent: `${Math.round(be.estimated_subsidy_pct)}%`,
-          subsidyAmount: `₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')}`,
-          marginPercent: `${Math.round(be.required_margin_pct)}%`,
-          marginRequired: `₹${Math.round(be.required_margin_capital).toLocaleString('en-IN')}`,
-          features: [
-            `Official source: ${be.source_authority} (${be.source_year}).`,
-            be.estimated_subsidy_pct > 0 ? `Government subsidy credit: ₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')}.` : 'Revolving credit access with guarantee cover.',
-            `Eligible loan sanction limit: ₹${Math.round(be.eligible_loan_amount).toLocaleString('en-IN')}.`,
-          ],
-          reasons: be.reasons && be.reasons.length > 0 ? be.reasons : [
-            'Project scale and margin capital satisfy scheme screening guidelines.',
-            'Target business location and sector align with priority lending norms.',
-          ],
-          documents: [
-            'Udyam Registration Certificate',
-            'Detailed Project Report (DPR)',
-            'Bank Account Statements (6-12 Months)',
-            'Identity Proof (Aadhaar / PAN)',
-          ],
-          process: [
-            'Review eligibility parameters.',
-            'Generate Detailed Project Report (DPR).',
-            `Apply via official ${be.source_authority} portal.`,
-            'Bank credit appraisal and sanction.',
-          ],
-          links: be.official_source_url ? [be.official_source_url] : ['Official Scheme Portal'],
-          isPrimary: idx === 0,
-          benefitType: be.estimated_subsidy_pct > 0 ? 'subsidy' : (be.collateral_required ? 'loan' : 'guarantee'),
-        };
-      });
+    const eligible = (backendSchemes.eligible_schemes || []).map((be, idx) => ({
+      ...be,
+      isPrimary: idx === 0,
+      fitScore: idx === 0 ? 98 : Math.max(70, 95 - idx * 5),
+      isEligible: true,
+      eligibilityStatus: be.eligibility_status || 'Likely Eligible',
+      badge: idx === 0 ? 'PRIMARY MATCH • 98% Fit' : `${be.scheme_code.replace(/_/g, ' ')} • Eligible`,
+      badgeType: 'blue',
+    }));
+
+    const ineligible = (backendSchemes.ineligible_schemes || []).map((be) => ({
+      ...be,
+      isPrimary: false,
+      fitScore: 40,
+      isEligible: false,
+      eligibilityStatus: be.eligibility_status || 'Ineligible',
+      badge: `${be.scheme_code.replace(/_/g, ' ')} • Review Required`,
+      badgeType: 'amber',
+    }));
+
+    const combined = [...eligible, ...ineligible];
+
+    return combined.map((be) => {
+      const isPmegp = be.scheme_code.includes('PMEGP');
+      const isMudra = be.scheme_code.includes('MUDRA');
+
+      return {
+        id: be.scheme_code.toLowerCase().replace(/_/g, '-'),
+        scheme_code: be.scheme_code,
+        name: be.scheme_name,
+        shortName: be.scheme_code.replace(/_/g, ' '),
+        ministry: be.source_authority || 'Ministry of MSME / Government of India',
+        badge: be.badge,
+        badgeType: be.badgeType,
+        fitScore: be.fitScore,
+        eligibility: be.eligibilityStatus,
+        isEligible: be.isEligible,
+        category: be.collateral_required ? 'loan' : (be.estimated_subsidy_pct > 0 ? 'subsidy' : 'collateral'),
+        subsidy: be.estimated_subsidy_pct > 0
+          ? `${Math.round(be.estimated_subsidy_pct)}% Margin Money Subsidy (₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')})`
+          : (be.collateral_required ? 'Interest subvention on prompt repayment' : 'Credit guarantee coverage up to 85%'),
+        maxCost: be.max_eligible_cost ? `₹ ${Math.round(be.max_eligible_cost).toLocaleString('en-IN')}` : 'As per scheme guidelines',
+        promoterShare: `${Math.round(be.required_margin_pct)}% (₹${Math.round(be.required_margin_capital).toLocaleString('en-IN')})`,
+        tenure: isPmegp ? '5 to 7 Years with 6-month moratorium' : (isMudra ? '3 to 5 Years' : 'Term of underlying loan'),
+        collateral: be.collateral_required ? 'Standard bank requirements' : '100% Collateral-free (CGTMSE / Mudra)',
+        collateralLevel: be.collateral_required ? 'standard' : 'low',
+        eligibleLoan: `₹${Math.round(be.eligible_loan_amount).toLocaleString('en-IN')}`,
+        subsidyPercent: `${Math.round(be.estimated_subsidy_pct)}%`,
+        subsidyAmount: `₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')}`,
+        marginPercent: `${Math.round(be.required_margin_pct)}%`,
+        marginRequired: `₹${Math.round(be.required_margin_capital).toLocaleString('en-IN')}`,
+        features: [
+          `Official Source: ${be.source_authority} (${be.source_year})`,
+          be.estimated_subsidy_pct > 0
+            ? `Estimated Subsidy / Assistance: ₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')} (${Math.round(be.estimated_subsidy_pct)}%)`
+            : 'Working capital credit assistance under official norms',
+          `Eligible Bank Loan: ₹${Math.round(be.eligible_loan_amount).toLocaleString('en-IN')}`,
+          be.collateral_required ? 'Standard collateral required' : '100% Collateral-free credit support',
+        ],
+        reasons: be.why_this_scheme && be.why_this_scheme.length > 0
+          ? be.why_this_scheme
+          : (be.reasons && be.reasons.length > 0 ? be.reasons : ['Eligibility evaluated against official scheme guidelines.']),
+        matchingCriteria: {
+          businessType: be.business_type_match || 'Evaluated against scheme sectoral eligibility list',
+          location: be.location_match || 'Evaluated for rural/urban subsidy differential',
+          investment: be.investment_match || `Project cost within ceiling limits`,
+          stage: be.business_stage_match || 'Matches enterprise stage requirements',
+        },
+        documents: [
+          'Udyam Registration Certificate',
+          'Detailed Project Report (DPR)',
+          'Bank Account Statements (6-12 Months)',
+          'Identity Proof (Aadhaar / PAN)',
+        ],
+        process: [
+          'Verify eligibility criteria against project cost and social category.',
+          'Generate Detailed Project Report (DPR).',
+          `Submit application via ${be.source_authority} portal.`,
+          'Bank appraisal & loan sanction.',
+        ],
+        links: be.official_source_url ? [be.official_source_url] : ['Official Scheme Portal'],
+        officialSourceUrl: be.official_source_url,
+        sourceAuthority: be.source_authority,
+        sourceYear: be.source_year,
+        isPrimary: be.isPrimary,
+        benefitType: be.estimated_subsidy_pct > 0 ? 'subsidy' : (be.collateral_required ? 'loan' : 'guarantee'),
+      };
+    });
+  }, [backendSchemes]);
+
+  useEffect(() => {
+    if (schemes.length > 0 && !expandedId) {
+      setExpandedId(schemes[0].id);
+      setSelectedIds([schemes[0].id]);
     }
-
-    const base = isEstablished ? establishedSchemes : standardSchemes;
-    return base;
-  }, [backendSchemes, isEstablished]);
+  }, [schemes, expandedId]);
 
   const filteredSchemes = useMemo(() => {
     let result = [...schemes];
@@ -922,12 +643,12 @@ export default function SchemePage({
               ♧
             </div>
             <div>
-              <SectionLabel>Best matches for your business</SectionLabel>
+              <SectionLabel>Official Scheme Matching</SectionLabel>
               <p className="mt-1 text-base font-black text-[#1B2922]">
-                {schemes.length} schemes matched your profile
+                {isLoadingSchemes ? 'Evaluating eligible schemes...' : `${schemes.length} schemes matched your profile`}
               </p>
               <p className="mt-0.5 text-[10px] text-[#708078]">
-                Ranked using current workspace profile and demo matching rules.
+                Deterministic screening against Ministry of MSME, SIDBI, and NABARD rules.
               </p>
             </div>
           </div>
@@ -936,8 +657,10 @@ export default function SchemePage({
             <p className="text-[9px] font-extrabold uppercase tracking-wider text-[#64748B]">
               Top Match
             </p>
-            <p className="mt-1 text-2xl font-black text-blue-700">98%</p>
-            <p className="text-[10px] text-[#708078]">Best fit score</p>
+            <p className="mt-1 text-2xl font-black text-blue-700">
+              {schemes.length > 0 ? `${schemes[0].fitScore}%` : '—'}
+            </p>
+            <p className="text-[10px] text-[#708078]">{schemes.length > 0 ? schemes[0].shortName : 'Evaluating'}</p>
           </div>
 
           <div className="border-l border-[#E7ECE9] pl-4">
@@ -1103,18 +826,27 @@ export default function SchemePage({
 
       {/* SCHEME LIST */}
       <section className="space-y-3">
-        {filteredSchemes.length === 0 ? (
+        {isLoadingSchemes ? (
+          <div className="rounded-[22px] border border-slate-200 bg-white p-10 text-center animate-pulse">
+            <p className="text-base font-black text-slate-900">
+              Evaluating Government Credit &amp; Subsidy Schemes...
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Connecting to FastAPI Scheme Engine &amp; Government Reference Database...
+            </p>
+          </div>
+        ) : filteredSchemes.length === 0 ? (
           <div className="rounded-[22px] border border-dashed border-[#D9E2DD] bg-white p-10 text-center">
             <p className="text-base font-black text-[#233029]">
-              No schemes match these filters.
+              No schemes match current criteria or filters.
             </p>
             <p className="mt-1 text-xs text-[#708078]">
-              Try a broader filter set to view the available matches.
+              Try a broader filter set or review project cost and margin capital inputs.
             </p>
             <button
               type="button"
               onClick={resetFilters}
-              className="mt-4 rounded-xl bg-[#0A8D62] px-4 py-2 text-xs font-extrabold text-white"
+              className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-xs font-extrabold text-white cursor-pointer hover:bg-blue-700 transition"
             >
               Reset Filters
             </button>

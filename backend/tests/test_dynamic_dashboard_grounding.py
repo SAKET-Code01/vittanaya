@@ -179,3 +179,40 @@ def test_changing_expenses_changes_established_health_score(db, client):
     finally:
         biz.monthly_expense_estimate = initial_expenses
         db.commit()
+
+
+def test_scheme_matching_deterministic_and_dynamic(client):
+    """POST /api/v1/scheme-match: Returns authoritative government schemes and dynamically calculates subsidy based on location/area_type."""
+    # Rural request
+    rural_payload = {
+        "indicative_project_cost": 500000.0,
+        "available_margin_capital": 50000.0,
+        "business_category": "Manufacturing",
+        "specific_business": "Commercial Broiler Farming",
+        "location": "Sundargarh, Odisha",
+        "social_category": "General",
+        "area_type": "Rural",
+    }
+    res_rural = client.post("/api/v1/scheme-match", json=rural_payload)
+    assert res_rural.status_code == 200
+    rural_data = res_rural.json()
+    assert len(rural_data["eligible_schemes"]) > 0
+
+    pmegp_rural = next((s for s in rural_data["eligible_schemes"] if "PMEGP" in s["scheme_code"]), None)
+    assert pmegp_rural is not None
+    assert pmegp_rural["source_authority"] is not None
+    assert pmegp_rural["estimated_subsidy_pct"] == 25.0  # Rural General PMEGP is 25%
+    assert pmegp_rural["estimated_subsidy_amount"] == 125000.0  # 25% of 5L
+
+    # Urban request - same parameters but Urban area
+    urban_payload = {**rural_payload, "area_type": "Urban"}
+    res_urban = client.post("/api/v1/scheme-match", json=urban_payload)
+    assert res_urban.status_code == 200
+    urban_data = res_urban.json()
+
+    pmegp_urban = next((s for s in urban_data["eligible_schemes"] if "PMEGP" in s["scheme_code"]), None)
+    assert pmegp_urban is not None
+    assert pmegp_urban["estimated_subsidy_pct"] == 15.0  # Urban General PMEGP is 15%
+    assert pmegp_urban["estimated_subsidy_amount"] == 75000.0  # 15% of 5L
+    assert pmegp_rural["estimated_subsidy_amount"] > pmegp_urban["estimated_subsidy_amount"]
+
