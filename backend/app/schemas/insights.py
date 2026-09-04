@@ -111,6 +111,10 @@ class MatchedScheme(BaseModel):
         ..., json_schema_extra={"example": "Prime Minister's Employment Generation Programme"}
     )
     eligible: bool = Field(..., description="True if project meets scheme parameters")
+    eligibility_status: str = Field(
+        default="Likely Eligible",
+        description="Eligibility status: 'Likely Eligible', 'Ineligible', or 'Eligibility cannot be verified from available data.'",
+    )
     max_eligible_cost: Optional[float] = Field(None, description="Maximum cost limit under scheme")
     estimated_subsidy_amount: float = Field(
         ..., description="Estimated subsidy / margin money in INR"
@@ -128,9 +132,18 @@ class MatchedScheme(BaseModel):
     reasons: List[str] = Field(
         ..., description="Eligibility criteria details or disqualification grounds"
     )
+    # Explicit Recommendation Criteria ("Why this scheme?")
+    why_this_scheme: List[str] = Field(default_factory=list, description="Bullet reasons explaining why this scheme matched")
+    matching_criteria: Dict[str, Any] = Field(default_factory=dict, description="Structured criteria breakdown (business_type, location, investment, stage)")
+    business_type_match: Optional[str] = Field(None, description="Explanation of business type compatibility")
+    location_match: Optional[str] = Field(None, description="Explanation of geography / rural-urban eligibility")
+    investment_match: Optional[str] = Field(None, description="Explanation of project cost & margin feasibility")
+    business_stage_match: Optional[str] = Field(None, description="Explanation of stage fit")
+    data_verification_notice: Optional[str] = Field(None, description="Notice if any eligibility parameters could not be verified")
     source_authority: str = Field(...)
     source_year: str = Field(...)
     official_source_url: Optional[str] = Field(None)
+
 
 
 class SchemeMatchResponse(BaseModel):

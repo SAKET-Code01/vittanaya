@@ -14,6 +14,7 @@ from backend.app.api.v1.endpoints.industry import router as industry_router
 from backend.app.api.v1.endpoints.insights import router as insights_router
 from backend.app.api.v1.endpoints.location import router as location_router
 from backend.app.api.v1.endpoints.ml import router as ml_router
+from backend.app.api.v1.endpoints.readiness import router as readiness_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
 
@@ -29,3 +30,5 @@ api_v1_router.include_router(location_router)
 api_v1_router.include_router(industry_router)
 api_v1_router.include_router(ml_router)
 api_v1_router.include_router(ahp_router)
+api_v1_router.include_router(readiness_router)
+

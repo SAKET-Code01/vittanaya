@@ -300,7 +300,7 @@ export default function FinancialPlanPage({
         setIsError(true);
         setFundingData(null);
         setErrorMessage(
-          err?.response?.data?.detail || err.message || 'VITTANAYA calculation service is unavailable. Please verify that the backend is running and try again.'
+          err?.response?.data?.detail || err.message || 'Unable to load business financial data. Please verify that the backend is running and try again.'
         );
       } finally {
         setIsLoading(false);

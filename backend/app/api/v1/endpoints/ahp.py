@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
 from backend.app.schemas.ahp import (
+    AHPAuditResponse,
     AHPResultSchema,
     BusinessFeasibilityResponse,
     CriterionCalculationTraceSchema,
@@ -155,10 +156,14 @@ def get_business_feasibility(
             criterion=t["criterion"],
             label=t["label"],
             raw_score=t["raw_score"],
+            raw_score_formula=t.get("raw_score_formula", f"({t['raw_score']:.2f} / 100) * {t['maximum_points']}"),
+            raw_score_inputs=t.get("raw_score_inputs", {"raw_score": t["raw_score"], "max_points": t["maximum_points"]}),
+            ahp_weight=t.get("ahp_weight", round(t["weight_pct"] / 100.0, 6)),
             maximum_points=t["maximum_points"],
             contribution=t["contribution"],
             weight_pct=t["weight_pct"],
             data_source=t["data_source"],
+            provenance="Verified Local District Data" if (result.is_local_verified and t["criterion"] in ["market", "location"]) else "State/Sector Benchmark Estimate [Fallback]",
             calculation_trace=t["calculation_trace"],
         )
         for t in result.criteria_traces
@@ -187,4 +192,42 @@ def get_business_feasibility(
         market_reach=result.market_reach,
         opportunity=result.opportunity,
         competitor_level=result.competitor_level,
+        is_local_verified=result.is_local_verified,
+        pincode=result.pincode,
+        village_or_town=result.village_or_town,
+        block_name=result.block_name,
+        district_name=result.district_name,
+        state_name=result.state_name,
+        local_market_context=result.local_market_context,
     )
+
+
+@router.get(
+    "/ahp/audit",
+    response_model=AHPAuditResponse,
+    summary="Complete AHP Calculation Audit Trail",
+    description=(
+        "Exposes the complete end-to-end mathematical chain: "
+        "Expert response -> Expert Geometric Mean -> Aggregated Matrix -> "
+        "Row Geometric Mean -> Normalized Priority Weight -> Final AHP Weight."
+    ),
+)
+def get_ahp_audit(db: Session = Depends(get_db)) -> AHPAuditResponse:
+    """Return transparent auditable AHP pipeline chain and dataset provenance for evaluation judges."""
+    from backend.app.services.ahp_service import get_ahp_audit_trail
+
+    trail = get_ahp_audit_trail(db=db)
+    return AHPAuditResponse(**trail)
+
+
+@router.get(
+    "/ahp/methodology-guide",
+    summary="AHP 8-Step Scoring Methodology Guide",
+    description="Returns step-by-step mathematical explanations, Saaty scale definitions, and multi-expert dataset for judges and users.",
+)
+def get_methodology_guide():
+    """Return interactive 8-step methodology walkthrough."""
+    from backend.app.services.ahp_service import get_ahp_methodology_guide
+    guide = get_ahp_methodology_guide()
+    return guide.to_dict()
+

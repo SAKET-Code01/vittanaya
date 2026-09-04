@@ -103,6 +103,37 @@ export const feasibilityService = {
   },
 
   /**
+   * Fetch authoritative AHP criterion weights and audit trail.
+   */
+  async getAhpWeights() {
+    return apiClient.get('/ahp/weights');
+  },
+
+  /**
+   * Fetch authoritative AHP-weighted feasibility score and per-criterion lineage for a persisted business.
+   */
+  async getBusinessFeasibility(businessId) {
+    return apiClient.get(`/ahp/business-feasibility/${businessId}`);
+  },
+
+  /**
+   * Fetch 8-step AHP scoring methodology guide and multi-expert dataset.
+   */
+  async getMethodologyGuide() {
+    return apiClient.get('/ahp/methodology-guide');
+  },
+
+  /**
+   * Compute dynamic AHP-weighted score from 5 raw criterion scores (0-100 scale).
+   */
+  async calculateWeightedScore(rawScores, rawScoreSources = {}) {
+    return apiClient.post('/ahp/calculate-feasibility', {
+      raw_scores: rawScores,
+      raw_score_sources: rawScoreSources,
+    });
+  },
+
+  /**
    * Compatibility alias for feasibility report.
    */
   async getFeasibilityReport(businessId = null, params = {}) {
@@ -120,6 +151,10 @@ export const feasibilityService = {
    * Compatibility alias for score explanation.
    */
   async getScoreExplanation(scoreId, businessId = null) {
+    if (businessId) {
+      return this.getBusinessFeasibility(businessId);
+    }
     return apiClient.get('/feasibility', { score_id: scoreId });
   },
 };
+

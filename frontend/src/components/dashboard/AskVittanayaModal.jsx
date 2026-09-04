@@ -326,9 +326,22 @@ export default function AskVittanayaModal({
                         </div>
                       )}
 
+                      {/* NLP Classification Metadata Badge */}
+                      {isAi && details?.nlp_metadata && (
+                        <div className="mt-2 pt-1 border-t border-[#E8E2D5]/40 flex flex-wrap items-center justify-between gap-1 text-[9px]">
+                          <span className="inline-flex items-center gap-1 rounded bg-[#EBF3ED] px-2 py-0.5 font-bold text-[#1C4332]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Intent: {details.intent} ({Math.round((details.nlp_metadata.confidence_score || 0.95) * 100)}% Confidence)
+                          </span>
+                          <span className="text-[#607267] font-semibold">
+                            {details.nlp_metadata.pipeline}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Source & Confidence Footer */}
                       {isAi && details && (
-                        <div className="mt-2.5 pt-1.5 border-t border-[#E8E2D5]/40 flex items-center justify-between text-[9px] text-[#819388]">
+                        <div className="mt-2 pt-1 border-t border-[#E8E2D5]/40 flex items-center justify-between text-[9px] text-[#819388]">
                           <span className="font-semibold text-emerald-700">
                             ✓ {details.data_status || 'VERIFIED'}
                           </span>

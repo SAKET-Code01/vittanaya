@@ -1,39 +1,176 @@
 import json
 import os
 import urllib.request
+from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
 from backend.app.schemas.insights import AdvisorResponse, TraceabilityMetadata
 
 
-class AIBusinessAdvisor:
-    """Zero-Hallucination AI Advisor explaining structured deterministic findings."""
+class LLMProvider(ABC):
+    """Abstract base provider for zero-hallucination grounded LLM inference."""
 
-    def _call_gemini_llm(self, prompt: str) -> Optional[Dict[str, Any]]:
-        """Call Gemini API if GEMINI_API_KEY is configured in environment."""
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
+    @property
+    @abstractmethod
+    def provider_name(self) -> str:
+        """Return provider identifier e.g. 'Gemini 1.5 Flash' or 'Ollama Llama-3'."""
+        pass
+
+    @abstractmethod
+    def generate(self, prompt: str) -> Optional[Dict[str, Any]]:
+        """Generate structured JSON response from prompt, or return None if unavailable."""
+        pass
+
+
+class GroqProvider(LLMProvider):
+    """Production cloud LLM provider using Groq API (openai/gpt-oss-120b)."""
+
+    DEFAULT_MODEL: str = "openai/gpt-oss-120b"
+    ENDPOINT: str = "https://api.groq.com/openai/v1/chat/completions"
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        endpoint: Optional[str] = None,
+        timeout: float = 6.0,
+    ):
+        self.api_key = api_key or os.environ.get("GROQ_API_KEY")
+        self.model = model or os.environ.get("GROQ_MODEL", self.DEFAULT_MODEL)
+        self.endpoint = endpoint or self.ENDPOINT
+        self.timeout = timeout
+
+    @property
+    def provider_name(self) -> str:
+        return f"Groq ({self.model})"
+
+    def generate(self, prompt: str) -> Optional[Dict[str, Any]]:
+        """
+        Execute server-side chat completion request to Groq API.
+
+        Safely returns parsed JSON dict or None on any network/quota/API error.
+        Never throws unhandled exceptions; falls back to deterministic rule engine.
+        """
+        if not self.api_key:
             return None
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-        headers = {"Content-Type": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "VITTANAYA-Advisory/1.0",
+        }
         data = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are VITTANAYA, an AI hyper-local business advisory assistant for rural micro-entrepreneurs. "
+                        "You must respond ONLY with a valid JSON object containing exactly these keys: "
+                        "'summary' (string), 'why_this_result' (list of strings), 'recommended_next_steps' (list of strings). "
+                        "Base all answers solely on the provided verified financial, scheme, and feasibility data. "
+                        "Never fabricate or override scores, financial metrics, or scheme guidelines."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.2,
         }
 
         try:
             req = urllib.request.Request(
+                self.endpoint,
+                data=json.dumps(data).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                status_code = getattr(resp, "status", None) or getattr(resp, "code", None)
+                if status_code == 200:
+                    res_body = json.loads(resp.read().decode("utf-8"))
+                    choices = res_body.get("choices", [])
+                    if choices and "message" in choices[0]:
+                        content = choices[0]["message"].get("content", "").strip()
+                        if content.startswith("```"):
+                            lines = content.splitlines()
+                            if lines and lines[0].startswith("```"):
+                                lines = lines[1:]
+                            if lines and lines[-1].startswith("```"):
+                                lines = lines[:-1]
+                            content = "\n".join(lines).strip()
+                        parsed = json.loads(content)
+                        if isinstance(parsed, dict) and "summary" in parsed:
+                            return parsed
+        except Exception:
+            # Gracefully handle quota exhaustion, rate limiting (HTTP 429), timeouts, or network loss
+            pass
+        return None
+
+
+class OllamaProvider(LLMProvider):
+    """Future/optional local offline LLM provider using Ollama HTTP API (disabled by default)."""
+
+    def __init__(self, base_url: str = "http://localhost:11434", model: str = "llama3"):
+        self.base_url = base_url
+        self.model = model
+        self.enabled = os.environ.get("OLLAMA_ENABLED", "false").lower() in ("true", "1", "yes")
+
+    @property
+    def provider_name(self) -> str:
+        return f"Ollama {self.model} (Local Offline)"
+
+    def generate(self, prompt: str) -> Optional[Dict[str, Any]]:
+        if not self.enabled:
+            return None
+        url = f"{self.base_url}/api/generate"
+        headers = {"Content-Type": "application/json"}
+        data = {
+            "model": self.model,
+            "prompt": prompt,
+            "format": "json",
+            "stream": False,
+        }
+        try:
+            req = urllib.request.Request(
                 url, data=json.dumps(data).encode("utf-8"), headers=headers, method="POST"
             )
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
                     res_body = json.loads(resp.read().decode("utf-8"))
-                    text = res_body["candidates"][0]["content"]["parts"][0]["text"]
-                    return json.loads(text)
+                    return json.loads(res_body.get("response", "{}"))
         except Exception:
             pass
         return None
+
+
+# Legacy compatibility alias
+GeminiProvider = GroqProvider
+
+
+def get_llm_provider() -> LLMProvider:
+    """Provider factory: returns active provider. Defaults to GroqProvider."""
+    if os.environ.get("OLLAMA_ENABLED", "false").lower() in ("true", "1", "yes"):
+        return OllamaProvider()
+    return GroqProvider()
+
+
+class AIBusinessAdvisor:
+    """Zero-Hallucination AI Advisor explaining structured deterministic findings."""
+
+    def __init__(self, provider: Optional[LLMProvider] = None):
+        self.provider = provider or get_llm_provider()
+
+    def _call_llm(self, prompt: str) -> Optional[Dict[str, Any]]:
+        """Call active LLM provider (Groq openai/gpt-oss-120b)."""
+        return self.provider.generate(prompt)
+
+    def _call_gemini_llm(self, prompt: str) -> Optional[Dict[str, Any]]:
+        """Legacy compatibility alias forwarding to active LLM provider."""
+        return self._call_llm(prompt)
 
     def generate_advice(
         self,
@@ -44,8 +181,8 @@ class AIBusinessAdvisor:
         what_if: Optional[Dict[str, Any]] = None,
     ) -> AdvisorResponse:
         """Synthesize structured backend results without inventing data."""
-        # Attempt LLM enhancement if key available
-        if os.environ.get("GEMINI_API_KEY"):
+        # Attempt LLM enhancement if Groq key available
+        if os.environ.get("GROQ_API_KEY"):
             structured_context = {
                 "opportunity": opportunity,
                 "financial": financial,
@@ -60,12 +197,12 @@ class AIBusinessAdvisor:
                 f"Context JSON: {json.dumps(structured_context)}\n\n"
                 "Return JSON with keys: 'summary' (string), 'why_this_result' (list of strings), 'recommended_next_steps' (list of strings)."
             )
-            llm_result = self._call_gemini_llm(prompt)
+            llm_result = self._call_llm(prompt)
             if llm_result and "summary" in llm_result and "why_this_result" in llm_result:
                 traceability = TraceabilityMetadata(
-                    input={"llm_enhanced": True, "provider": "Gemini 1.5 Flash"},
-                    calculation_rule="LLM-enhanced synthesis anchored to verified backend facts.",
-                    source_authority="Gemini 1.5 Flash + VITTANAYA Grounding Engine",
+                    input={"llm_enhanced": True, "provider": self.provider.provider_name},
+                    calculation_rule="LLM-enhanced synthesis anchored to verified backend facts via Groq API.",
+                    source_authority=f"{self.provider.provider_name} + VITTANAYA Grounding Engine",
                     source_year="2026",
                     provenance_priority="LLM_ENHANCED",
                     official_source_url=None,

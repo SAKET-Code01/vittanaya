@@ -1,3 +1,5 @@
+import { apiClient } from './apiClient';
+
 /**
  * Location Service (Indian Administrative Hierarchy)
  * 
@@ -377,6 +379,25 @@ export const locationService = {
       { id: `${blockId}_LOC2`, blockId, name: 'Market Road / Ward 1' },
       { id: `${blockId}_LOC3`, blockId, name: 'Highway Bypass Junction' },
     ];
+  },
+
+  /**
+   * Fetch live 2D/3D Market Map spatial POIs & intelligence from backend API
+   */
+  async getMarketMapData({ location, district, category, radius_km = 15, business_id = null } = {}) {
+    try {
+      const response = await apiClient.get('/locations/market-map', {
+        location,
+        district,
+        category,
+        radius_km,
+        business_id,
+      });
+      return response;
+    } catch (error) {
+      console.warn('Market map backend fetch fallback:', error);
+      return null;
+    }
   },
 };
 

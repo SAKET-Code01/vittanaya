@@ -30,6 +30,12 @@ class BusinessBase(BaseModel):
     status: Optional[str] = Field(default="active", max_length=50)
     monthly_revenue_estimate: Decimal = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
     monthly_expense_estimate: Decimal = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
+    # Workforce & Payroll (SIH26091 - Business Readiness)
+    full_time_employees: Optional[int] = Field(default=0, ge=0)
+    contractual_employees: Optional[int] = Field(default=0, ge=0)
+    total_employees: Optional[int] = Field(default=0, ge=0)
+    payroll_amount: Optional[Decimal] = Field(default=Decimal("0.00"), ge=Decimal("0.00"))
+    payroll_due_date: Optional[str] = Field(None, max_length=50)
     # Business Identity & Compliance
     owner_name: Optional[str] = Field(None, max_length=150)
     gstin: Optional[str] = Field(None, max_length=20)
@@ -77,6 +83,11 @@ class BusinessUpdate(BaseModel):
     status: Optional[str] = None
     monthly_revenue_estimate: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
     monthly_expense_estimate: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
+    # Workforce & Payroll
+    full_time_employees: Optional[int] = Field(None, ge=0)
+    contractual_employees: Optional[int] = Field(None, ge=0)
+    payroll_amount: Optional[Decimal] = Field(None, ge=Decimal("0.00"))
+    payroll_due_date: Optional[str] = None
     # Business Identity & Compliance
     owner_name: Optional[str] = None
     gstin: Optional[str] = None
@@ -100,7 +111,9 @@ class BusinessUpdate(BaseModel):
 class BusinessResponse(BusinessBase):
     id: int
     owner_id: int
+    total_employees: int = 0
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+

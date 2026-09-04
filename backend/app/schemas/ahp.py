@@ -1,6 +1,6 @@
 """Pydantic schemas for AHP Feasibility Weight API endpoint."""
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field
 
@@ -62,12 +62,16 @@ class CriterionCalculationTraceSchema(BaseModel):
     criterion: str
     label: str
     raw_score: float = Field(description="Raw criterion score on 0-100 scale")
+    raw_score_formula: str = Field(default="", description="Formula used to derive raw score")
+    raw_score_inputs: Dict[str, Any] = Field(default_factory=dict, description="Raw inputs used in derivation")
+    ahp_weight: float = Field(default=0.0, description="Normalized AHP priority weight W_i (0-1 scale)")
     maximum_points: int = Field(description="AHP allocated maximum points for 100-pt presentation")
     contribution: float = Field(
         description="Calculated points: (raw_score / 100) * maximum_points"
     )
     weight_pct: float = Field(description="AHP normalized weight percentage")
     data_source: str = Field(description="Data origin / empirical basis for raw score")
+    provenance: str = Field(default="", description="Detailed provenance classification")
     calculation_trace: str = Field(description="Formula trace e.g. '(93.33 / 100) * 30 = 28.000'")
 
 
@@ -176,3 +180,85 @@ class BusinessFeasibilityResponse(BaseModel):
     market_reach: str
     opportunity: str
     competitor_level: str
+
+    # Hyperlocal Intelligence breakdown
+    is_local_verified: bool = Field(
+        default=False,
+        description="True if exact district/block data is empirical from DB; False if state/sector benchmark fallback"
+    )
+    pincode: str = Field(default="", description="Business PIN code")
+    village_or_town: str = Field(default="", description="Village or town name")
+    block_name: str = Field(default="", description="Administrative Block")
+    district_name: str = Field(default="", description="District")
+    state_name: str = Field(default="Odisha", description="State")
+    local_market_context: str = Field(default="", description="Local economic context summary")
+
+
+class ExpertPairwiseEntrySchema(BaseModel):
+    """Pairwise scores provided by an individual expert."""
+    pair_key: str
+    pair_label: str
+    criterion_a: str
+    criterion_b: str
+    expert_scores: Dict[str, float]
+    geometric_mean: float
+
+
+class AHPSaatyScaleGuideSchema(BaseModel):
+    """Saaty scale definition item."""
+    intensity: int
+    definition: str
+    explanation: str
+
+
+class AHPMethodologyGuideResponse(BaseModel):
+    """Full 8-step methodology payload for UI education and panel review."""
+    steps: List[Dict[str, str]]
+    criteria: List[Dict[str, str]]
+    saaty_scale: List[AHPSaatyScaleGuideSchema]
+    expert_labels: List[str]
+    pairwise_dataset: List[ExpertPairwiseEntrySchema]
+    ahp_result: AHPResultSchema
+    random_index_table: Dict[int, float]
+
+
+class AHPAuditResponse(BaseModel):
+    """Auditable AHP calculation chain and dataset provenance for evaluation judges."""
+
+    ahp_dataset_status: str = Field(
+        description="Dataset classification: 'Illustrative Prototype Benchmark' vs 'Real Field Expert Validation'"
+    )
+    real_expert_validation_status: str = Field(
+        description="Real field expert survey status ('PENDING' or 'VERIFIED')"
+    )
+    expert_count: int = Field(description="Number of expert respondents in active dataset")
+    completed_comparison_count: int = Field(description="Number of completed pairwise comparisons")
+    expected_comparison_count: int = Field(description="Total comparisons required for n criteria: n*(n-1)/2")
+    expert_labels: List[str] = Field(description="Expert stakeholder titles/roles")
+    expert_responses: Dict[str, List[float]] = Field(description="Exact pairwise judgment matrix by comparison key")
+    expert_geometric_means: Dict[str, float] = Field(
+        description="Expert Geometric Mean for each of the 10 pairwise comparisons"
+    )
+    reciprocal_matrix: List[List[float]] = Field(
+        description="5x5 reciprocal pairwise comparison matrix A where A[j][i] = 1/A[i][j]"
+    )
+    row_geometric_means: Dict[str, float] = Field(
+        description="Row Geometric Mean: GM_i = (prod_{j=1}^5 A_ij)^(1/5)"
+    )
+    normalized_ahp_priority_weights: Dict[str, float] = Field(
+        description="Normalized AHP Priority Weight: W_i = GM_i / sum(GM)"
+    )
+    dashboard_point_allocation: Dict[str, int] = Field(
+        description="Dashboard points integer allocation summing to 100"
+    )
+    lambda_max: float = Field(description="Principal eigenvalue lambda_max")
+    ci: float = Field(description="Consistency Index: (lambda_max - n) / (n - 1)")
+    ri: float = Field(description="Random Consistency Index: 1.12 for n=5")
+    cr: float = Field(description="Consistency Ratio: CI / RI")
+    consistency_status: str = Field(description="Consistency evaluation ('CONSISTENT' if CR < 0.10)")
+    is_consistent: bool = Field(description="Whether CR < 0.10")
+    computation_timestamp: str = Field(description="ISO 8601 computation timestamp")
+    auditable_pipeline_chain: str = Field(
+        description="Full auditable trace: Expert response -> Expert Geometric Mean -> Aggregated Matrix -> Row Geometric Mean -> Normalized Priority Weight -> Final AHP Weight"
+    )
+

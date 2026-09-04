@@ -9,7 +9,18 @@ from backend.app.core.config import settings
 class SensitiveDataFilter(logging.Filter):
     """Filter to ensure sensitive keywords or fields are not leaked in log outputs."""
 
-    SENSITIVE_PATTERNS = ("password", "secret", "token", "authorization", "api_key")
+    SENSITIVE_PATTERNS = (
+        "password",
+        "secret",
+        "token",
+        "authorization",
+        "api_key",
+        "groq_api_key",
+        "groq",
+        "database_url",
+        "postgres:",
+        "postgresql:",
+    )
 
     def filter(self, record: logging.LogRecord) -> bool:
         msg = record.getMessage().lower()

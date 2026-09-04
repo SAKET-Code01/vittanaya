@@ -106,6 +106,16 @@ class BusinessFeasibilityResult:
     opportunity: str = ""
     competitor_level: str = ""
 
+    # Hyperlocal Intelligence Data Lineage
+    is_local_verified: bool = False
+    pincode: str = ""
+    village_or_town: str = ""
+    block_name: str = ""
+    district_name: str = ""
+    state_name: str = "Odisha"
+    local_market_context: str = ""
+
+
 
 class BusinessFeasibilityService:
     """Derive authoritative AHP-weighted feasibility score from a persisted business."""
@@ -145,17 +155,23 @@ class BusinessFeasibilityService:
 
         Used by the advisory chatbot when a business_id is not available.
         """
-        class _Stub:
-            id = 0
-            name = "General Enterprise"
-            category = business_category
-            industry = business_category
-            location_district = location.split(",")[0].strip()
-            location_state = "Odisha"
-            own_capital = own_capital
-            project_cost = project_cost
+        from types import SimpleNamespace
 
-        return self._compute_from_business(_Stub())  # type: ignore[arg-type]
+        district = location.split(",")[0].strip() if location else ""
+        stub = SimpleNamespace(
+            id=0,
+            name=specific_business or "General Enterprise",
+            category=business_category,
+            industry=business_category,
+            location_district=district,
+            location_state="Odisha",
+            own_capital=float(own_capital or 0.0),
+            project_cost=float(project_cost or 0.0),
+            location_village="",
+            location_block="",
+            location_pin="",
+        )
+        return self._compute_from_business(stub)  # type: ignore[arg-type]
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -363,6 +379,16 @@ class BusinessFeasibilityService:
             location_district=location_district,
         )
 
+        # Local context summary
+        village = getattr(business, "location_village", "") or ""
+        block = getattr(business, "location_block", "") or (market_record.block_name if market_record and _district_exact_match else "")
+        pin = getattr(business, "location_pin", "") or ""
+        local_ctx_summary = (
+            f"Verified {location_district} District ({block or 'Block level'}) empirical market data with {market_record.demand_level if market_record else 'Standard'} demand."
+            if _district_exact_match and market_record
+            else f"State-level Odisha sector benchmark applied (Specific {location_district or 'local'} empirical survey absent)."
+        )
+
         return BusinessFeasibilityResult(
             business_id=getattr(business, "id", 0),
             business_name=getattr(business, "name", "Unknown"),
@@ -386,7 +412,15 @@ class BusinessFeasibilityService:
             market_reach=resolved_market_reach,
             opportunity=resolved_opportunity,
             competitor_level=feas_res.competitor_level,
+            is_local_verified=bool(_district_exact_match and market_record),
+            pincode=pin,
+            village_or_town=village,
+            block_name=block,
+            district_name=location_district,
+            state_name=location_state,
+            local_market_context=local_ctx_summary,
         )
+
 
     def _resolve_market_reach(
         self,

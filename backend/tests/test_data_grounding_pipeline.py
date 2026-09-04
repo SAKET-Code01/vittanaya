@@ -194,7 +194,7 @@ def test_reference_data_provenance_and_district_profile():
     assert "2024-2026" in provenance["year"]
 
 
-def test_100_percent_offline_advisory_without_gemini(db_session: Session):
+def test_100_percent_offline_advisory_without_groq(db_session: Session):
     """5. Verify all core intent domains run deterministically offline without external API keys."""
     from backend.app.services.seed_service import seed_all_reference_data
     seed_all_reference_data(db_session)

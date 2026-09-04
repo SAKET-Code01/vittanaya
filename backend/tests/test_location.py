@@ -22,10 +22,20 @@ def test_location_search_and_hierarchy(db_session: Session):
     assert data[0]["district_name"] == "Khordha"
     assert data[0]["block_name"] == "Jatni"
 
-    # 2. Test hierarchy endpoint
-    h_res = client.get("/api/v1/locations/hierarchy?state_code=OD&district=Khordha")
-    assert h_res.status_code == 200
-    h_data = h_res.json()
-    assert "Khordha" in h_data["districts"]
-    assert "Jatni" in h_data["blocks"]
-    assert "Retang" in h_data["villages"]
+    # 3. Test market map endpoint
+    m_res = client.get("/api/v1/locations/market-map?location=Kuarmunda&district=Sundargarh&category=Transport%20%26%20Logistics&radius_km=15")
+    assert m_res.status_code == 200
+    m_data = m_res.json()
+    assert m_data["location_name"] == "Kuarmunda"
+    assert m_data["district_name"] == "Sundargarh"
+    assert m_data["category"] == "Transport & Logistics"
+    assert len(m_data["pois"]) >= 1
+    assert "demand_index" in m_data
+    assert "source_authority" in m_data
+
+    # 4. Test radius filtering on market map
+    r_res = client.get("/api/v1/locations/market-map?location=Kuarmunda&district=Sundargarh&radius_km=5")
+    assert r_res.status_code == 200
+    r_data = r_res.json()
+    assert all(poi["distance_km"] <= 5.0 for poi in r_data["pois"])
+

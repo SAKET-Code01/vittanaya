@@ -1,6 +1,6 @@
 """Export financial calculation engines."""
 
-from backend.app.engines.ai_advisor import AIBusinessAdvisor
+from backend.app.engines.ai_advisor import AIBusinessAdvisor, GroqProvider
 from backend.app.engines.cashflow_engine import CashflowEngine
 from backend.app.engines.cost_engine import ProjectCostEngine
 from backend.app.engines.feasibility_engine import FeasibilityEngine
@@ -22,4 +22,5 @@ __all__ = [
     "RiskEngine",
     "WhatIfEngine",
     "AIBusinessAdvisor",
+    "GroqProvider",
 ]

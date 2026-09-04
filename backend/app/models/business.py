@@ -62,6 +62,17 @@ class Business(Base):
     monthly_revenue_estimate = Column(Numeric(12, 2), default=0.00, nullable=False)
     monthly_expense_estimate = Column(Numeric(12, 2), default=0.00, nullable=False)
 
+    # Workforce & Payroll tracking (SIH26091 - Business Readiness)
+    full_time_employees = Column(Integer, default=0, nullable=False)
+    contractual_employees = Column(Integer, default=0, nullable=False)
+    payroll_amount = Column(Numeric(12, 2), default=0.00, nullable=False)
+    payroll_due_date = Column(String(50), nullable=True)  # e.g., '01 of every month'
+
+    @property
+    def total_employees(self) -> int:
+        """Derived total employee count (Full-time + Contractual)."""
+        return int(self.full_time_employees or 0) + int(self.contractual_employees or 0)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(
         DateTime(timezone=True),
@@ -81,3 +92,7 @@ class Business(Base):
     payables = relationship("Payable", back_populates="business", cascade="all, delete-orphan")
     expenses = relationship("Expense", back_populates="business", cascade="all, delete-orphan")
     goals = relationship("BusinessGoal", back_populates="business", cascade="all, delete-orphan")
+    requirements = relationship(
+        "BusinessRequirement", back_populates="business", cascade="all, delete-orphan"
+    )
+

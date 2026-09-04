@@ -22,9 +22,13 @@ class ActionPlanTask(Base):
     target_days = Column(Integer, nullable=False, default=7)
     is_mandatory = Column(Boolean, nullable=False, default=True)
     authority_name = Column(String(255), nullable=True)
+    linked_requirement_id = Column(String(100), nullable=True, index=True)
+    priority = Column(String(50), nullable=False, default="HIGH")
+    due_date = Column(String(50), nullable=True)
 
     def __repr__(self) -> str:
-        return f"<ActionPlanTask(id={self.id}, title='{self.title}', status='{self.status}')>"
+        return f"<ActionPlanTask(id={self.id}, title='{self.title}', status='{self.status}', linked_req='{self.linked_requirement_id}')>"
+
 
 
 class DPRDocument(Base):
