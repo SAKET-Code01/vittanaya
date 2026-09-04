@@ -28,9 +28,12 @@ from backend.app.schemas.financial_plan import CashFlowForecastRequest, FundingS
 from backend.app.schemas.industry import IndustryAnalysisRequest
 from backend.app.schemas.insights import TraceabilityMetadata
 from backend.app.schemas.ml import PredictiveMlRequest
+from backend.app.engines.ai_advisor import GroqProvider
+from backend.app.models.action_plan import ActionPlanTask
 from backend.app.services.ahp_service import get_ahp_result
 from backend.app.services.business_feasibility_service import BusinessFeasibilityService
 from backend.app.services.cash_flow_service import MINIMUM_BUFFER_MONTHS_COVERAGE, CashFlowService
+from backend.app.services.copilot_tools import CopilotToolRegistry
 from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.industry_service import IndustryService
 
@@ -169,6 +172,125 @@ class AdvisoryService:
                     provenance_priority="SAFETY_GUARD",
                 ),
             )
+
+        # Check if user confirmed a write action
+        if payload.confirmed_action and db:
+            action_name = payload.confirmed_action.get("action")
+            task_id = payload.confirmed_action.get("task_id")
+            target_biz_id = active_business_id or int(payload.confirmed_action.get("business_id", 1))
+            if action_name == "complete_action_task" and task_id:
+                exec_res = CopilotToolRegistry.execute_complete_action_task(db, target_biz_id, int(task_id))
+                if exec_res.get("success"):
+                    return ChatResponse(
+                        answer=(
+                            f"Task **{exec_res['task_title']}** is now marked **completed**.\n\n"
+                            f"• Roadmap progress: **{exec_res['completion_pct']}%** ({exec_res['completed_tasks']}/{exec_res['total_tasks']} tasks)\n"
+                            f"• Updated Bankable Readiness: **{exec_res['updated_readiness_score']}/100** ({exec_res['updated_readiness_label']})\n\n"
+                            f"Your dashboard and action plan records have been refreshed in PostgreSQL."
+                        ),
+                        intent="ACTION",
+                        confidence="HIGH",
+                        key_facts=[
+                            KeyFact(label="Completed Task", value=exec_res["task_title"]),
+                            KeyFact(label="Roadmap Progress", value=f"{exec_res['completion_pct']}% ({exec_res['completed_tasks']}/{exec_res['total_tasks']})"),
+                            KeyFact(label="Readiness Score", value=f"{exec_res['updated_readiness_score']}/100"),
+                        ],
+                        why_this_result=[
+                            f"Task {exec_res['task_title']} status updated to 'completed' in database.",
+                            "Readiness service re-evaluated bankable compliance checklist.",
+                        ],
+                        recommended_next_steps=[
+                            "Check remaining milestones in the Action Plan tab.",
+                            "Download refreshed Detailed Project Report (DPR).",
+                        ],
+                        sources=[],
+                        data_status="VERIFIED_DETERMINISTIC",
+                        language=lang,
+                        provenance_label="Authoritative Action Plan & Readiness State • PostgreSQL Verified",
+                        action_performed="complete_action_task",
+                        traceability=TraceabilityMetadata(
+                            input={"confirmed_action": payload.confirmed_action},
+                            calculation_rule="PostgreSQL action_plan_tasks state update + readiness sync.",
+                            source_authority="VITTANAYA Action Plan Engine",
+                            source_year="2026",
+                            provenance_priority="AUTHORITATIVE_WRITE",
+                        ),
+                    )
+
+        # Check for natural language write commands requiring confirmation
+        is_write_intent = any(trig in lower_msg for trig in ["mark ", "complete task", "finish task", "mark done"]) and any(w in lower_msg for w in ["complete", "completed", "done", "finish"])
+        if is_write_intent and db:
+            biz_id_for_tasks = active_business_id or 1
+            try:
+                pending_tasks = db.query(ActionPlanTask).filter(
+                    ActionPlanTask.business_id == biz_id_for_tasks,
+                    ActionPlanTask.status != "completed",
+                ).all()
+                target_task = None
+                if pending_tasks:
+                    for t in pending_tasks:
+                        words = [w.lower() for w in t.title.split() if len(w) > 3]
+                        if any(w in lower_msg for w in words):
+                            target_task = t
+                            break
+                    if not target_task:
+                        target_task = pending_tasks[0]
+
+                if target_task:
+                    return ChatResponse(
+                        answer=(
+                            f"I found **'{target_task.title}'** in your pending action roadmap.\n\n"
+                            f"Would you like me to mark it complete and recalculate your bankable readiness score?"
+                        ),
+                        intent="ACTION",
+                        confidence="HIGH",
+                        key_facts=[
+                            KeyFact(label="Target Task", value=target_task.title),
+                            KeyFact(label="Phase", value=target_task.phase),
+                            KeyFact(label="Current Status", value=target_task.status.capitalize()),
+                        ],
+                        why_this_result=[
+                            "State modifications require explicit user confirmation to maintain authoritative data integrity."
+                        ],
+                        recommended_next_steps=[
+                            "Confirm by clicking the button below or type 'yes' to proceed."
+                        ],
+                        sources=[],
+                        data_status="VERIFIED_DETERMINISTIC",
+                        language=lang,
+                        confirmation_required=True,
+                        confirmation_details={
+                            "action": "complete_action_task",
+                            "task_id": target_task.id,
+                            "task_title": target_task.title,
+                            "business_id": biz_id_for_tasks,
+                        },
+                        provenance_label="Pending User Confirmation • No Database Changes Made Yet",
+                        traceability=TraceabilityMetadata(
+                            input={"message": raw_msg},
+                            calculation_rule="Write confirmation guardrail triggered.",
+                            source_authority="VITTANAYA Safety Protocol",
+                            source_year="2026",
+                            provenance_priority="SAFETY_GUARD",
+                        ),
+                    )
+            except Exception as e:
+                logger.warning(f"Error checking pending tasks for write confirmation: {e}")
+
+        # Detect navigation intent
+        nav_target: Optional[str] = None
+        has_nav_verb = any(a in lower_msg for a in ["open", "go to", "view", "show", "navigate"])
+        if has_nav_verb:
+            if any(v in lower_msg for v in ["feasibility", "opportunity score"]):
+                nav_target = "feasibility"
+            elif any(v in lower_msg for v in ["action plan", "roadmap", "task", "milestone"]):
+                nav_target = "action-plan"
+            elif any(v in lower_msg for v in ["scheme", "subsid"]):
+                nav_target = "schemes"
+            elif any(v in lower_msg for v in ["financial", "finance", "cash flow", "emi"]):
+                nav_target = "financial-plan"
+            elif any(v in lower_msg for v in ["dashboard", "home"]):
+                nav_target = "dashboard"
 
         # 2. Detect Query Intent via Local Offline NLP Classifier (TF-IDF + Logistic Regression)
         intent, intent_confidence, nlp_method = classify_intent(raw_msg)
@@ -757,11 +879,68 @@ class AdvisoryService:
             key_facts.append(KeyFact(label="Location", value=loc))
             key_facts.append(KeyFact(label="Feasibility Score", value=f"{feas_res.overall_opportunity_score:.0f}/100"))
 
+        # Groq AI Conversational Synthesis (Server-Side with Groq openai/gpt-oss-120b)
+        groq = GroqProvider()
+        if groq.is_available():
+            try:
+                facts_str = "; ".join([f"{k.label}: {k.value}" for k in key_facts])
+                system_prompt = (
+                    "You are Ask VITTANAYA, a professional AI Business Copilot for rural micro-entrepreneurs in India.\n"
+                    "Deliver clear, concise, authoritative business advisory answers strictly grounded in the provided facts.\n"
+                    "STRICT RULES:\n"
+                    "1. Direct answer first. Keep it focused and professional (2-3 short paragraphs max).\n"
+                    "2. Explain using the EXACT numbers, rupee amounts, and percentages provided. NEVER alter, hallucinate, or fabricate any figures.\n"
+                    "3. Include the next practical step.\n"
+                    "4. NEVER start with generic repetitive greetings like 'Namaste! I am Ask VITTANAYA'.\n"
+                    "5. Preserve official compliance disclaimers verbatim (e.g., 'Final eligibility is subject to the implementing authority').\n"
+                    "6. Use clean markdown formatting without raw JSON or internal diagnostic codes."
+                )
+                user_prompt = (
+                    f"User Query: {raw_msg}\n\n"
+                    f"Business: {bus_name} ({specific_bus}) in {loc}\n"
+                    f"Key Facts: {facts_str}\n"
+                    f"Authoritative Engine Analysis: {answer_text}\n"
+                    f"Recommended Actions: {', '.join(next_steps)}"
+                )
+                synthesized = groq.generate_chat(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    history=payload.history,
+                )
+                if synthesized and len(synthesized.strip()) > 20:
+                    answer_text = synthesized.strip()
+            except Exception as e:
+                logger.warning(f"Groq synthesis failed, using deterministic fallback: {e}")
+
         nlp_meta = NlpMetadata(
             pipeline="TF-IDF + Logistic Regression (100% Offline)",
             confidence_score=intent_confidence,
             method=nlp_method,
         )
+
+        provenance_map = {
+            "SCHEME": "Official Government Scheme Guidelines (KVIC / MoSJE)",
+            "FINANCIAL": "Verified Financial Model & NABARD PLP Benchmarks",
+            "CASH_FLOW": "12-Month Roll-Forward Cash Flow Engine",
+            "FEASIBILITY": "AHP Multi-Dimensional Model (5 Criteria)",
+            "EXPLANATION": "AHP Lineage & Analytical Hierarchy Calculations",
+            "ACTION": "Authoritative Action Plan & Readiness State",
+            "INDUSTRY": "Sector Intelligence & Empirical Norms",
+            "PREDICTIVE_ML": "Machine Learning Ensemble Models (NABARD/MoSJE)",
+            "WHAT_IF": "Sensitivity Simulation Engine",
+            "PROFILE_IDENTITY": "Verified Workspace Business Profile",
+            "REVENUE_EXPENSE": "Active Business Financial Ledger",
+            "RISK": "Risk Matrix & Cash Buffer Assessment",
+            "GENERAL": "Grounded VITTANAYA Business Advisory Engine",
+        }
+        provenance_label = provenance_map.get(intent, "Grounded in VITTANAYA Business Data")
+
+        suggested_actions = [
+            "Explain my feasibility score",
+            "Show matching schemes",
+            "What should I do next?",
+            "Check my financial health",
+        ]
 
         traceability = TraceabilityMetadata(
             input={
@@ -794,6 +973,9 @@ class AdvisoryService:
             language=lang,
             traceability=traceability,
             nlp_metadata=nlp_meta,
+            provenance_label=provenance_label,
+            navigation_target=nav_target,
+            suggested_actions=suggested_actions,
         )
 
     @staticmethod

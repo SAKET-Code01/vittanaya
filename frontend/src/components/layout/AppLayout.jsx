@@ -73,6 +73,7 @@ export default function AppLayout({
         currentProfile={currentProfile}
         financialSummary={financialSummary}
         initialPrompt={aiContextPrompt}
+        onNavigate={onSelectNav}
       />
 
       <BusinessChangeModal

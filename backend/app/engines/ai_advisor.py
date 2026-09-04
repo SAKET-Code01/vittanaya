@@ -44,6 +44,10 @@ class GroqProvider(LLMProvider):
     def provider_name(self) -> str:
         return f"Groq ({self.model})"
 
+    def is_available(self) -> bool:
+        """Return True if GROQ_API_KEY is configured and valid."""
+        return bool(self.api_key and self.api_key.strip() and not self.api_key.startswith("mock_") and self.api_key != "missing")
+
     def generate(self, prompt: str) -> Optional[Dict[str, Any]]:
         """
         Execute server-side chat completion request to Groq API.
@@ -107,6 +111,59 @@ class GroqProvider(LLMProvider):
                             return parsed
         except Exception:
             # Gracefully handle quota exhaustion, rate limiting (HTTP 429), timeouts, or network loss
+            pass
+        return None
+
+    def generate_chat(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        history: Optional[List[Dict[str, str]]] = None,
+    ) -> Optional[str]:
+        """
+        Execute conversational chat completion with Groq openai/gpt-oss-120b.
+        Returns the generated natural language string or None on failure.
+        """
+        if not self.api_key:
+            return None
+
+        messages = [{"role": "system", "content": system_prompt}]
+        if history:
+            for h in history[-4:]:
+                role = "assistant" if h.get("sender") in ("ai", "assistant") else "user"
+                if h.get("text"):
+                    messages.append({"role": role, "content": h["text"]})
+        messages.append({"role": "user", "content": user_prompt})
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "VITTANAYA-Advisory/1.0",
+        }
+        data = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.3,
+            "max_tokens": 512,
+        }
+
+        try:
+            req = urllib.request.Request(
+                self.endpoint,
+                data=json.dumps(data).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                status_code = getattr(resp, "status", None) or getattr(resp, "code", None)
+                if status_code == 200:
+                    res_body = json.loads(resp.read().decode("utf-8"))
+                    choices = res_body.get("choices", [])
+                    if choices and "message" in choices[0]:
+                        content = choices[0]["message"].get("content", "").strip()
+                        if content:
+                            return content
+        except Exception:
             pass
         return None
 

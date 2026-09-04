@@ -1,16 +1,19 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { AiMascotAvatar } from '../common/JapaneseArtwork';
 import { advisoryService } from '../../services/advisoryService';
+import MarkdownRenderer from '../common/MarkdownRenderer';
 
 /**
- * AskVittanayaModal Component — Grounded Multilingual AI Business Advisory Dialog
- * Supports 3 Responsive Display Modes:
- * - MODE 1: DEFAULT (Compact, centered dialog 600-680px)
- * - MODE 2: EXPANDED (Comfortable workspace modal 88-94vw x 88-92vh)
- * - MODE 3: FULL SCREEN (100vw x 100dvh immersive view)
+ * AskVittanayaModal Component — Production AI Business Copilot
  * 
- * Includes voice recognition compatibility, body scroll locking, keyboard accessibility (Esc),
- * and dynamic flexible viewport sizing without losing conversation or input state.
+ * Features:
+ * - Clean VITTANAYA Copilot identity (no cartoonish mascot, no technical diagnostic leak)
+ * - 3 display modes: COMPACT (~680px), EXPANDED (~92vw), FULLSCREEN (100vw x 100dvh)
+ * - Grounded deterministic calculations from backend (AHP, financial, schemes, readiness)
+ * - Server-side Groq openai/gpt-oss-120b conversational synthesis with deterministic fallback
+ * - Two-step write confirmation cards (complete_action_task)
+ * - In-app navigation shortcuts
+ * - Web Speech API Voice Input (Speech-to-Text) + SpeechSynthesis (Text-to-Speech)
+ * - Responsive viewport-safe layout with scroll locks and keyboard navigation
  */
 export default function AskVittanayaModal({
   isOpen,
@@ -18,13 +21,15 @@ export default function AskVittanayaModal({
   currentProfile,
   financialSummary,
   initialPrompt = '',
+  onNavigate,
 }) {
-  // Responsive display mode: 'default' | 'expanded' | 'fullscreen'
+  // Display modes: 'default' | 'expanded' | 'fullscreen'
   const [chatMode, setChatMode] = useState('default');
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [expandedDetails, setExpandedDetails] = useState({});
 
   // Voice Speech Recognition & TTS States
   const [isListening, setIsListening] = useState(false);
@@ -45,7 +50,7 @@ export default function AskVittanayaModal({
   const activeReqIdRef = useRef(0);
   const lastUserTextRef = useRef('');
 
-  // 1. Lock Background Page Scrolling when Chat is Open
+  // 1. Lock Background Scrolling
   useEffect(() => {
     if (isOpen) {
       const originalOverflow = document.body.style.overflow;
@@ -56,7 +61,7 @@ export default function AskVittanayaModal({
     }
   }, [isOpen]);
 
-  // 2. Keyboard Navigation & Escape Handler
+  // 2. Keyboard Esc Handler
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
@@ -74,19 +79,19 @@ export default function AskVittanayaModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, chatMode, onClose]);
 
-  // 3. Reset conversation context when the active business profile changes
+  // 3. Reset conversation context when active business changes
   useEffect(() => {
     activeReqIdRef.current += 1;
     setMessages([]);
   }, [currentProfile?.id, currentProfile?.name, currentProfile?.business_name]);
 
-  // 4. Initialize welcome message
+  // 4. Initialize clean welcome greeting
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       const isProfileValid = Boolean(businessName || businessCategory || currentProfile?.id);
       const welcomeMsg = isProfileValid
-        ? `Namaste! I am Ask VITTANAYA, your grounded hyper-local business advisor for **${businessName || 'your enterprise'}** in **${businessLocation}**. How can I help you today?`
-        : "Namaste! I am Ask VITTANAYA. Please select or complete an active business profile so I can provide grounded financial and scheme guidance.";
+        ? `Hello! I am **Ask VITTANAYA**, your AI Business Copilot for **${businessName || 'your enterprise'}** in **${businessLocation}**.\n\nI can assist you with AHP feasibility analysis, loan EMI and cash flow projections, government scheme eligibility (PMEGP/MUDRA), and roadmap execution. What would you like to review?`
+        : "Hello! I am **Ask VITTANAYA**, your AI Business Copilot. Please select or complete a business profile in your workspace to run verified feasibility, financial, and government scheme models.";
       setMessages([
         {
           id: 1,
@@ -110,14 +115,14 @@ export default function AskVittanayaModal({
   ];
 
   const suggestedQuestions = [
-    'How do I apply for the PMEGP subsidy?',
-    'Can I afford this business?',
-    'Why is my Feasibility Score evaluated this way?',
-    'What is my biggest risk factor?',
+    'Explain my feasibility score',
+    'Show matching schemes',
     'What should I do next?',
+    'Check my financial health',
+    'Show pending tasks',
   ];
 
-  // 5. Auto-scroll message container on updates or mode change
+  // 5. Auto-scroll message container on updates
   useEffect(() => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
@@ -134,7 +139,7 @@ export default function AskVittanayaModal({
     setInputText('');
   }, [isOpen, initialPrompt]);
 
-  // 7. Voice Recognition Setup
+  // 7. Voice Recognition Setup (Web Speech API)
   useEffect(() => {
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRec) {
@@ -167,7 +172,7 @@ export default function AskVittanayaModal({
       };
 
       recognition.onerror = (event) => {
-        console.warn('Speech recognition warning:', event.error);
+        console.warn('Speech recognition notice:', event.error);
         setIsListening(false);
         if (event.error !== 'no-speech') {
           setSpeechError(`Microphone notice: ${event.error}`);
@@ -230,18 +235,25 @@ export default function AskVittanayaModal({
     window.speechSynthesis.speak(utterance);
   }, [isSpeakingId]);
 
+  const toggleDetails = (msgId) => {
+    setExpandedDetails((prev) => ({
+      ...prev,
+      [msgId]: !prev[msgId],
+    }));
+  };
+
   if (!isOpen) return null;
 
-  // 9. Send Chat Message to FastAPI Advisory Backend
-  const handleSendMessage = async (textToSend, isRetry = false) => {
+  // 9. Send Chat Message to FastAPI Backend
+  const handleSendMessage = async (textToSend, confirmedAction = null) => {
     const text = textToSend || inputText;
-    if (!text.trim() || isTyping) return;
+    if ((!text.trim() && !confirmedAction) || isTyping) return;
 
-    lastUserTextRef.current = text;
+    lastUserTextRef.current = text || 'Confirm action';
     const reqId = ++activeReqIdRef.current;
     const reqProfileId = currentProfile?.id;
 
-    if (!isRetry) {
+    if (!confirmedAction) {
       const userMsg = {
         id: Date.now(),
         sender: 'user',
@@ -263,8 +275,8 @@ export default function AskVittanayaModal({
           text: m.text,
         }));
 
-      const response = await advisoryService.sendChatMessage({
-        message: text,
+      const payload = {
+        message: text || 'Confirm action',
         business_id: currentProfile?.id ? String(currentProfile.id) : null,
         language: selectedLanguage,
         business_context: (businessName || businessCategory || currentProfile?.id) ? {
@@ -281,7 +293,10 @@ export default function AskVittanayaModal({
           scale: currentProfile?.scale || null,
         } : null,
         history: historyPayload,
-      });
+        confirmed_action: confirmedAction,
+      };
+
+      const response = await advisoryService.sendChatMessage(payload);
 
       if (reqId !== activeReqIdRef.current || currentProfile?.id !== reqProfileId) return;
 
@@ -302,7 +317,7 @@ export default function AskVittanayaModal({
       console.warn('AI Advisor error notice:', err);
       if (reqId !== activeReqIdRef.current || currentProfile?.id !== reqProfileId) return;
 
-      const unavailableText = "VITTANAYA's advisory service is temporarily unavailable. Your saved business data is safe. Please retry.";
+      const unavailableText = "VITTANAYA advisory service is temporarily unavailable. Your saved business data is safe. Please retry.";
       setMessages((prev) => [
         ...prev,
         {
@@ -329,16 +344,31 @@ export default function AskVittanayaModal({
     }
   };
 
-  // Determine Modal Container & Sizing Classes based on chatMode
+  const handleConfirmAction = (details) => {
+    handleSendMessage(`Confirm mark task "${details?.task_title || 'task'}" complete`, details);
+  };
+
+  const handleCancelAction = () => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        sender: 'ai',
+        text: 'Action cancelled. No changes were made to your roadmap or readiness score.',
+        time: 'Just now',
+      },
+    ]);
+  };
+
+  // Determine Modal Sizing Classes
   const getContainerClasses = () => {
     if (chatMode === 'fullscreen') {
-      return 'fixed inset-0 z-50 flex flex-col bg-black/60 animate-fadeIn p-0';
+      return 'fixed inset-0 z-50 flex flex-col bg-black/70 animate-fadeIn p-0';
     }
     if (chatMode === 'expanded') {
-      return 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 md:p-6 animate-fadeIn';
+      return 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4 md:p-6 animate-fadeIn';
     }
-    // Default mode
-    return 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-fadeIn';
+    return 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4 animate-fadeIn';
   };
 
   const getCardClasses = () => {
@@ -346,9 +376,8 @@ export default function AskVittanayaModal({
       return 'bg-[#FAF7F2] w-full h-[100dvh] flex flex-col overflow-hidden shadow-none border-0 rounded-none animate-fadeIn';
     }
     if (chatMode === 'expanded') {
-      return 'bg-[#FAF7F2] rounded-2xl sm:rounded-3xl border border-[#E8E2D5] shadow-2xl w-full max-w-[94vw] h-[92vh] max-h-[94vh] flex flex-col overflow-hidden animate-fadeInScale transition-all duration-200';
+      return 'bg-[#FAF7F2] rounded-2xl sm:rounded-3xl border border-[#E8E2D5] shadow-2xl w-full max-w-[92vw] h-[90vh] max-h-[92vh] flex flex-col overflow-hidden animate-fadeInScale transition-all duration-200';
     }
-    // Default mode: responsive clamp (compact on desktop, comfortably fills mobile screen)
     return 'bg-[#FAF7F2] rounded-2xl sm:rounded-3xl border border-[#E8E2D5] shadow-2xl w-full max-w-2xl h-[94dvh] sm:h-[min(740px,86vh)] flex flex-col overflow-hidden animate-fadeInScale transition-all duration-200';
   };
 
@@ -357,25 +386,35 @@ export default function AskVittanayaModal({
       className={getContainerClasses()}
       role="dialog"
       aria-modal="true"
-      aria-label="Ask VITTANAYA AI Business Advisory"
+      aria-label="Ask VITTANAYA AI Business Copilot"
     >
-      {/* Modal Card */}
       <div className={getCardClasses()}>
 
         {/* Modal Header */}
-        <header className="flex-shrink-0 bg-[#0F291E] text-white p-3.5 sm:p-5 flex items-center justify-between border-b border-emerald-900/40 select-none">
+        <header className="flex-shrink-0 bg-[#0F291E] text-white p-3.5 sm:p-4 flex items-center justify-between border-b border-emerald-900/40 select-none">
           <div className="flex items-center space-x-3 min-w-0">
-            <AiMascotAvatar size={chatMode === 'fullscreen' ? 44 : 38} />
+            {/* Sleek VITTANAYA Copilot Emblem */}
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-emerald-600 via-emerald-800 to-emerald-950 flex items-center justify-center text-amber-300 font-black text-sm shadow-md border border-amber-400/30 shrink-0">
+              <span className="tracking-tighter">V✦</span>
+            </div>
             <div className="min-w-0">
               <div className="flex items-center space-x-1.5 truncate">
                 <h3 className="text-sm sm:text-base font-extrabold text-white tracking-tight truncate">
                   Ask VITTANAYA
                 </h3>
-                <span className="text-xs text-amber-400 shrink-0">✨</span>
+                <span className="text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 shrink-0">
+                  AI Business Copilot
+                </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-[#A6B5AC] font-medium truncate">
-                Grounded AI Business Advisory • FastAPI Powered
-              </p>
+              {businessName ? (
+                <p className="text-[11px] sm:text-xs text-[#A6B5AC] font-medium truncate">
+                  Business: <span className="text-white font-semibold">{businessName}</span> • {businessLocation}
+                </p>
+              ) : (
+                <p className="text-[11px] sm:text-xs text-[#A6B5AC] font-medium truncate">
+                  Grounded Hyper-Local Financial & Enterprise Advisory
+                </p>
+              )}
             </div>
           </div>
 
@@ -395,7 +434,7 @@ export default function AskVittanayaModal({
               ))}
             </select>
 
-            {/* Mode 1 Switcher: Default / Minimize (Visible when in Expanded or Full Screen) */}
+            {/* Mode 1 Switcher: Default / Minimize */}
             {chatMode !== 'default' && (
               <button
                 type="button"
@@ -411,13 +450,13 @@ export default function AskVittanayaModal({
               </button>
             )}
 
-            {/* Mode 2 Switcher: Expanded Window (Visible when in Default or Full Screen) */}
+            {/* Mode 2 Switcher: Expanded Workspace */}
             {chatMode !== 'expanded' && (
               <button
                 type="button"
                 onClick={() => setChatMode('expanded')}
                 className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 hidden sm:flex"
-                title="Expanded Workspace View (92% viewport)"
+                title="Expanded Workspace View"
                 aria-label="Expand chat to large workspace"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -429,7 +468,7 @@ export default function AskVittanayaModal({
               </button>
             )}
 
-            {/* Mode 3 Switcher: Full Screen / Exit Full Screen */}
+            {/* Mode 3 Switcher: Full Screen */}
             <button
               type="button"
               onClick={() => setChatMode(chatMode === 'fullscreen' ? 'default' : 'fullscreen')}
@@ -464,14 +503,14 @@ export default function AskVittanayaModal({
           </div>
         </header>
 
-        {/* Message History Area (flex-1 dynamically stretches to viewport) */}
+        {/* Message History Area */}
         <div
           ref={messagesContainerRef}
           className="flex-1 min-h-0 p-4 sm:p-6 overflow-y-auto space-y-4 bg-[#FAF7F2] select-text"
         >
           {initialPrompt && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-[11px] sm:text-xs text-emerald-800 font-medium flex items-center justify-between">
-              <span>Feasibility context loaded. You can send the suggested question or edit it below.</span>
+              <span>Feasibility context loaded. You can send the question directly or edit it below.</span>
               <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider ml-2">Active</span>
             </div>
           )}
@@ -479,14 +518,16 @@ export default function AskVittanayaModal({
           {messages.map((msg) => {
             const isAi = msg.sender === 'ai';
             const details = msg.details;
+            const isDetailsOpen = expandedDetails[msg.id];
+
             return (
               <div
                 key={msg.id}
                 className={`flex items-start space-x-3 ${isAi ? 'justify-start' : 'justify-end'}`}
               >
                 {isAi && (
-                  <div className="w-8 h-8 rounded-full bg-[#0F291E] text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm">
-                    V
+                  <div className="w-8 h-8 rounded-xl bg-[#0F291E] text-amber-300 flex items-center justify-center font-black text-xs shrink-0 shadow-sm border border-emerald-800">
+                    V✦
                   </div>
                 )}
 
@@ -503,102 +544,157 @@ export default function AskVittanayaModal({
                       : 'bg-[#102A1E] text-white'
                   }`}
                 >
-                  {/* Primary Text Answer */}
-                  <div className="whitespace-pre-wrap">{msg.text}</div>
+                  {/* Clean Markdown Rendered Content */}
+                  {isAi ? (
+                    <MarkdownRenderer content={msg.text} />
+                  ) : (
+                    <div className="whitespace-pre-wrap">{msg.text}</div>
+                  )}
 
-                  {/* Unavailable / Error Retry Box */}
-                  {isAi && (msg.error || details?.data_status === 'UNAVAILABLE') ? (
+                  {/* Unavailable / Error Box */}
+                  {isAi && (msg.error || details?.data_status === 'UNAVAILABLE') && (
                     <div className="mt-3 pt-2.5 border-t border-amber-200/80 flex items-center justify-between gap-2">
                       <span className="px-2 py-0.5 text-[9px] font-black rounded bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wider">
                         UNAVAILABLE
                       </span>
                       <button
                         type="button"
-                        onClick={() => handleSendMessage(lastUserTextRef.current || 'What is my EMI?', true)}
+                        onClick={() => handleSendMessage(lastUserTextRef.current || 'What is my feasibility score?')}
                         className="px-3 py-1 rounded-xl bg-[#0F291E] hover:bg-[#1C4332] text-white text-xs font-bold transition-all shadow-sm flex items-center space-x-1 cursor-pointer"
                       >
                         <span>🔄 Retry</span>
                       </button>
                     </div>
-                  ) : (
-                    <>
-                      {/* Grounded Key Facts Pills */}
-                      {isAi && details?.key_facts && details.key_facts.length > 0 && (
-                        <div className="mt-3 pt-2 border-t border-[#E8E2D5]/60 flex flex-wrap gap-1.5">
-                          {details.key_facts.map((kf, idx) => (
-                            <div
-                              key={idx}
-                              className="px-2.5 py-1 rounded-xl bg-[#F4EFE6] border border-[#E8E2D5] text-[11px] font-semibold text-[#0F291E]"
+                  )}
+
+                  {/* State Modification Confirmation Card */}
+                  {isAi && details?.confirmation_required && (
+                    <div className="mt-3 p-3.5 rounded-xl bg-amber-50/90 border border-amber-300 shadow-sm animate-fadeIn">
+                      <div className="flex items-start space-x-2.5">
+                        <span className="text-base">⚠️</span>
+                        <div className="flex-1">
+                          <h4 className="text-xs font-bold text-amber-950">Action Confirmation Required</h4>
+                          <p className="text-[11px] text-amber-900 mt-0.5 leading-normal">
+                            Would you like to mark <strong>{details?.confirmation_details?.task_title || 'this task'}</strong> as completed in your PostgreSQL records and recalculate your readiness score?
+                          </p>
+                          <div className="mt-2.5 flex items-center space-x-2">
+                            <button
+                              type="button"
+                              disabled={isTyping}
+                              onClick={() => handleConfirmAction(details.confirmation_details)}
+                              className="px-3 py-1.5 rounded-lg bg-[#0F291E] hover:bg-[#1C4332] text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center space-x-1"
                             >
-                              <span className="text-[#607267] font-normal">{kf.label}: </span>
-                              <span>{kf.value}</span>
-                            </div>
-                          ))}
+                              <span>✓ Confirm & Execute</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelAction}
+                              className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-semibold transition-all cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quick In-App Navigation Target */}
+                  {isAi && details?.navigation_target && onNavigate && (
+                    <div className="mt-2.5 pt-2 border-t border-[#E8E2D5]/50 flex items-center justify-between">
+                      <span className="text-[11px] text-[#607267] font-medium">Quick Workspace Navigation:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onNavigate(details.navigation_target);
+                          onClose();
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white text-[11px] font-bold transition-all flex items-center space-x-1 cursor-pointer"
+                      >
+                        <span>Open {details.navigation_target.replace('-', ' ').toUpperCase()}</span>
+                        <span>→</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Collapsible Details Panel ("Why this answer?") */}
+                  {isAi && isDetailsOpen && (
+                    <div className="mt-3 p-3 rounded-xl bg-[#F8F5EE] border border-[#E8E2D5] space-y-2 text-[11px] text-[#3A4A41] animate-fadeIn">
+                      {details?.key_facts && details.key_facts.length > 0 && (
+                        <div>
+                          <span className="text-[10px] font-bold text-[#607267] uppercase tracking-wider block mb-1">
+                            Verified Decision Facts:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {details.key_facts.map((kf, idx) => (
+                              <div
+                                key={idx}
+                                className="px-2.5 py-0.5 rounded bg-white border border-[#E8E2D5] text-[10px] font-semibold text-[#0F291E]"
+                              >
+                                <span className="text-[#607267] font-normal">{kf.label}: </span>
+                                <span>{kf.value}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
-                      {/* Why / Explainability Points */}
-                      {isAi && details?.why_this_result && details.why_this_result.length > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-[#E8E2D5]/60">
+                      {details?.why_this_result && details.why_this_result.length > 0 && (
+                        <div>
                           <span className="text-[10px] font-bold text-[#607267] uppercase tracking-wider block mb-1">
-                            Why this result:
+                            Decision Lineage:
                           </span>
-                          <ul className="list-disc list-inside space-y-0.5 text-[11px] text-[#425047]">
-                            {details.why_this_result.slice(0, 3).map((item, idx) => (
+                          <ul className="list-disc list-inside space-y-0.5 text-[10px] text-[#425047]">
+                            {details.why_this_result.map((item, idx) => (
                               <li key={idx}>{item}</li>
                             ))}
                           </ul>
                         </div>
                       )}
 
-                      {/* Recommended Next Steps */}
-                      {isAi && details?.recommended_next_steps && details.recommended_next_steps.length > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-[#E8E2D5]/60">
-                          <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block mb-1">
-                            Recommended Next Step:
+                      {details?.recommended_next_steps && details.recommended_next_steps.length > 0 && (
+                        <div>
+                          <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block mb-0.5">
+                            Recommended Action:
                           </span>
-                          <p className="text-[11px] font-medium text-emerald-900">
+                          <p className="text-[10px] font-medium text-emerald-900">
                             {details.recommended_next_steps[0]}
                           </p>
                         </div>
                       )}
+                    </div>
+                  )}
 
-                      {/* NLP Classification Metadata Badge */}
-                      {isAi && details?.nlp_metadata && (
-                        <div className="mt-2 pt-1 border-t border-[#E8E2D5]/40 flex flex-wrap items-center justify-between gap-1 text-[9px]">
-                          <span className="inline-flex items-center gap-1 rounded bg-[#EBF3ED] px-2 py-0.5 font-bold text-[#1C4332]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Intent: {details.intent} ({Math.round((details.nlp_metadata.confidence_score || 0.95) * 100)}% Confidence)
-                          </span>
-                          <span className="text-[#607267] font-semibold">
-                            {details.nlp_metadata.pipeline}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Source & Confidence Footer + TTS Read Aloud Control */}
-                      {isAi && (
-                        <div className="mt-2 pt-1.5 border-t border-[#E8E2D5]/40 flex items-center justify-between text-[9px] text-[#819388]">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-semibold text-emerald-700">
-                              ✓ {details?.data_status || 'VERIFIED'}
-                            </span>
-                            {details?.sources && details.sources[0] && (
-                              <span className="truncate max-w-[160px]">Source: {details.sources[0].authority}</span>
-                            )}
-                          </div>
+                  {/* Subtle Provenance Footer + Voice TTS + Why this answer Toggle */}
+                  {isAi && !msg.error && (
+                    <div className="mt-2.5 pt-1.5 border-t border-[#E8E2D5]/50 flex items-center justify-between text-[10px] text-[#607267]">
+                      <div className="flex items-center space-x-1.5 truncate max-w-[65%]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                        <span className="truncate font-medium">
+                          {details?.provenance_label || 'Grounded in VITTANAYA Business Data'}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 shrink-0">
+                        {(details?.why_this_result?.length > 0 || details?.key_facts?.length > 0) && (
                           <button
                             type="button"
-                            onClick={() => handleToggleSpeak(msg.id, msg.text)}
-                            className="text-slate-500 hover:text-emerald-700 font-medium flex items-center space-x-1 px-1.5 py-0.5 rounded hover:bg-slate-100 cursor-pointer"
-                            title={isSpeakingId === msg.id ? 'Stop speaking' : 'Read response aloud'}
-                            aria-label={isSpeakingId === msg.id ? 'Stop reading' : 'Read response aloud'}
+                            onClick={() => toggleDetails(msg.id)}
+                            className="text-emerald-800 hover:text-emerald-950 font-semibold cursor-pointer underline text-[10px]"
                           >
-                            <span>{isSpeakingId === msg.id ? '⏹ Stop' : '🔊 Listen'}</span>
+                            {isDetailsOpen ? 'Hide Details' : 'Why this answer?'}
                           </button>
-                        </div>
-                      )}
-                    </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSpeak(msg.id, msg.text)}
+                          className="text-slate-500 hover:text-emerald-700 font-medium flex items-center space-x-1 px-1.5 py-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                          title={isSpeakingId === msg.id ? 'Stop speaking' : 'Read response aloud'}
+                          aria-label={isSpeakingId === msg.id ? 'Stop reading' : 'Read response aloud'}
+                        >
+                          <span>{isSpeakingId === msg.id ? '⏹ Stop' : '🔊 Listen'}</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   <span
@@ -611,7 +707,7 @@ export default function AskVittanayaModal({
                 </div>
 
                 {!isAi && (
-                  <div className="w-8 h-8 rounded-full bg-[#D4A343] text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-sm">
+                  <div className="w-8 h-8 rounded-xl bg-[#D4A343] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
                     You
                   </div>
                 )}
@@ -623,7 +719,7 @@ export default function AskVittanayaModal({
           {isTyping && (
             <div className="flex items-center space-x-2 text-xs text-[#607267] italic p-2 bg-emerald-50/50 rounded-xl border border-emerald-100 max-w-sm">
               <span className="w-2 h-2 rounded-full bg-[#2F7757] animate-ping" />
-              <span>VITTANAYA AI is retrieving verified calculations...</span>
+              <span>VITTANAYA AI Copilot is retrieving verified calculations...</span>
             </div>
           )}
 
@@ -678,7 +774,7 @@ export default function AskVittanayaModal({
           </div>
         )}
 
-        {/* Input Bar — Anchored at Bottom */}
+        {/* Input Bar — Fixed at Bottom */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -706,7 +802,7 @@ export default function AskVittanayaModal({
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={`Ask in ${selectedLanguage}... (e.g. subsidy eligibility, market competition, repayment)`}
+            placeholder={`Ask in ${selectedLanguage}... (e.g. explain my feasibility score, loan EMI, schemes)`}
             className="flex-1 px-4 py-2.5 rounded-2xl bg-[#FAF7F2] border border-[#E8E2D5] text-xs sm:text-sm text-[#1A211D] placeholder-[#819388] focus:outline-none focus:border-[#2F7757] focus:ring-1 focus:ring-[#2F7757]"
           />
 
