@@ -313,3 +313,105 @@ def test_switching_business_id_returns_distinct_identity_and_metrics(client):
     assert b2["cash_balance"] != b5["cash_balance"]
 
 
+def test_changing_project_cost_changes_financial_and_feasibility_output(db, client):
+    """Phase 15 Test 1 & 2: Modifying project cost changes loan amortization, EMI, and feasibility score."""
+    # 1. Financial Plan funding structure endpoint
+    req_small = {
+        "project_cost": 500000.0,
+        "margin_pct": 15.0,
+        "interest_rate_annual": 9.5,
+        "tenure_years": 5,
+    }
+    res_small = client.post("/api/v1/finance/funding-structure", json=req_small)
+    assert res_small.status_code == 200
+    plan_small = res_small.json()
+
+    req_large = {
+        "project_cost": 1500000.0,
+        "margin_pct": 15.0,
+        "interest_rate_annual": 9.5,
+        "tenure_years": 5,
+    }
+    res_large = client.post("/api/v1/finance/funding-structure", json=req_large)
+    assert res_large.status_code == 200
+    plan_large = res_large.json()
+
+    # Loan and EMI must scale dynamically
+    assert plan_large["loan_amount"] > plan_small["loan_amount"]
+    assert plan_large["monthly_emi"] > plan_small["monthly_emi"]
+    assert plan_large["loan_amount"] == 1275000.0  # 85% of 15L
+    assert plan_small["loan_amount"] == 425000.0   # 85% of 5L
+
+    # 2. Database Feasibility Reactivity with project_cost
+    svc = BusinessFeasibilityService(db)
+    biz = db.query(Business).filter(Business.id == 7).first()
+    assert biz is not None
+    orig_proj_cost = biz.project_cost
+    orig_feasibility = svc.compute(7).final_score
+
+    try:
+        # Increase project cost from original, keeping own_capital constant -> decreases margin ratio -> decreases score
+        biz.project_cost = Decimal("2000000.00")
+        db.commit()
+
+        updated_feasibility = svc.compute(7).final_score
+        assert updated_feasibility != orig_feasibility
+        assert updated_feasibility < orig_feasibility
+    finally:
+        biz.project_cost = orig_proj_cost
+        db.commit()
+
+
+def test_changing_business_type_changes_market_benchmark(client):
+    """Phase 15 Test 3: Changing business category/specific business alters market reach, opportunity, and SWOT."""
+    # Domain A: Poultry Broiler Farming
+    res_poultry = client.post(
+        "/api/v1/feasibility",
+        json={
+            "business_category": "Poultry",
+            "specific_business": "Commercial Broiler Farming",
+            "location": "Sundargarh, Odisha",
+            "scale": "Micro",
+        },
+    )
+    assert res_poultry.status_code == 200
+    poultry_data = res_poultry.json()
+
+    # Domain B: Dairy Farming
+    res_dairy = client.post(
+        "/api/v1/feasibility",
+        json={
+            "business_category": "Dairy",
+            "specific_business": "Dairy Cow Farm",
+            "location": "Sundargarh, Odisha",
+            "scale": "Micro",
+        },
+    )
+    assert res_dairy.status_code == 200
+    dairy_data = res_dairy.json()
+
+    # Market context and SWOT must be domain-specific, not static copies
+    assert poultry_data["market_reach"] != dairy_data["market_reach"]
+    assert poultry_data["opportunity"] != dairy_data["opportunity"]
+    assert poultry_data["SWOT"]["strengths"] != dairy_data["SWOT"]["strengths"]
+    assert "broiler" in poultry_data["market_reach"].lower() or "poultry" in poultry_data["opportunity"].lower()
+    assert "omfed" in dairy_data["market_reach"].lower() or "milk" in dairy_data["opportunity"].lower()
+
+
+def test_changing_location_changes_hyperlocal_context(client):
+    """Phase 15 Test 4: Changing location alters district spatial intelligence and local market reach."""
+    res_sundargarh = client.get("/api/v1/locations/market-map?district=Sundargarh")
+    assert res_sundargarh.status_code == 200
+    data_sundargarh = res_sundargarh.json()
+
+    res_khordha = client.get("/api/v1/locations/market-map?district=Khordha")
+    assert res_khordha.status_code == 200
+    data_khordha = res_khordha.json()
+
+    # District spatial context must reflect the specific geographic territory
+    assert data_sundargarh["market_reach_description"] != data_khordha["market_reach_description"]
+    assert len(data_sundargarh["pois"]) > 0
+    assert len(data_khordha["pois"]) > 0
+
+
+
