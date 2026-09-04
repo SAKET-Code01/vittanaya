@@ -93,21 +93,31 @@ function KpiIcon({ name, size = 18, className = '' }) {
  * Identical card styling, typography hierarchy, icon containers, and responsive behavior.
  */
 export default function DashboardKPIGrid({
-  ownCapital = 50000,
-  subsidyPct = 25,
-  estimatedProjectCost = 333333,
-  readinessLabel = '40% Prepared',
-  fundingReadinessLabel = '74%',
-  riskLevel = 'MEDIUM',
-  marketPotential = 'HIGH',
+  ownCapital = null,
+  subsidyPct = null,
+  estimatedProjectCost = null,
+  breakevenEstimate = null,
+  readinessLabel = null,
+  readinessCountContext = null,
+  fundingReadinessLabel = null,
+  fundingContext = null,
+  riskLevel = null,
+  riskContext = null,
+  marketPotential = null,
+  marketContext = null,
+  isLoading = false,
 }) {
   // First Row: Opportunity Metrics (What does the business opportunity look like?)
   const row1Cards = [
     {
       id: 'kpi-margin-capital',
       label: 'Own Margin Capital',
-      value: `₹ ${ownCapital.toLocaleString('en-IN')}`,
-      context: '100% committed as initial margin',
+      value: ownCapital != null && Number(ownCapital) > 0
+        ? `₹ ${Number(ownCapital).toLocaleString('en-IN')}`
+        : (isLoading ? '...' : 'Not available'),
+      context: ownCapital != null && Number(ownCapital) > 0
+        ? '100% committed as initial margin'
+        : 'Margin capital not recorded',
       icon: 'wallet',
       iconContainer: 'bg-blue-50 text-blue-600 border border-blue-100',
       valueColor: 'text-slate-900',
@@ -115,8 +125,12 @@ export default function DashboardKPIGrid({
     {
       id: 'kpi-subsidy-eligibility',
       label: 'Subsidy Eligibility',
-      value: `${subsidyPct}% Entitled`,
-      context: 'Under MoSJE / PMEGP Guidelines',
+      value: subsidyPct != null
+        ? `${subsidyPct}% Entitled`
+        : (isLoading ? '...' : 'Insufficient data'),
+      context: subsidyPct != null
+        ? 'Under verified scheme rules'
+        : 'Scheme matching pending',
       icon: 'shield',
       iconContainer: 'bg-blue-50 text-blue-600 border border-blue-100',
       valueColor: 'text-blue-700',
@@ -124,8 +138,12 @@ export default function DashboardKPIGrid({
     {
       id: 'kpi-project-size',
       label: 'Max Project Size',
-      value: `₹ ${(estimatedProjectCost / 100000).toFixed(2)} Lakh`,
-      context: 'Supported by margin leverage',
+      value: estimatedProjectCost != null && Number(estimatedProjectCost) > 0
+        ? `₹ ${(Number(estimatedProjectCost) / 100000).toFixed(2)} Lakh`
+        : (isLoading ? '...' : 'Not available'),
+      context: estimatedProjectCost != null && Number(estimatedProjectCost) > 0
+        ? 'Supported by margin leverage'
+        : 'Project cost awaiting DPR',
       icon: 'target',
       iconContainer: 'bg-blue-50 text-blue-600 border border-blue-100',
       valueColor: 'text-slate-900',
@@ -133,8 +151,8 @@ export default function DashboardKPIGrid({
     {
       id: 'kpi-breakeven',
       label: 'Break-even Horizon',
-      value: '5 – 7 Months',
-      context: 'Based on category benchmark',
+      value: breakevenEstimate || (isLoading ? '...' : 'Insufficient data'),
+      context: breakevenEstimate ? 'Based on category benchmark' : 'Requires operational projection',
       icon: 'clock',
       iconContainer: 'bg-slate-100 text-slate-700 border border-slate-200',
       valueColor: 'text-slate-900',
@@ -146,8 +164,8 @@ export default function DashboardKPIGrid({
     {
       id: 'kpi-business-readiness',
       label: 'Business Readiness',
-      value: readinessLabel,
-      context: '3 of 5 launch requirements',
+      value: readinessLabel || (isLoading ? '...' : 'Insufficient data'),
+      context: readinessCountContext || 'Statutory & launch requirements',
       icon: 'rocket',
       iconContainer: 'bg-blue-50 text-blue-600 border border-blue-100',
       valueColor: 'text-slate-900',
@@ -155,8 +173,8 @@ export default function DashboardKPIGrid({
     {
       id: 'kpi-funding-readiness',
       label: 'Funding Readiness',
-      value: fundingReadinessLabel,
-      context: 'Funding plan identified',
+      value: fundingReadinessLabel || (isLoading ? '...' : 'Insufficient data'),
+      context: fundingContext || 'Funding structure identification',
       icon: 'bank',
       iconContainer: 'bg-blue-50 text-blue-600 border border-blue-100',
       valueColor: 'text-blue-700',
@@ -164,8 +182,8 @@ export default function DashboardKPIGrid({
     {
       id: 'kpi-business-risk',
       label: 'Business Risk',
-      value: riskLevel,
-      context: '2 areas need attention',
+      value: riskLevel || (isLoading ? '...' : 'Insufficient data'),
+      context: riskContext || 'Multi-dimensional risk analysis',
       icon: 'alert-triangle',
       iconContainer: 'bg-amber-50 text-amber-600 border border-amber-200/80',
       valueColor: 'text-amber-700',
@@ -173,8 +191,8 @@ export default function DashboardKPIGrid({
     {
       id: 'kpi-local-market-potential',
       label: 'Local Market Potential',
-      value: marketPotential,
-      context: 'Demand strong • Competition moderate',
+      value: marketPotential || (isLoading ? '...' : 'Insufficient data'),
+      context: marketContext || 'Local catchment demand signal',
       icon: 'compass',
       iconContainer: 'bg-blue-50 text-blue-600 border border-blue-100',
       valueColor: 'text-blue-700',

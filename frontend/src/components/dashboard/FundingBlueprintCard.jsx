@@ -7,12 +7,13 @@ import React from 'react';
  * Visual stack ratio bar and structured capital allocation breakdown for the new venture.
  */
 export default function FundingBlueprintCard({
-  ownCapital = 50000,
-  subsidyPct = 25,
-  estimatedProjectCost = 333333,
-  estimatedSubsidy = 83333,
-  estimatedBankLoan = 200000,
-  estimatedEmi = 1667,
+  ownCapital = null,
+  subsidyPct = null,
+  estimatedProjectCost = null,
+  estimatedSubsidy = null,
+  estimatedBankLoan = null,
+  estimatedEmi = null,
+  isLoading = false,
   onNavigate,
   className = '',
 }) {
@@ -22,7 +23,15 @@ export default function FundingBlueprintCard({
     }
   };
 
-  const loanPct = Math.max(0, 100 - 15 - subsidyPct);
+  const cost = Number(estimatedProjectCost) || 0;
+  const ownCap = Number(ownCapital) || 0;
+  const subAmt = Number(estimatedSubsidy) || 0;
+  const loanAmt = Number(estimatedBankLoan) || 0;
+  const emiAmt = Number(estimatedEmi) || 0;
+
+  const ownPct = cost > 0 ? Math.min(100, Math.round((ownCap / cost) * 100)) : 0;
+  const subPct = Number(subsidyPct) || 0;
+  const loanPct = Math.max(0, 100 - ownPct - subPct);
 
   return (
     <section className={`bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-5 ${className}`}>
@@ -42,43 +51,63 @@ export default function FundingBlueprintCard({
           </h2>
         </div>
         <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
-          Est. Project: ₹{(estimatedProjectCost / 100000).toFixed(2)}L
+          {cost > 0 ? `Est. Project: ₹${(cost / 100000).toFixed(2)}L` : (isLoading ? '...' : 'Project Cost Pending')}
         </span>
       </div>
 
       {/* Visual Stack Ratio Bar */}
       <div className="space-y-3">
-        <div className="h-3.5 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
-          <div style={{ width: '15%' }} className="bg-blue-600 transition-all duration-500" title="Own Capital (15%)" />
-          <div style={{ width: `${subsidyPct}%` }} className="bg-blue-400 transition-all duration-500" title={`Subsidy (${subsidyPct}%)`} />
-          <div style={{ width: `${loanPct}%` }} className="bg-slate-700 transition-all duration-500" title={`Bank Loan (${loanPct}%)`} />
-        </div>
+        {cost > 0 ? (
+          <>
+            <div className="h-3.5 w-full rounded-full bg-slate-100 overflow-hidden flex shadow-inner">
+              <div style={{ width: `${ownPct}%` }} className="bg-blue-600 transition-all duration-500" title={`Own Capital (${ownPct}%)`} />
+              <div style={{ width: `${subPct}%` }} className="bg-blue-400 transition-all duration-500" title={`Subsidy (${subPct}%)`} />
+              <div style={{ width: `${loanPct}%` }} className="bg-slate-700 transition-all duration-500" title={`Bank Loan (${loanPct}%)`} />
+            </div>
 
-        {/* Ratio Labels */}
-        <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 px-1">
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-600 inline-block" /> Own Capital (15%)</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> Subsidy ({subsidyPct}%)</span>
-          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-700 inline-block" /> Bank Loan ({loanPct}%)</span>
-        </div>
+            {/* Ratio Labels */}
+            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 px-1">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-600 inline-block" /> Own Capital ({ownPct}%)</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> Subsidy ({subPct}%)</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-700 inline-block" /> Bank Loan ({loanPct}%)</span>
+            </div>
+          </>
+        ) : (
+          <div className="h-3.5 w-full rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-400 font-medium">
+            {isLoading ? 'Loading capital structure...' : 'Enter project cost in financial plan to view funding split'}
+          </div>
+        )}
 
         {/* 3 Metric Tiles */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
           <div className="p-3 rounded-2xl bg-blue-50/50 border border-blue-100 text-center">
             <span className="text-[10px] font-extrabold text-blue-900 uppercase block">Own Capital</span>
-            <span className="text-sm sm:text-base font-black text-slate-900 block mt-0.5">₹{ownCapital.toLocaleString('en-IN')}</span>
-            <span className="text-[10px] font-semibold text-blue-600 block mt-0.5">15% Margin Money</span>
+            <span className="text-sm sm:text-base font-black text-slate-900 block mt-0.5">
+              {ownCap > 0 ? `₹${ownCap.toLocaleString('en-IN')}` : 'Not available'}
+            </span>
+            <span className="text-[10px] font-semibold text-blue-600 block mt-0.5">
+              {ownPct > 0 ? `${ownPct}% Margin Money` : 'Margin capital required'}
+            </span>
           </div>
 
           <div className="p-3 rounded-2xl bg-blue-50/30 border border-blue-100 text-center">
             <span className="text-[10px] font-extrabold text-blue-800 uppercase block">Govt Subsidy</span>
-            <span className="text-sm sm:text-base font-black text-slate-900 block mt-0.5">₹{estimatedSubsidy.toLocaleString('en-IN')}</span>
-            <span className="text-[10px] font-semibold text-blue-600 block mt-0.5">{subsidyPct}% Entitlement</span>
+            <span className="text-sm sm:text-base font-black text-slate-900 block mt-0.5">
+              {subAmt > 0 ? `₹${subAmt.toLocaleString('en-IN')}` : (subPct > 0 ? `${subPct}% eligible` : 'Pending match')}
+            </span>
+            <span className="text-[10px] font-semibold text-blue-600 block mt-0.5">
+              {subPct > 0 ? `${subPct}% Entitlement` : 'Scheme entitlement'}
+            </span>
           </div>
 
           <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-center">
             <span className="text-[10px] font-extrabold text-slate-700 uppercase block">Estimated Loan</span>
-            <span className="text-sm sm:text-base font-black text-slate-900 block mt-0.5">₹{estimatedBankLoan.toLocaleString('en-IN')}</span>
-            <span className="text-[10px] font-semibold text-slate-500 block mt-0.5">~₹{estimatedEmi.toLocaleString('en-IN')}/mo EMI</span>
+            <span className="text-sm sm:text-base font-black text-slate-900 block mt-0.5">
+              {loanAmt > 0 ? `₹${loanAmt.toLocaleString('en-IN')}` : 'Pending cost'}
+            </span>
+            <span className="text-[10px] font-semibold text-slate-500 block mt-0.5">
+              {emiAmt > 0 ? `~₹${emiAmt.toLocaleString('en-IN')}/mo EMI` : 'Indicative EMI'}
+            </span>
           </div>
         </div>
       </div>

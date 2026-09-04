@@ -59,22 +59,41 @@ function HeroIcon({ name, size = 16, className = '' }) {
  */
 export default function DashboardHero({
   profile = {},
-  subsidyPct = 25,
-  ownCapital = 50000,
+  subsidyPct = null,
+  ownCapital = null,
+  feasibilityScore = null,
+  feasibilityStatus = null,
+  isLoading = false,
   onNavigate,
 }) {
   const businessName = profile.businessName || profile.name || 'New Proposed Venture';
-  const category = profile.category || 'Micro Enterprise';
+  const category = profile.category || profile.type || 'Micro Enterprise';
   const industry = profile.industry || profile.description || 'Proposed rural business activity';
-  const location = profile.location || ([profile.village, profile.district, profile.state].filter(Boolean).join(', ') || 'India');
-  const socialCategory = profile.socialCategory || 'General';
-  const areaType = profile.areaType || 'Rural';
+  const location = profile.location || ([profile.village, profile.district, profile.state].filter(Boolean).join(', ') || 'Odisha, India');
+  const socialCategory = profile.socialCategory || profile.social_category || 'General';
+  const areaType = profile.areaType || profile.area_type || 'Rural';
+
+  const safeOwnCapital = ownCapital != null ? Number(ownCapital) : (profile.own_capital != null ? Number(profile.own_capital) : null);
 
   const handleAction = (destination) => {
     if (typeof onNavigate === 'function') {
       onNavigate(destination);
     }
   };
+
+  const statusBadgeStyle = (() => {
+    if (feasibilityScore == null) return 'bg-slate-500/20 text-slate-300 border-slate-400/30';
+    if (feasibilityScore >= 75) return 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30';
+    if (feasibilityScore >= 60) return 'bg-blue-500/20 text-blue-300 border-blue-400/30';
+    if (feasibilityScore >= 45) return 'bg-amber-500/20 text-amber-300 border-amber-400/30';
+    return 'bg-rose-500/20 text-rose-300 border-rose-400/30';
+  })();
+
+  const computedStatus = feasibilityStatus || (
+    feasibilityScore != null
+      ? (feasibilityScore >= 75 ? 'HIGH POTENTIAL' : feasibilityScore >= 60 ? 'GOOD POTENTIAL' : feasibilityScore >= 45 ? 'MODERATE POTENTIAL' : 'HIGH RISK / EARLY')
+      : null
+  );
 
   return (
     <section className="hero-spark-card relative overflow-hidden rounded-3xl border border-blue-500/25 bg-gradient-to-br from-[#060D1D] via-[#0B1736] to-[#0A1128] p-6 sm:p-8 lg:p-10 shadow-2xl backdrop-blur-xl transition-all duration-300">
@@ -130,8 +149,17 @@ export default function DashboardHero({
 
           {/* Contextual Summary */}
           <p className="text-xs sm:text-sm text-slate-300/90 font-normal leading-relaxed max-w-2xl pt-1">
-            Deterministic opportunity assessment prepared for <strong className="text-white font-semibold">{industry}</strong>.
-            Your available margin capital of <strong className="text-emerald-400 font-bold">₹{ownCapital.toLocaleString('en-IN')}</strong> qualifies for up to <strong className="text-blue-300 font-bold">{subsidyPct}% government subsidy</strong>.
+            Authoritative feasibility assessment calibrated for <strong className="text-white font-semibold">{industry}</strong>.
+            {safeOwnCapital != null && safeOwnCapital > 0 ? (
+              <> Available margin capital of <strong className="text-emerald-400 font-bold">₹{safeOwnCapital.toLocaleString('en-IN')}</strong></>
+            ) : (
+              <> Margin capital awaiting verification</>
+            )}
+            {subsidyPct != null && subsidyPct > 0 ? (
+              <> qualifies for up to <strong className="text-blue-300 font-bold">{subsidyPct}% government subsidy</strong> under verified schemes.</>
+            ) : (
+              <> with subsidy matching evaluated across central & state frameworks.</>
+            )}
           </p>
         </div>
 
@@ -139,17 +167,38 @@ export default function DashboardHero({
         <div className="flex flex-col items-center justify-center p-6 rounded-2xl bg-white/[0.08] backdrop-blur-xl border border-white/15 shadow-xl gap-4 shrink-0 w-full sm:w-64 lg:w-72">
           <div className="text-center space-y-1 w-full">
             <span className="text-[10px] font-black text-blue-200/90 uppercase tracking-widest block">
-              Viability Index
+              Feasibility Score
             </span>
-            <div className="flex items-baseline justify-center gap-1 mt-1">
-              <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">84</span>
-              <span className="text-base font-bold text-blue-300/70">/100</span>
-            </div>
-            <div className="pt-1">
-              <span className="inline-block px-3 py-1 rounded-md text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 uppercase tracking-wider">
-                HIGH POTENTIAL
-              </span>
-            </div>
+            
+            {isLoading ? (
+              <div className="py-2 space-y-2 animate-pulse">
+                <div className="h-10 w-24 bg-white/20 rounded-lg mx-auto" />
+                <div className="h-4 w-28 bg-white/15 rounded-md mx-auto" />
+              </div>
+            ) : feasibilityScore != null ? (
+              <>
+                <div className="flex items-baseline justify-center gap-1 mt-1">
+                  <span className="text-4xl sm:text-5xl font-black text-white tracking-tight">
+                    {Math.round(feasibilityScore)}
+                  </span>
+                  <span className="text-base font-bold text-blue-300/70">/100</span>
+                </div>
+                <div className="pt-1">
+                  <span className={`inline-block px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${statusBadgeStyle}`}>
+                    {computedStatus}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="py-2">
+                <span className="text-lg sm:text-xl font-extrabold text-slate-300 block">
+                  Not available
+                </span>
+                <span className="text-[10px] font-medium text-slate-400 block mt-1">
+                  Insufficient data
+                </span>
+              </div>
+            )}
           </div>
 
           <button
