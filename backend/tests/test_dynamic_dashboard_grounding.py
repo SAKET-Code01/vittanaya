@@ -5,14 +5,13 @@ metrics without hardcoded 84/100, hardcoded 40% readiness, or fixed 25% subsidie
 """
 
 from decimal import Decimal
+
 import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.core.database import SessionLocal
 from backend.app.models.business import Business
 from backend.app.services.business_feasibility_service import BusinessFeasibilityService
-from backend.app.services.readiness_service import ReadinessService
-from backend.app.engines.scheme_engine import SchemeEngine
 from backend.main import app
 
 
@@ -47,12 +46,12 @@ def test_new_business_feasibility_authoritative(client, db):
 def test_changing_own_capital_changes_feasibility_output(db):
     """Reactivity test: Modifying own_capital changes the financial score and final feasibility."""
     svc = BusinessFeasibilityService(db)
-    
+
     # Baseline for business 7
     biz = db.query(Business).filter(Business.id == 7).first()
     assert biz is not None
     initial_capital = biz.own_capital
-    
+
     score_initial = svc.compute(7).final_score
 
     # Mutate own_capital

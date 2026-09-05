@@ -153,15 +153,18 @@ export default function SchemePage({
 
     schemeService
       .matchSchemes({
+        business_type: currentProfile?.category || currentProfile?.businessType || currentProfile?.industry || 'Dairy',
+        location: currentProfile?.district || currentProfile?.location || 'Sundargarh, Odisha',
+        investment: Number(currentProfile?.project_cost || currentProfile?.indicative_project_cost || currentProfile?.estimatedProjectCost || 1000000),
+        own_capital: Number(currentProfile?.own_capital || currentProfile?.ownCapital || currentProfile?.available_margin_capital || 100000),
+        beneficiary_category: currentProfile?.socialCategory || currentProfile?.social_category || 'General',
+        area_classification: currentProfile?.areaType || currentProfile?.area_type || 'Rural',
         indicative_project_cost: Number(currentProfile?.project_cost || currentProfile?.indicative_project_cost || currentProfile?.estimatedProjectCost || 1000000),
         available_margin_capital: Number(currentProfile?.own_capital || currentProfile?.ownCapital || currentProfile?.available_margin_capital || 100000),
         business_category: currentProfile?.category || currentProfile?.businessType || 'General',
         specific_business: currentProfile?.industry || currentProfile?.category || 'General Enterprise',
         business_name: currentProfile?.name || currentProfile?.businessName || null,
         business_id: currentProfile?.id ? Number(currentProfile.id) : null,
-        location: currentProfile?.district || currentProfile?.location || 'Odisha',
-        social_category: currentProfile?.socialCategory || currentProfile?.social_category || 'General',
-        area_type: currentProfile?.areaType || currentProfile?.area_type || 'Rural',
       })
       .then((res) => {
         if (isMounted) {
@@ -204,27 +207,44 @@ export default function SchemePage({
   const schemes = useMemo(() => {
     if (!backendSchemes) return [];
 
-    const eligible = (backendSchemes.eligible_schemes || []).map((be, idx) => ({
-      ...be,
-      isPrimary: idx === 0,
-      fitScore: idx === 0 ? 98 : Math.max(70, 95 - idx * 5),
-      isEligible: true,
-      eligibilityStatus: be.eligibility_status || 'Likely Eligible',
-      badge: idx === 0 ? 'PRIMARY MATCH • 98% Fit' : `${be.scheme_code.replace(/_/g, ' ')} • Eligible`,
-      badgeType: 'blue',
-    }));
+    let combined = [];
+    if (Array.isArray(backendSchemes.ranked_schemes) && backendSchemes.ranked_schemes.length > 0) {
+      combined = backendSchemes.ranked_schemes.map((be, idx) => {
+        const isEligible = be.is_eligible !== undefined ? be.is_eligible : (be.eligibility_status === 'Likely Eligible');
+        const fitScore = typeof be.match_percentage === 'number' ? be.match_percentage : (idx === 0 ? 98 : Math.max(50, 95 - idx * 5));
+        return {
+          ...be,
+          isPrimary: idx === 0 && isEligible,
+          fitScore: fitScore,
+          isEligible: isEligible,
+          eligibilityStatus: be.eligibility_status || (isEligible ? 'Likely Eligible' : 'Ineligible'),
+          badge: idx === 0 && isEligible ? `PRIMARY MATCH • ${fitScore}% Fit` : `${be.scheme_code.replace(/_/g, ' ')} • ${fitScore}% Fit`,
+          badgeType: isEligible ? (idx === 0 ? 'blue' : 'green') : 'amber',
+        };
+      });
+    } else {
+      const eligible = (backendSchemes.eligible_schemes || []).map((be, idx) => ({
+        ...be,
+        isPrimary: idx === 0,
+        fitScore: typeof be.match_percentage === 'number' ? be.match_percentage : (idx === 0 ? 98 : Math.max(70, 95 - idx * 5)),
+        isEligible: true,
+        eligibilityStatus: be.eligibility_status || 'Likely Eligible',
+        badge: idx === 0 ? `PRIMARY MATCH • ${be.match_percentage || 98}% Fit` : `${be.scheme_code.replace(/_/g, ' ')} • ${be.match_percentage || 90}% Fit`,
+        badgeType: 'blue',
+      }));
 
-    const ineligible = (backendSchemes.ineligible_schemes || []).map((be) => ({
-      ...be,
-      isPrimary: false,
-      fitScore: 40,
-      isEligible: false,
-      eligibilityStatus: be.eligibility_status || 'Ineligible',
-      badge: `${be.scheme_code.replace(/_/g, ' ')} • Review Required`,
-      badgeType: 'amber',
-    }));
+      const ineligible = (backendSchemes.ineligible_schemes || []).map((be) => ({
+        ...be,
+        isPrimary: false,
+        fitScore: typeof be.match_percentage === 'number' ? be.match_percentage : 40,
+        isEligible: false,
+        eligibilityStatus: be.eligibility_status || 'Ineligible',
+        badge: `${be.scheme_code.replace(/_/g, ' ')} • Review Required`,
+        badgeType: 'amber',
+      }));
 
-    const combined = [...eligible, ...ineligible];
+      combined = [...eligible, ...ineligible];
+    }
 
     return combined.map((be) => {
       const isPmegp = be.scheme_code.includes('PMEGP');
@@ -235,20 +255,26 @@ export default function SchemePage({
         scheme_code: be.scheme_code,
         name: be.scheme_name,
         shortName: be.scheme_code.replace(/_/g, ' '),
-        ministry: be.source_authority || 'Ministry of MSME / Government of India',
+        ministry: be.official_source || be.source_authority || 'Ministry of MSME / Government of India',
         badge: be.badge,
         badgeType: be.badgeType,
         fitScore: be.fitScore,
+        matchPercentage: be.fitScore,
         eligibility: be.eligibilityStatus,
         isEligible: be.isEligible,
-        category: be.collateral_required ? 'loan' : (be.estimated_subsidy_pct > 0 ? 'subsidy' : 'collateral'),
-        subsidy: be.estimated_subsidy_pct > 0
+        category: be.subsidy_loan_type?.toLowerCase().includes('subsidy') || be.estimated_subsidy_pct > 0
+          ? 'subsidy'
+          : (be.collateral_required ? 'loan' : 'collateral'),
+        subsidy: be.benefit || (be.estimated_subsidy_pct > 0
           ? `${Math.round(be.estimated_subsidy_pct)}% Margin Money Subsidy (₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')})`
-          : (be.collateral_required ? 'Interest subvention on prompt repayment' : 'Credit guarantee coverage up to 85%'),
+          : (be.collateral_required ? 'Interest subvention on prompt repayment' : 'Credit guarantee coverage up to 85%')),
+        benefit: be.benefit || (be.estimated_subsidy_pct > 0 ? `Up to ${Math.round(be.estimated_subsidy_pct)}% subsidy` : 'Collateral-free credit'),
+        subsidyLoanType: be.subsidy_loan_type || (be.estimated_subsidy_pct > 0 ? 'Credit Linked Capital Subsidy' : 'Working Capital / Term Loan'),
+        eligibilityReason: be.eligibility_reason || (be.reasons && be.reasons[0]) || 'Meets sector, investment, and location guidelines.',
         maxCost: be.max_eligible_cost ? `₹ ${Math.round(be.max_eligible_cost).toLocaleString('en-IN')}` : 'As per scheme guidelines',
         promoterShare: `${Math.round(be.required_margin_pct)}% (₹${Math.round(be.required_margin_capital).toLocaleString('en-IN')})`,
         tenure: isPmegp ? '5 to 7 Years with 6-month moratorium' : (isMudra ? '3 to 5 Years' : 'Term of underlying loan'),
-        collateral: be.collateral_required ? 'Standard bank requirements' : '100% Collateral-free (CGTMSE / Mudra)',
+        collateral: be.collateral_required ? 'Standard bank requirements' : '100% Collateral-free (CGTMSE / Mudra / AIF)',
         collateralLevel: be.collateral_required ? 'standard' : 'low',
         eligibleLoan: `₹${Math.round(be.eligible_loan_amount).toLocaleString('en-IN')}`,
         subsidyPercent: `${Math.round(be.estimated_subsidy_pct)}%`,
@@ -256,40 +282,42 @@ export default function SchemePage({
         marginPercent: `${Math.round(be.required_margin_pct)}%`,
         marginRequired: `₹${Math.round(be.required_margin_capital).toLocaleString('en-IN')}`,
         features: [
-          `Official Source: ${be.source_authority} (${be.source_year})`,
-          be.estimated_subsidy_pct > 0
+          `Official Source: ${be.official_source || be.source_authority} (${be.source_year})`,
+          be.benefit ? be.benefit : (be.estimated_subsidy_pct > 0
             ? `Estimated Subsidy / Assistance: ₹${Math.round(be.estimated_subsidy_amount).toLocaleString('en-IN')} (${Math.round(be.estimated_subsidy_pct)}%)`
-            : 'Working capital credit assistance under official norms',
+            : 'Working capital credit assistance under official norms'),
           `Eligible Bank Loan: ₹${Math.round(be.eligible_loan_amount).toLocaleString('en-IN')}`,
           be.collateral_required ? 'Standard collateral required' : '100% Collateral-free credit support',
         ],
         reasons: be.why_this_scheme && be.why_this_scheme.length > 0
           ? be.why_this_scheme
-          : (be.reasons && be.reasons.length > 0 ? be.reasons : ['Eligibility evaluated against official scheme guidelines.']),
+          : (be.eligibility_reason ? [be.eligibility_reason] : (be.reasons && be.reasons.length > 0 ? be.reasons : ['Eligibility evaluated against official scheme guidelines.'])),
         matchingCriteria: {
           businessType: be.business_type_match || 'Evaluated against scheme sectoral eligibility list',
           location: be.location_match || 'Evaluated for rural/urban subsidy differential',
           investment: be.investment_match || `Project cost within ceiling limits`,
           stage: be.business_stage_match || 'Matches enterprise stage requirements',
         },
-        documents: [
-          'Udyam Registration Certificate',
-          'Detailed Project Report (DPR)',
-          'Bank Account Statements (6-12 Months)',
-          'Identity Proof (Aadhaar / PAN)',
-        ],
+        documents: (be.required_documents && be.required_documents.length > 0)
+          ? be.required_documents
+          : [
+              'Udyam Registration Certificate',
+              'Detailed Project Report (DPR)',
+              'Bank Account Statements (6-12 Months)',
+              'Identity Proof (Aadhaar / PAN)',
+            ],
         process: [
           'Verify eligibility criteria against project cost and social category.',
           'Generate Detailed Project Report (DPR).',
-          `Submit application via ${be.source_authority} portal.`,
+          `Submit application via ${be.official_source || be.source_authority} portal.`,
           'Bank appraisal & loan sanction.',
         ],
-        links: be.official_source_url ? [be.official_source_url] : ['Official Scheme Portal'],
+        links: be.official_source_url ? [be.official_source_url] : [be.official_source || 'Official Scheme Portal'],
         officialSourceUrl: be.official_source_url,
-        sourceAuthority: be.source_authority,
+        sourceAuthority: be.official_source || be.source_authority,
         sourceYear: be.source_year,
         isPrimary: be.isPrimary,
-        benefitType: be.estimated_subsidy_pct > 0 ? 'subsidy' : (be.collateral_required ? 'loan' : 'guarantee'),
+        benefitType: be.estimated_subsidy_pct > 0 || be.subsidy_loan_type?.toLowerCase().includes('subsidy') ? 'subsidy' : (be.collateral_required ? 'loan' : 'guarantee'),
       };
     });
   }, [backendSchemes]);
@@ -402,13 +430,15 @@ export default function SchemePage({
               <p className="text-xs font-black text-[#217954]">
                 Current matching status
               </p>
-              <div className="mt-2">
+              <div className="mt-2 flex items-center gap-2">
                 <EligibilityPill status={scheme.eligibility} />
+                <span className="text-xs font-black text-blue-700">{scheme.matchPercentage}% Match</span>
               </div>
-              <p className="mt-2 text-[10px] leading-4 text-[#5F7067]">
-                This is the current VITTANAYA screening state. Final eligibility
-                must be confirmed against the scheme's current rules and the
-                lender / authority review.
+              <p className="mt-2 text-xs font-semibold text-[#18211D]">
+                {scheme.eligibilityReason}
+              </p>
+              <p className="mt-1 text-[10px] leading-4 text-[#5F7067]">
+                Evaluated deterministically against official scheme criteria for business activity, investment ceiling, and location.
               </p>
             </div>
 

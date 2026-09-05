@@ -6,7 +6,8 @@ and backend handlers for all AI Copilot interactions.
 ZERO arbitrary SQL, ZERO arbitrary execution, ZERO direct frontend mutation.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
+
 from sqlalchemy.orm import Session
 
 from backend.app.core.logging import logger
@@ -14,9 +15,7 @@ from backend.app.engines.cost_engine import ProjectCostEngine
 from backend.app.engines.feasibility_engine import FeasibilityEngine
 from backend.app.engines.scheme_engine import SchemeEngine
 from backend.app.models.action_plan import ActionPlanTask
-from backend.app.models.business import Business
 from backend.app.repositories.business_repository import BusinessRepository
-from backend.app.schemas.action_plan import TaskItemSchema
 from backend.app.schemas.financial_plan import CashFlowForecastRequest, FundingStructureRequest
 from backend.app.services.ahp_service import get_ahp_result
 from backend.app.services.business_feasibility_service import BusinessFeasibilityService

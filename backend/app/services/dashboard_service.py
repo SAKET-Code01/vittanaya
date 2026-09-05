@@ -176,7 +176,7 @@ class DashboardService:
 
         # 10. Traceable Rule-Based Operational Priorities (Phase 11)
         priorities = []
-        
+
         # Priority A: Receivables / Cash buffer check
         if pending_rec_total > Decimal("0.00") or runway_days < 45:
             urgency = "URGENT" if runway_days < 30 else "ACTION_REQUIRED"
@@ -195,7 +195,7 @@ class DashboardService:
                 "route": "financial-plan",
                 "trigger_reason": f"Runway {runway_days}d < 45d or pending receivables ₹{pending_rec_total:,.0f} > 0",
             })
-            
+
         # Priority B: Working Capital / Scheme Gap
         if funding_gap_val > Decimal("0.00") or working_cap_ratio < 1.3:
             urgency = "URGENT" if working_cap_ratio < 1.0 else "RECOMMENDED"

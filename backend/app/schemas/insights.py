@@ -111,6 +111,7 @@ class MatchedScheme(BaseModel):
         ..., json_schema_extra={"example": "Prime Minister's Employment Generation Programme"}
     )
     eligible: bool = Field(..., description="True if project meets scheme parameters")
+    is_eligible: bool = Field(default=True, description="True if project meets scheme parameters")
     eligibility_status: str = Field(
         default="Likely Eligible",
         description="Eligibility status: 'Likely Eligible', 'Ineligible', or 'Eligibility cannot be verified from available data.'",
@@ -129,6 +130,12 @@ class MatchedScheme(BaseModel):
     )
     interest_subsidy_pct: float = Field(0.0, description="Interest subvention % if applicable")
     collateral_required: bool = Field(False, description="Whether bank collateral is mandatory")
+    match_percentage: float = Field(default=85.0, description="Deterministic match fit percentage 0-100")
+    eligibility_reason: Optional[str] = Field(None, description="Clear summary reason of match or ineligibility")
+    benefit: Optional[str] = Field(None, description="Summary of subsidy, loan or guarantee benefit")
+    subsidy_loan_type: Optional[str] = Field(None, description="Type of subsidy or loan assistance")
+    required_documents: List[str] = Field(default_factory=list, description="Required application documents")
+    official_source: Optional[str] = Field(None, description="Official ministry/authority name")
     reasons: List[str] = Field(
         ..., description="Eligibility criteria details or disqualification grounds"
     )
@@ -145,13 +152,16 @@ class MatchedScheme(BaseModel):
     official_source_url: Optional[str] = Field(None)
 
 
-
 class SchemeMatchResponse(BaseModel):
     """Response from Scheme Match Engine."""
 
-    eligible_schemes: List[MatchedScheme] = Field(default_factory=list)
-    ineligible_schemes: List[MatchedScheme] = Field(default_factory=list)
+    total_matched: int = Field(default=0, description="Total schemes evaluated")
+    eligible_count: int = Field(default=0, description="Count of eligible schemes")
+    ranked_schemes: List[MatchedScheme] = Field(default_factory=list, description="All schemes ranked by match percentage")
+    eligible_schemes: List[MatchedScheme] = Field(default_factory=list, description="Eligible schemes ranked by fit")
+    ineligible_schemes: List[MatchedScheme] = Field(default_factory=list, description="Ineligible or review required schemes")
     best_recommendation: Optional[MatchedScheme] = Field(None)
+    explanation: Optional[str] = Field(None, description="Advisory synthesis or explanation of matching logic")
     traceability: TraceabilityMetadata
 
 
