@@ -2,6 +2,90 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { advisoryService } from '../../services/advisoryService';
 import MarkdownRenderer from '../common/MarkdownRenderer';
 
+const LANGUAGES = [
+  'English',
+  'हिन्दी (Hindi)',
+  'ଓଡ଼ିଆ (Odia)',
+  'मराठी (Marathi)',
+  'বাংলা (Bengali)',
+  'தமிழ் (Tamil)',
+  'తెలుగు (Telugu)',
+  'ગુજરાતી (Gujarati)',
+];
+
+const LANGUAGE_CODE_MAP = {
+  'English': 'en',
+  'हिन्दी (Hindi)': 'hi',
+  'ଓଡ଼ିଆ (Odia)': 'or',
+  'मराठी (Marathi)': 'mr',
+  'বাংলা (Bengali)': 'bn',
+  'தமிழ் (Tamil)': 'ta',
+  'తెలుగు (Telugu)': 'te',
+  'ગુજરાતી (Gujarati)': 'gu',
+};
+
+const CODE_TO_LANGUAGE_MAP = {
+  'en': 'English',
+  'hi': 'हिन्दी (Hindi)',
+  'or': 'ଓଡ଼ିଆ (Odia)',
+  'mr': 'मराठी (Marathi)',
+  'bn': 'বাংলা (Bengali)',
+  'ta': 'தமிழ் (Tamil)',
+  'te': 'తెలుగు (Telugu)',
+  'gu': 'ગુજરાતી (Gujarati)',
+};
+
+const SPEECH_LANG_MAP = {
+  'English': 'en-IN',
+  'हिन्दी (Hindi)': 'hi-IN',
+  'ଓଡ଼ିଆ (Odia)': 'or-IN',
+  'मराठी (Marathi)': 'mr-IN',
+  'বাংলা (Bengali)': 'bn-IN',
+  'தமிழ் (Tamil)': 'ta-IN',
+  'తెలుగు (Telugu)': 'te-IN',
+  'ગુજરાતી (Gujarati)': 'gu-IN',
+};
+
+const PREFERRED_LANGUAGE_STORAGE_KEY = 'preferred_language';
+
+function getStoredLanguagePreference() {
+  try {
+    const raw = localStorage.getItem(PREFERRED_LANGUAGE_STORAGE_KEY);
+    if (!raw) return 'English';
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && parsed.preferred_language) {
+        const code = String(parsed.preferred_language).toLowerCase().trim();
+        if (CODE_TO_LANGUAGE_MAP[code]) {
+          return CODE_TO_LANGUAGE_MAP[code];
+        }
+      }
+    } catch {
+      // not JSON, fallback to raw string
+    }
+    const clean = raw.trim().toLowerCase();
+    if (CODE_TO_LANGUAGE_MAP[clean]) {
+      return CODE_TO_LANGUAGE_MAP[clean];
+    }
+    if (LANGUAGES.includes(raw.trim())) {
+      return raw.trim();
+    }
+  } catch (err) {
+    console.warn('Could not read preferred_language from localStorage:', err);
+  }
+  return 'English';
+}
+
+function persistLanguagePreference(languageLabel) {
+  try {
+    const code = LANGUAGE_CODE_MAP[languageLabel] || 'en';
+    const payload = { preferred_language: code };
+    localStorage.setItem(PREFERRED_LANGUAGE_STORAGE_KEY, JSON.stringify(payload));
+  } catch (err) {
+    console.warn('Could not write preferred_language to localStorage:', err);
+  }
+}
+
 /**
  * AskVittanayaModal Component — Production AI Business Copilot
  * 
@@ -25,7 +109,7 @@ export default function AskVittanayaModal({
 }) {
   // Display modes: 'default' | 'expanded' | 'fullscreen'
   const [chatMode, setChatMode] = useState('default');
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [selectedLanguage, setSelectedLanguage] = useState(getStoredLanguagePreference);
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -103,16 +187,12 @@ export default function AskVittanayaModal({
     }
   }, [isOpen, businessName, businessLocation, businessCategory, currentProfile?.user_name, messages.length]);
 
-  const languages = [
-    'English',
-    'हिन्दी (Hindi)',
-    'ଓଡ଼ିଆ (Odia)',
-    'मराठी (Marathi)',
-    'বাংলা (Bengali)',
-    'தமிழ் (Tamil)',
-    'తెలుగు (Telugu)',
-    'ગુજરાતી (Gujarati)',
-  ];
+  const languages = LANGUAGES;
+
+  const handleLanguageChange = (newLanguage) => {
+    setSelectedLanguage(newLanguage);
+    persistLanguagePreference(newLanguage);
+  };
 
   const suggestedQuestions = [
     'Explain my feasibility score',
@@ -146,18 +226,7 @@ export default function AskVittanayaModal({
       const recognition = new SpeechRec();
       recognition.continuous = false;
       recognition.interimResults = true;
-
-      const langMap = {
-        'English': 'en-IN',
-        'हिन्दी (Hindi)': 'hi-IN',
-        'ଓଡ଼ିଆ (Odia)': 'or-IN',
-        'मराठी (Marathi)': 'mr-IN',
-        'বাংলা (Bengali)': 'bn-IN',
-        'தமிழ் (Tamil)': 'ta-IN',
-        'తెలుగు (Telugu)': 'te-IN',
-        'ગુજરાતી (Gujarati)': 'gu-IN',
-      };
-      recognition.lang = langMap[selectedLanguage] || 'en-IN';
+      recognition.lang = SPEECH_LANG_MAP[selectedLanguage] || 'en-IN';
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -226,14 +295,14 @@ export default function AskVittanayaModal({
     window.speechSynthesis.cancel();
     const cleanText = text.replace(/[*_#`[\]()]/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'en-IN';
+    utterance.lang = SPEECH_LANG_MAP[selectedLanguage] || 'en-IN';
     utterance.rate = 1.0;
     utterance.onend = () => setIsSpeakingId(null);
     utterance.onerror = () => setIsSpeakingId(null);
 
     setIsSpeakingId(msgId);
     window.speechSynthesis.speak(utterance);
-  }, [isSpeakingId]);
+  }, [isSpeakingId, selectedLanguage]);
 
   const toggleDetails = (msgId) => {
     setExpandedDetails((prev) => ({
@@ -423,7 +492,7 @@ export default function AskVittanayaModal({
             {/* Language Selector */}
             <select
               value={selectedLanguage}
-              onChange={(e) => setSelectedLanguage(e.target.value)}
+              onChange={(e) => handleLanguageChange(e.target.value)}
               className="bg-white/10 hover:bg-white/15 text-white text-[11px] sm:text-xs font-semibold rounded-xl px-2 sm:px-2.5 py-1 sm:py-1.5 border border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer transition-colors max-w-[110px] sm:max-w-none"
               aria-label="Select Advisory Language"
             >

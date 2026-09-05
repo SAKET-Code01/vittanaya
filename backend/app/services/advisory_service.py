@@ -9,11 +9,13 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from backend.app.core.logging import logger
+from backend.app.engines.ai_advisor import GroqProvider
 from backend.app.engines.cost_engine import ProjectCostEngine
 from backend.app.engines.feasibility_engine import FeasibilityEngine
 from backend.app.engines.risk_engine import RiskEngine
 from backend.app.engines.scheme_engine import SchemeEngine
 from backend.app.engines.whatif_engine import WhatIfEngine
+from backend.app.models.action_plan import ActionPlanTask
 from backend.app.nlp.intent_classifier import classify_intent
 from backend.app.repositories.business_repository import BusinessRepository
 from backend.app.schemas.advisory import (
@@ -28,14 +30,80 @@ from backend.app.schemas.financial_plan import CashFlowForecastRequest, FundingS
 from backend.app.schemas.industry import IndustryAnalysisRequest
 from backend.app.schemas.insights import TraceabilityMetadata
 from backend.app.schemas.ml import PredictiveMlRequest
-from backend.app.engines.ai_advisor import GroqProvider
-from backend.app.models.action_plan import ActionPlanTask
 from backend.app.services.ahp_service import get_ahp_result
 from backend.app.services.business_feasibility_service import BusinessFeasibilityService
 from backend.app.services.cash_flow_service import MINIMUM_BUFFER_MONTHS_COVERAGE, CashFlowService
 from backend.app.services.copilot_tools import CopilotToolRegistry
 from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.industry_service import IndustryService
+
+LANGUAGE_NORMALIZATION: dict[str, str] = {
+    # ISO 639-1
+    "en": "English",
+    "hi": "Hindi",
+    "or": "Odia",
+    "mr": "Marathi",
+    "bn": "Bengali",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "gu": "Gujarati",
+    # English names
+    "english": "English",
+    "hindi": "Hindi",
+    "odia": "Odia",
+    "oriya": "Odia",
+    "marathi": "Marathi",
+    "bengali": "Bengali",
+    "tamil": "Tamil",
+    "telugu": "Telugu",
+    "gujarati": "Gujarati",
+}
+
+
+def resolve_target_language(raw_lang: Optional[str]) -> Optional[str]:
+    """Resolve user-selected language into canonical name for prompt synthesis.
+
+    Priority order:
+    1. User-selected language from request/dropdown (e.g. 'English', 'Odia', 'Hindi', 'or', 'hi')
+    2. Auto language detection only when raw_lang is None, empty, or 'auto'
+    3. Default English fallback
+    """
+    if not raw_lang:
+        return None
+    cleaned = raw_lang.strip()
+    if not cleaned or cleaned.lower() in ("auto", "none", "detect", "auto-detect"):
+        return None
+
+    # Handle parenthetical display names, e.g. "ଓଡ଼ିଆ (Odia)" -> "Odia", "हिन्दी (Hindi)" -> "Hindi"
+    if "(" in cleaned and ")" in cleaned:
+        inside = cleaned[cleaned.find("(") + 1 : cleaned.find(")")].strip()
+        inside_lower = inside.lower()
+        if inside_lower in LANGUAGE_NORMALIZATION:
+            return LANGUAGE_NORMALIZATION[inside_lower]
+        if inside:
+            return inside
+
+    cleaned_lower = cleaned.lower()
+    if cleaned_lower in LANGUAGE_NORMALIZATION:
+        return LANGUAGE_NORMALIZATION[cleaned_lower]
+
+    # Native script keywords
+    if any(k in cleaned for k in ["हिन्दी", "हिंदी"]):
+        return "Hindi"
+    if any(k in cleaned for k in ["ଓଡ଼ିଆ", "ଉଡ଼ିଆ"]):
+        return "Odia"
+    if "मराठी" in cleaned:
+        return "Marathi"
+    if "বাংলা" in cleaned:
+        return "Bengali"
+    if "தமிழ்" in cleaned:
+        return "Tamil"
+    if "తెలుగు" in cleaned:
+        return "Telugu"
+    if "ગુજરાતી" in cleaned:
+        return "Gujarati"
+
+    return cleaned
 
 
 class AdvisoryService:
@@ -884,22 +952,41 @@ class AdvisoryService:
         if groq.is_available():
             try:
                 facts_str = "; ".join([f"{k.label}: {k.value}" for k in key_facts])
+                target_lang = resolve_target_language(lang)
+                if target_lang and target_lang.lower() != "auto":
+                    lang_rules = (
+                        "CRITICAL MANDATORY LANGUAGE INSTRUCTION (STRICT PRIORITY OVERRIDE):\n"
+                        f"The user has explicitly selected '{target_lang}' as their preferred language.\n"
+                        f"You MUST generate your entire response ONLY in {target_lang}, regardless of what language the user typed their message in.\n"
+                        f"- If the user message is in Odia and selected language is English: You MUST reply in English.\n"
+                        f"- If the user message is in English and selected language is Odia: You MUST reply in Odia.\n"
+                        f"- If the user message is in English and selected language is Hindi: You MUST reply in Hindi.\n"
+                        f"- Do NOT auto-detect or switch away from {target_lang}. Manual selection has highest priority.\n"
+                        "- Never say 'I detected your language' or mention language preference or settings.\n"
+                        "- Keep financial, scheme, and technical terms accurate; do not mistranslate official names.\n\n"
+                    )
+                else:
+                    lang_rules = (
+                        "LANGUAGE RULES:\n"
+                        "1. No manual language preference specified. Detect the language of the user's message automatically.\n"
+                        "2. Reply entirely in that detected language. If the user mixes languages, use the dominant one naturally.\n"
+                        "3. If the language cannot be determined, fall back to English.\n"
+                        "4. Never say 'I detected your language' or mention language detection at all.\n"
+                        "5. Keep financial and business terms accurate; do not mistranslate technical terms.\n\n"
+                    )
+
                 system_prompt = (
                     "You are Ask VITTANAYA, an AI Business Copilot helping rural micro-entrepreneurs with "
                     "feasibility analysis, financial planning, loan calculations, government schemes, and business decisions.\n\n"
-                    "LANGUAGE RULES:\n"
-                    "1. Detect the language of the user's message automatically.\n"
-                    "2. Reply entirely in that detected language. If the user mixes languages, use the dominant one naturally.\n"
-                    "3. Never say 'I detected your language' or mention language detection at all.\n"
-                    "4. Keep financial and business terms accurate; do not mistranslate technical terms.\n\n"
+                    f"{lang_rules}"
                     "ADVISORY RULES:\n"
-                    "5. Always answer the actual question first — never give generic capability descriptions.\n"
-                    "6. Maintain a professional, confident advisory tone suited to an entrepreneur audience.\n"
-                    "7. Use the EXACT numbers, rupee amounts, percentages and business data provided below. NEVER alter, hallucinate, or fabricate any figures.\n"
-                    "8. Keep the answer focused: 2–3 short paragraphs, direct and actionable.\n"
-                    "9. Preserve official compliance disclaimers verbatim (e.g., 'Final eligibility is subject to the implementing authority').\n"
-                    "10. Do NOT start with repetitive greetings like 'Namaste! I am Ask VITTANAYA'.\n"
-                    "11. Use clean markdown formatting. No raw JSON or internal diagnostic codes."
+                    "1. Always answer the actual question first — never give generic capability descriptions.\n"
+                    "2. Maintain a professional, confident advisory tone suited to an entrepreneur audience.\n"
+                    "3. Use the EXACT numbers, rupee amounts, percentages and business data provided below. NEVER alter, hallucinate, or fabricate any figures.\n"
+                    "4. Keep the answer focused: 2–3 short paragraphs, direct and actionable.\n"
+                    "5. Preserve official compliance disclaimers verbatim (e.g., 'Final eligibility is subject to the implementing authority').\n"
+                    "6. Do NOT start with repetitive greetings like 'Namaste! I am Ask VITTANAYA'.\n"
+                    "7. Use clean markdown formatting. No raw JSON or internal diagnostic codes."
                 )
                 user_prompt = (
                     f"User Query: {raw_msg}\n\n"
