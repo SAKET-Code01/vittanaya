@@ -76,10 +76,8 @@ class FinancialPlanService:
 
         if payload.own_capital is not None:
             own_margin_capital = min(project_cost, max(0.0, float(payload.own_capital)))
-            margin_pct = round((own_margin_capital / project_cost * 100.0), 2) if project_cost > 0 else margin_pct
         elif own_capital_val > 0:
             own_margin_capital = min(project_cost, own_capital_val)
-            margin_pct = round((own_margin_capital / project_cost * 100.0), 2) if project_cost > 0 else margin_pct
         else:
             own_margin_capital = round((project_cost * margin_pct) / 100.0, 2)
             own_margin_capital = min(project_cost, own_margin_capital)

@@ -19,7 +19,7 @@ import PredictiveMlCard from '../components/dashboard/PredictiveMlCard';
  */
 
 const formatINR = (value) => {
-  if (value === undefined || value === null || isNaN(value)) return 'Not available';
+  if (value === undefined || value === null || isNaN(value)) return 'Data unavailable';
   const val = Math.round(value);
   if (val < 0) {
     return `-₹ ${Math.abs(val).toLocaleString('en-IN')}`;
@@ -177,12 +177,14 @@ const KpiCard = ({
   );
 };
 
-export default function FinancialPlanPage({
+function FinancialPlanPageContent({
   currentProfile: propProfile,
   onNavigateHome,
 }) {
   const { currentProfile: contextProfile } = useWorkspace();
   const currentProfile = propProfile || contextProfile;
+  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
+  const navigateBack = onNavigateHome || (() => window.history.back());
 
   // Authoritative Business Profile Inputs
   const savedProjectCost = useMemo(() => {
@@ -239,6 +241,26 @@ export default function FinancialPlanPage({
   // Provenance & Source state
   const [costProvenance, setCostProvenance] = useState(savedProjectCost ? 'User provided' : null);
 
+  // Backend Data States
+  const [fundingData, setFundingData] = useState(null);
+  const [backendCost, setBackendCost] = useState(null);
+  const [backendSimulation, setBackendSimulation] = useState(null);
+
+  // UI Panels Toggle States
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showMarginReason, setShowMarginReason] = useState(false);
+  const [showLoanCalculation, setShowLoanCalculation] = useState(false);
+  const [showAffordability, setShowAffordability] = useState(false);
+  const [showStressTest, setShowStressTest] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [stressMode, setStressMode] = useState(false);
+
+  // Loading and Error States
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
   // Authoritative Card Label and Provenance Subtitle
   const resolvedCardLabel = useMemo(() => {
     if (isEstablished) return 'Target Financing / Facility';
@@ -266,26 +288,6 @@ export default function FinancialPlanPage({
     }
     return 'Source: NABARD benchmark';
   }, [projectCostInput, fundingData?.source_name, fundingData?.source_type, savedProjectCost, costProvenance]);
-
-  // UI Panels Toggle States
-  const [showBreakdown, setShowBreakdown] = useState(false);
-  const [showMarginReason, setShowMarginReason] = useState(false);
-  const [showLoanCalculation, setShowLoanCalculation] = useState(false);
-  const [showAffordability, setShowAffordability] = useState(false);
-  const [showStressTest, setShowStressTest] = useState(false);
-  const [showSchedule, setShowSchedule] = useState(false);
-  const [stressMode, setStressMode] = useState(false);
-
-  // Backend Data States
-  const [fundingData, setFundingData] = useState(null);
-  const [backendCost, setBackendCost] = useState(null);
-  const [backendSimulation, setBackendSimulation] = useState(null);
-
-  // Loading and Error States
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
   // 1. Authoritative Backend Funding Structure Fetcher
   const recalculateFundingStructure = useCallback(
@@ -403,7 +405,7 @@ export default function FinancialPlanPage({
     return () => {
       isMounted = false;
     };
-  }, [savedProjectCost, activeCategory, activeTradeName, activeActivity, activeLocation, userOwnCapital]);
+  }, [savedProjectCost, activeCategory, activeTradeName, activeActivity, activeLocation, userOwnCapital, currentProfile?.id]);
 
   // Recalculate on input change
   const handleCostChange = (newCost) => {
@@ -516,9 +518,6 @@ export default function FinancialPlanPage({
       setIsSimulating(false);
     }
   };
-
-  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
-  const navigateBack = onNavigateHome || (() => window.history.back());
 
   // Grounded Values Sourced Authoritatively from Backend Funding Structure
   const ownMarginCapital = useMemo(
@@ -641,6 +640,17 @@ export default function FinancialPlanPage({
             ← Back to Dashboard
           </button>
         </div>
+
+        {/* LOADING STATE INDICATOR */}
+        {isLoading && !isError && (
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs text-blue-900 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent shrink-0" />
+              <span className="font-bold">Syncing authoritative financial structure with backend services...</span>
+            </div>
+            <span className="text-[11px] font-semibold text-blue-700">Loading ground data</span>
+          </div>
+        )}
 
         {/* ERROR STATE ALERT */}
         {isError && (
@@ -1307,5 +1317,13 @@ export default function FinancialPlanPage({
         </div>
       )}
     </div>
+  );
+}
+
+export default function FinancialPlanPage(props) {
+  return (
+    <SectionErrorBoundary name="Financial Plan">
+      <FinancialPlanPageContent {...props} />
+    </SectionErrorBoundary>
   );
 }
