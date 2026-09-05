@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { feasibilityService } from '../services/feasibilityService';
 import { financeService } from '../services/financeService';
+import { businessService } from '../services/businessService';
 import CashFlowSection from '../components/dashboard/CashFlowSection';
 import IndustryKpiCard from '../components/dashboard/IndustryKpiCard';
 import PredictiveMlCard from '../components/dashboard/PredictiveMlCard';
@@ -236,7 +237,35 @@ export default function FinancialPlanPage({
   const [interestRate, setInterestRate] = useState(8.5);
 
   // Provenance & Source state
-  const [costProvenance, setCostProvenance] = useState(savedProjectCost ? 'User Profile Configuration' : null);
+  const [costProvenance, setCostProvenance] = useState(savedProjectCost ? 'User provided' : null);
+
+  // Authoritative Card Label and Provenance Subtitle
+  const resolvedCardLabel = useMemo(() => {
+    if (isEstablished) return 'Target Financing / Facility';
+    if (fundingData?.project_cost_label) return fundingData.project_cost_label;
+    if (fundingData?.source_type === 'USER_PROVIDED' || (savedProjectCost && savedProjectCost > 0)) {
+      return 'Planned Project Cost';
+    }
+    if (fundingData?.source_type === 'CALCULATED') {
+      return 'Calculated Project Cost';
+    }
+    return 'Estimated Project Cost';
+  }, [isEstablished, fundingData?.project_cost_label, fundingData?.source_type, savedProjectCost]);
+
+  const resolvedCardSubtitle = useMemo(() => {
+    if (projectCostInput === null) return 'Configure in Business Profile';
+    if (fundingData?.source_name) {
+      const src = fundingData.source_name === 'User Input' ? 'User provided' : fundingData.source_name;
+      return `Source: ${src}`;
+    }
+    if (fundingData?.source_type === 'USER_PROVIDED' || (savedProjectCost && savedProjectCost > 0)) {
+      return 'Source: User provided';
+    }
+    if (costProvenance) {
+      return `Source: ${costProvenance}`;
+    }
+    return 'Source: NABARD benchmark';
+  }, [projectCostInput, fundingData?.source_name, fundingData?.source_type, savedProjectCost, costProvenance]);
 
   // UI Panels Toggle States
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -279,6 +308,7 @@ export default function FinancialPlanPage({
         const response = await financeService.calculateFundingStructure({
           business_id: currentProfile?.id ? Number(currentProfile.id) : undefined,
           project_cost: validatedCost,
+          own_capital: userOwnCapital != null ? userOwnCapital : undefined,
           margin_pct: validatedMargin,
           interest_rate_annual: validatedRate,
           tenure_years: validatedTenure,
@@ -287,11 +317,15 @@ export default function FinancialPlanPage({
           business_activity: activeActivity,
           business_name: activeTradeName,
           location: activeLocation,
+          source_type: (savedProjectCost && savedProjectCost > 0) || costProvenance?.includes('User') ? 'USER_PROVIDED' : undefined,
         });
 
         const data = response?.data || response;
         if (data && typeof data === 'object') {
           setFundingData(data);
+          if (data.source_name) {
+            setCostProvenance(data.source_name === 'User Input' ? 'User provided' : data.source_name);
+          }
         } else {
           throw new Error('Invalid backend funding response structure');
         }
@@ -306,7 +340,7 @@ export default function FinancialPlanPage({
         setIsLoading(false);
       }
     },
-    [activeCategory, activeActivity, activeTradeName, activeLocation, currentProfile?.id]
+    [activeCategory, activeActivity, activeTradeName, activeLocation, currentProfile?.id, userOwnCapital, savedProjectCost, costProvenance]
   );
 
   // 2. Fetch Project Cost based on Priority Hierarchy:
@@ -319,7 +353,7 @@ export default function FinancialPlanPage({
     if (savedProjectCost && savedProjectCost > 0) {
       setProjectCostInput(savedProjectCost);
       setMarginPct(profileMarginPct);
-      setCostProvenance('User Profile Configuration');
+      setCostProvenance('User provided');
       recalculateFundingStructure(savedProjectCost, profileMarginPct, interestRate, loanTenureYears);
       return;
     }
@@ -342,7 +376,7 @@ export default function FinancialPlanPage({
           const costVal = Number(data.indicative_project_cost);
           setBackendCost(data);
           setProjectCostInput(costVal);
-          setCostProvenance(data.source_authority || 'NABARD Odisha Reference Library');
+          setCostProvenance(data.source_authority || 'NABARD benchmark');
           recalculateFundingStructure(costVal, marginPct, interestRate, loanTenureYears);
         } else if (isMounted) {
           setProjectCostInput(null);
@@ -369,10 +403,22 @@ export default function FinancialPlanPage({
   const handleCostChange = (newCost) => {
     const val = Math.max(1000, newCost);
     setProjectCostInput(val);
-    setCostProvenance('User Interactive Parameter');
+    setCostProvenance('User provided');
     setBackendSimulation(null);
     setStressMode(false);
     recalculateFundingStructure(val, marginPct, interestRate, loanTenureYears);
+
+    // Persist to backend and update current workspace profile
+    if (currentProfile?.id) {
+      businessService.updateBusiness({ project_cost: val }, currentProfile.id).catch((err) => {
+        console.warn('Backend project cost update notice:', err);
+      });
+      if (currentProfile) {
+        currentProfile.project_cost = val;
+        currentProfile.projectCost = val;
+        currentProfile.estimatedProjectCost = val;
+      }
+    }
   };
 
   const handleMarginChange = (newMargin) => {
@@ -593,9 +639,9 @@ export default function FinancialPlanPage({
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
           <KpiCard
             icon="◔"
-            label={isEstablished ? 'Target Financing / Facility' : 'Project Cost'}
+            label={resolvedCardLabel}
             value={isLoading ? 'Calculating...' : (projectCostInput !== null ? formatINR(projectCostInput) : 'Not configured')}
-            subtitle={projectCostInput !== null ? (costProvenance ? `Source: ${costProvenance}` : 'Total CapEx + Working Capital') : 'Configure in Business Profile'}
+            subtitle={resolvedCardSubtitle}
             action={
               <SmallAction onClick={() => setShowBreakdown((v) => !v)}>
                 {showBreakdown ? 'Hide' : 'View Breakdown'} <Arrow />
@@ -753,7 +799,7 @@ export default function FinancialPlanPage({
 
             <div className="mt-6 space-y-5">
               <SliderRow
-                label="Total Project Cost"
+                label={resolvedCardLabel}
                 value={projectCostInput ?? 0}
                 displayValue={formatINR(projectCostInput)}
                 min={100000}

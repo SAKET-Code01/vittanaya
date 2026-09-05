@@ -96,6 +96,9 @@ export default function DashboardKPIGrid({
   ownCapital = null,
   subsidyPct = null,
   estimatedProjectCost = null,
+  maxSupportableProjectSize = null,
+  projectCostLabel = 'Estimated Project Cost',
+  projectCostSourceName = 'NABARD benchmark',
   breakevenEstimate = null,
   readinessLabel = null,
   readinessCountContext = null,
@@ -137,13 +140,17 @@ export default function DashboardKPIGrid({
     },
     {
       id: 'kpi-project-size',
-      label: 'Max Project Size',
-      value: estimatedProjectCost != null && Number(estimatedProjectCost) > 0
-        ? `₹ ${(Number(estimatedProjectCost) / 100000).toFixed(2)} Lakh`
-        : (isLoading ? '...' : 'Not available'),
-      context: estimatedProjectCost != null && Number(estimatedProjectCost) > 0
-        ? 'Supported by margin leverage'
-        : 'Project cost awaiting DPR',
+      label: 'Maximum Supportable Project Size',
+      value: maxSupportableProjectSize != null && Number(maxSupportableProjectSize) > 0
+        ? (Number(maxSupportableProjectSize) >= 100000
+            ? `₹ ${(Number(maxSupportableProjectSize) / 100000).toFixed(2)} Lakh`
+            : `₹ ${Number(maxSupportableProjectSize).toLocaleString('en-IN')}`)
+        : (estimatedProjectCost != null && Number(estimatedProjectCost) > 0
+            ? `₹ ${(Number(estimatedProjectCost) / 100000).toFixed(2)} Lakh`
+            : (isLoading ? '...' : 'Not available')),
+      context: maxSupportableProjectSize != null && Number(maxSupportableProjectSize) > 0
+        ? `Derived from ₹${Number(ownCapital || 0).toLocaleString('en-IN')} own capital (10% margin limit)`
+        : 'Supported by margin leverage',
       icon: 'target',
       iconContainer: 'bg-blue-50 text-blue-600 border border-blue-100',
       valueColor: 'text-slate-900',

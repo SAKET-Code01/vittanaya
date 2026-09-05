@@ -10,6 +10,7 @@ Never invent project costs.
 """
 
 import re
+from dataclasses import dataclass
 from typing import Optional
 
 from fastapi import HTTPException, status
@@ -24,6 +25,19 @@ PRIORITY_ORDER = [
     "ODISHA_OBSERVED_PRIMARY",
     "INDIA_OFFICIAL_FALLBACK",
 ]
+
+
+@dataclass
+class ResolvedProjectCost:
+    """Authoritative resolved project cost with strict source priority and provenance."""
+    project_cost: float
+    source_type: str  # "USER_PROVIDED", "CALCULATED", "BENCHMARK_ESTIMATE"
+    source_name: str  # "User Input", "Financial Engine", "NABARD benchmark"
+    label: str        # "Planned Project Cost", "Calculated Project Cost", "Estimated Project Cost"
+    benchmark_cost: float
+    max_supportable_project_size: float
+    is_user_provided: bool
+    own_capital: float
 
 
 class ProjectCostEngine:
@@ -233,3 +247,93 @@ class ProjectCostEngine:
 
         # Fall back to top priority match
         return sorted_matches[0]
+
+    def resolve_project_cost(
+        self,
+        business_id: Optional[int] = None,
+        explicit_project_cost: Optional[float] = None,
+        explicit_own_capital: Optional[float] = None,
+        business_activity: Optional[str] = None,
+        business_category: Optional[str] = None,
+        location: str = "Odisha",
+    ) -> ResolvedProjectCost:
+        """Resolve authoritative project cost with strict source priority:
+        1. USER-ENTERED PLANNED PROJECT COST (explicit_project_cost > 0 or business.project_cost > 0)
+        2. AUTHORITATIVE CALCULATED PROJECT COST
+        3. CATEGORY/SECTOR BENCHMARK (from NABARD unit costs via get_indicative_cost)
+
+        Also calculates Maximum Supportable Project Size based on own capital leverage
+        without overwriting the actual/estimated project cost.
+        """
+        db_biz = None
+        if business_id:
+            db_biz = self.db.query(Business).filter(Business.id == business_id).first()
+
+        own_cap = float(
+            explicit_own_capital
+            if explicit_own_capital is not None
+            else (float(db_biz.own_capital) if db_biz and db_biz.own_capital is not None else 0.0)
+        )
+        act = business_activity or (db_biz.industry if db_biz else None) or (db_biz.name if db_biz else "General Enterprise")
+        cat = business_category or (db_biz.category if db_biz else None) or (db_biz.type if db_biz else "General")
+        loc = location or (f"{db_biz.location_district}, {db_biz.location_state}" if db_biz and db_biz.location_district else "Odisha")
+
+        # Benchmark cost lookup
+        benchmark_cost = 500000.0
+        bench_source = "NABARD benchmark"
+        try:
+            bench_res = self.get_indicative_cost(
+                business_activity=act,
+                business_category=cat,
+                location=loc,
+                business_id=business_id,
+            )
+            benchmark_cost = float(bench_res.indicative_project_cost)
+            if "NABARD" in (bench_res.source_authority or ""):
+                bench_source = "NABARD benchmark"
+            elif bench_res.source_authority:
+                bench_source = f"{bench_res.source_authority} benchmark"
+        except Exception:
+            benchmark_cost = 500000.0
+
+        # Maximum Supportable Project Size from own margin leverage (10% standard margin requirement)
+        # e.g., ₹500 own capital supports up to ₹5,000 project size.
+        # e.g., ₹2,00,000 own capital supports up to ₹20,00,000 project size.
+        # Capped at ₹50,00,000 (standard PMEGP micro-enterprise ceiling).
+        if own_cap > 0:
+            calc_max_size = round(own_cap / 0.10, 2)
+            max_supportable = min(5000000.0, calc_max_size)
+        else:
+            max_supportable = 0.0
+
+        # Source priority:
+        # Priority 1: User-entered planned project cost
+        user_cost = None
+        if explicit_project_cost is not None and explicit_project_cost > 0:
+            user_cost = float(explicit_project_cost)
+        elif db_biz and float(db_biz.project_cost or 0.0) > 0:
+            user_cost = float(db_biz.project_cost)
+
+        if user_cost is not None:
+            return ResolvedProjectCost(
+                project_cost=user_cost,
+                source_type="USER_PROVIDED",
+                source_name="User Input",
+                label="Planned Project Cost",
+                benchmark_cost=benchmark_cost,
+                max_supportable_project_size=max_supportable,
+                is_user_provided=True,
+                own_capital=own_cap,
+            )
+
+        # Priority 3 (Fallback): Sector Benchmark
+        return ResolvedProjectCost(
+            project_cost=benchmark_cost,
+            source_type="BENCHMARK_ESTIMATE",
+            source_name=bench_source,
+            label="Estimated Project Cost",
+            benchmark_cost=benchmark_cost,
+            max_supportable_project_size=max_supportable,
+            is_user_provided=False,
+            own_capital=own_cap,
+        )

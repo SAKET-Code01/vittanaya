@@ -6,6 +6,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from backend.app.engines.cashflow_engine import CashflowEngine
+from backend.app.engines.cost_engine import ProjectCostEngine
 from backend.app.engines.financial_structure_engine import FinancialStructureEngine
 from backend.app.engines.liquidity_engine import LiquidityEngine
 from backend.app.repositories.business_repository import BusinessRepository
@@ -177,6 +178,17 @@ class DashboardService:
         # 10. Traceable Rule-Based Operational Priorities (Phase 11)
         priorities = []
 
+        # 11. Authoritative Project Cost & Supportable Size Resolution
+        cost_engine = ProjectCostEngine(self.db)
+        resolved_cost = cost_engine.resolve_project_cost(
+            business_id=business.id,
+            explicit_project_cost=float(business.project_cost) if business.project_cost and float(business.project_cost) > 0 else None,
+            explicit_own_capital=float(business.own_capital) if business.own_capital is not None else None,
+            business_activity=business.industry or business.name,
+            business_category=business.category or business.type,
+            location=f"{business.location_district}, {business.location_state}" if business.location_district else "Odisha",
+        )
+
         # Priority A: Receivables / Cash buffer check
         if pending_rec_total > Decimal("0.00") or runway_days < 45:
             urgency = "URGENT" if runway_days < 30 else "ACTION_REQUIRED"
@@ -256,6 +268,12 @@ class DashboardService:
             pending_receivables_total=pending_rec_total,
             pending_payables_total=pending_pay_total,
             funding_gap=funding_gap_val,
+            project_cost=resolved_cost.project_cost,
+            project_cost_source_type=resolved_cost.source_type,
+            project_cost_source_name=resolved_cost.source_name,
+            project_cost_label=resolved_cost.label,
+            max_supportable_project_size=resolved_cost.max_supportable_project_size,
+            benchmark_cost=resolved_cost.benchmark_cost,
             readiness_score=r_score,
             readiness_label=r_label,
             readiness_status=r_status,

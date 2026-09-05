@@ -121,33 +121,64 @@ export default function NewBusinessDashboard({
     ? Math.round(topScheme.estimated_subsidy_pct)
     : (schemeData?.ineligible_schemes?.length ? 0 : null);
 
-  const estimatedProjectCost = useMemo(() => {
+  const resolvedProjectCost = useMemo(() => {
     if (profile.project_cost && Number(profile.project_cost) > 0) return Number(profile.project_cost);
-    if (feasibilityData?.business_project_cost && feasibilityData.business_project_cost > 0) return feasibilityData.business_project_cost;
-    if (feasibilityData?.reference_project_cost && feasibilityData.reference_project_cost > 0) return feasibilityData.reference_project_cost;
+    if (feasibilityData?.resolved_project_cost && feasibilityData.resolved_project_cost > 0) {
+      return Number(feasibilityData.resolved_project_cost);
+    }
+    if (feasibilityData?.business_project_cost && feasibilityData.business_project_cost > 0) {
+      return Number(feasibilityData.business_project_cost);
+    }
+    if (feasibilityData?.reference_project_cost && feasibilityData.reference_project_cost > 0) {
+      return Number(feasibilityData.reference_project_cost);
+    }
     if (topScheme?.max_eligible_cost && topScheme.max_eligible_cost > 0) return topScheme.max_eligible_cost;
     return null;
   }, [profile.project_cost, feasibilityData, topScheme]);
+
+  const projectCostLabel = useMemo(() => {
+    if (profile.project_cost && Number(profile.project_cost) > 0) return 'Planned Project Cost';
+    if (feasibilityData?.project_cost_label) return feasibilityData.project_cost_label;
+    return 'Estimated Project Cost';
+  }, [profile.project_cost, feasibilityData]);
+
+  const projectCostSourceName = useMemo(() => {
+    if (profile.project_cost && Number(profile.project_cost) > 0) return 'User provided';
+    if (feasibilityData?.project_cost_source_name) {
+      return feasibilityData.project_cost_source_name === 'User Input' ? 'User provided' : feasibilityData.project_cost_source_name;
+    }
+    return 'NABARD benchmark';
+  }, [profile.project_cost, feasibilityData]);
+
+  const maxSupportableProjectSize = useMemo(() => {
+    if (feasibilityData?.max_supportable_project_size != null && feasibilityData.max_supportable_project_size > 0) {
+      return feasibilityData.max_supportable_project_size;
+    }
+    if (ownCapital && Number(ownCapital) > 0) {
+      return Math.min(5000000, Math.round(Number(ownCapital) / 0.10));
+    }
+    return null;
+  }, [feasibilityData?.max_supportable_project_size, ownCapital]);
 
   const estimatedSubsidy = useMemo(() => {
     if (topScheme?.estimated_subsidy_amount != null && topScheme.estimated_subsidy_amount > 0) {
       return Math.round(topScheme.estimated_subsidy_amount);
     }
-    if (estimatedProjectCost && subsidyPct != null) {
-      return Math.round(estimatedProjectCost * (subsidyPct / 100));
+    if (resolvedProjectCost && subsidyPct != null) {
+      return Math.round(resolvedProjectCost * (subsidyPct / 100));
     }
     return null;
-  }, [topScheme, estimatedProjectCost, subsidyPct]);
+  }, [topScheme, resolvedProjectCost, subsidyPct]);
 
   const estimatedBankLoan = useMemo(() => {
     if (topScheme?.eligible_loan_amount != null && topScheme.eligible_loan_amount > 0) {
       return Math.round(topScheme.eligible_loan_amount);
     }
-    if (estimatedProjectCost && ownCapital != null) {
-      return Math.max(0, Math.round(estimatedProjectCost - ownCapital - (estimatedSubsidy || 0)));
+    if (resolvedProjectCost && ownCapital != null) {
+      return Math.max(0, Math.round(resolvedProjectCost - ownCapital - (estimatedSubsidy || 0)));
     }
     return null;
-  }, [topScheme, estimatedProjectCost, ownCapital, estimatedSubsidy]);
+  }, [topScheme, resolvedProjectCost, ownCapital, estimatedSubsidy]);
 
   const estimatedEmi = useMemo(() => {
     if (estimatedBankLoan && estimatedBankLoan > 0) {
@@ -212,7 +243,10 @@ export default function NewBusinessDashboard({
       <DashboardKPIGrid
         ownCapital={ownCapital}
         subsidyPct={subsidyPct}
-        estimatedProjectCost={estimatedProjectCost}
+        estimatedProjectCost={resolvedProjectCost}
+        maxSupportableProjectSize={maxSupportableProjectSize}
+        projectCostLabel={projectCostLabel}
+        projectCostSourceName={projectCostSourceName}
         breakevenEstimate={breakevenEstimate}
         readinessLabel={readinessData?.readiness_label}
         readinessCountContext={
@@ -273,7 +307,9 @@ export default function NewBusinessDashboard({
           <FundingBlueprintCard
             ownCapital={ownCapital}
             subsidyPct={subsidyPct}
-            estimatedProjectCost={estimatedProjectCost}
+            estimatedProjectCost={resolvedProjectCost}
+            projectCostLabel={projectCostLabel}
+            projectCostSourceName={projectCostSourceName}
             estimatedSubsidy={estimatedSubsidy}
             estimatedBankLoan={estimatedBankLoan}
             estimatedEmi={estimatedEmi}

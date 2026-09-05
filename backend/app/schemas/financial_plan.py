@@ -22,19 +22,28 @@ class ScheduleRow(BaseModel):
 class FundingStructureRequest(BaseModel):
     """Payload for POST /api/v1/finance/funding-structure endpoint."""
 
-    project_cost: float = Field(..., gt=0, json_schema_extra={"example": 1000000.0})
+    project_cost: Optional[float] = Field(None, gt=0, json_schema_extra={"example": 1000000.0})
+    business_id: Optional[int] = Field(None, json_schema_extra={"example": 1})
+    own_capital: Optional[float] = Field(None, ge=0.0, json_schema_extra={"example": 500.0})
     margin_pct: float = Field(10.0, ge=0.0, le=100.0, json_schema_extra={"example": 10.0})
     interest_rate_annual: float = Field(8.5, ge=0.0, le=50.0, json_schema_extra={"example": 8.5})
     tenure_years: int = Field(7, ge=1, le=30, json_schema_extra={"example": 7})
     business_category: Optional[str] = Field(None, json_schema_extra={"example": "Poultry"})
     specific_business: Optional[str] = Field(None, json_schema_extra={"example": "Commercial Broiler Farming"})
     location: Optional[str] = Field("Odisha", json_schema_extra={"example": "Sundargarh, Odisha"})
+    source_type: Optional[str] = Field(None, description="USER_PROVIDED, CALCULATED, or BENCHMARK_ESTIMATE")
 
 
 class FundingStructureResponse(BaseModel):
     """Authoritative response for financial plan funding structure & amortization schedule."""
 
-    indicative_project_cost: float = Field(..., description="Total project cost in INR")
+    indicative_project_cost: float = Field(..., description="Total project cost in INR (compatibility field)")
+    project_cost: float = Field(..., description="Authoritative resolved project cost in INR")
+    source_type: str = Field("BENCHMARK_ESTIMATE", description="USER_PROVIDED, CALCULATED, or BENCHMARK_ESTIMATE")
+    source_name: str = Field("NABARD benchmark", description="User Input, Financial Engine, NABARD benchmark")
+    project_cost_label: str = Field("Estimated Project Cost", description="Planned Project Cost, Calculated Project Cost, or Estimated Project Cost")
+    benchmark_cost: Optional[float] = Field(None, description="Sector benchmark reference cost in INR")
+    max_supportable_project_size: Optional[float] = Field(None, description="Maximum supportable project size derived from own capital")
     own_margin_capital: float = Field(..., description="Promoter margin capital in INR")
     margin_pct: float = Field(..., description="Margin percentage applied")
     loan_amount: float = Field(..., description="Net bank loan amount (project_cost - margin)")

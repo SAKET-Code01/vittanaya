@@ -52,8 +52,8 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
+from backend.app.engines.cost_engine import ProjectCostEngine
 from backend.app.engines.feasibility_engine import VERIFIED_ODISHA_BENCHMARKS, FeasibilityEngine
-from backend.app.engines.financial_engine import FinancialEngine
 from backend.app.engines.risk_engine import RiskEngine
 from backend.app.models.business import Business
 from backend.app.models.market_data import LocalMarketData
@@ -99,6 +99,11 @@ class BusinessFeasibilityResult:
     # Project cost provenance (Authoritative vs Reference)
     business_project_cost: float = 0.0      # authoritative persisted value from Business.project_cost
     reference_project_cost: float = 0.0     # indicative planning estimate from sector benchmark
+    resolved_project_cost: float = 0.0
+    project_cost_source_type: str = "BENCHMARK_ESTIMATE"
+    project_cost_source_name: str = "NABARD benchmark"
+    project_cost_label: str = "Estimated Project Cost"
+    max_supportable_project_size: float = 0.0
 
     # Contextual data (NOT used in AHP calculation — for display only)
     market_benchmark_score: float = 0.0     # raw LocalMarketData.base_score (sector benchmark)
@@ -227,42 +232,39 @@ class BusinessFeasibilityService:
         ))
 
         # 2. Financial Criterion
-        # Authoritative source: Business.project_cost (persisted business/project input).
-        # Reference fallback: FinancialEngine indicative reference cost (used ONLY when business.project_cost is 0).
-        reference_project_cost = 0.0
+        # Authoritative Project Cost Resolution via ProjectCostEngine
+        cost_engine = ProjectCostEngine(self.db)
+        resolved_cost = cost_engine.resolve_project_cost(
+            business_id=getattr(business, "id", None),
+            explicit_project_cost=business_project_cost if business_project_cost > 0 else None,
+            explicit_own_capital=own_capital,
+            business_activity=specific_bus,
+            business_category=bus_category,
+            location=location,
+        )
 
-        fin_engine = FinancialEngine(self.db)
-        try:
-            fin_res = fin_engine.analyze_financial_gap(
-                available_margin_capital=own_capital,
-                business_category=bus_category,
-                specific_business=specific_bus,
-                location=location,
-                business_id=getattr(business, "id", None),
-            )
-            reference_project_cost = float(fin_res.indicative_project_cost)
-        except Exception:
-            reference_project_cost = max(own_capital * 4.0, 100000.0)
+        reference_project_cost = resolved_cost.benchmark_cost
+        resolved_proj_cost = resolved_cost.project_cost
 
-        if business_project_cost > 0:
-            margin_pct = (own_capital / business_project_cost) * 100.0
+        if resolved_cost.is_user_provided:
+            margin_pct = (own_capital / resolved_proj_cost * 100.0) if resolved_proj_cost > 0 else 0.0
             fin_source = (
-                f"FinancialEngine: margin equity {margin_pct:.2f}% "
-                f"(₹{own_capital:,.0f} own capital / ₹{business_project_cost:,.0f} business project cost)"
+                f"Planned Project Cost (User Input): margin equity {margin_pct:.2f}% "
+                f"(₹{own_capital:,.0f} own capital / ₹{resolved_proj_cost:,.0f} planned cost)"
             )
             fin_derivation = (
-                f"margin_pct = ({own_capital:.0f} / {business_project_cost:.0f}) * 100 "
-                f"= {margin_pct:.2f}/100"
+                f"margin_pct = ({own_capital:.0f} / {resolved_proj_cost:.0f}) * 100 "
+                f"= {margin_pct:.2f}/100 [User provided]"
             )
         else:
-            margin_pct = (own_capital / reference_project_cost * 100.0) if reference_project_cost > 0 else 0.0
+            margin_pct = (own_capital / resolved_proj_cost * 100.0) if resolved_proj_cost > 0 else 0.0
             fin_source = (
-                f"FinancialEngine: margin equity {margin_pct:.2f}% "
-                f"(₹{own_capital:,.0f} own capital / ₹{reference_project_cost:,.0f} reference project cost [profile unconfigured])"
+                f"Estimated Project Cost ({resolved_cost.source_name}): margin equity {margin_pct:.2f}% "
+                f"(₹{own_capital:,.0f} own capital / ₹{resolved_proj_cost:,.0f} benchmark estimate)"
             )
             fin_derivation = (
-                f"margin_pct = ({own_capital:.0f} / {reference_project_cost:.0f}) * 100 "
-                f"= {margin_pct:.2f}/100 [reference fallback]"
+                f"margin_pct = ({own_capital:.0f} / {resolved_proj_cost:.0f}) * 100 "
+                f"= {margin_pct:.2f}/100 [{resolved_cost.source_name}]"
             )
 
         financial_raw = min(100.0, max(0.0, float(margin_pct)))
@@ -408,6 +410,11 @@ class BusinessFeasibilityService:
             score_formula=score_output["score_formula"],
             business_project_cost=business_project_cost,
             reference_project_cost=reference_project_cost,
+            resolved_project_cost=resolved_cost.project_cost,
+            project_cost_source_type=resolved_cost.source_type,
+            project_cost_source_name=resolved_cost.source_name,
+            project_cost_label=resolved_cost.label,
+            max_supportable_project_size=resolved_cost.max_supportable_project_size,
             market_benchmark_score=float(market_record.base_score) if market_record else 0.0,
             market_reach=resolved_market_reach,
             opportunity=resolved_opportunity,

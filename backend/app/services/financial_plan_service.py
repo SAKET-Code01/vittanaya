@@ -4,8 +4,11 @@ Implements reducing-balance loan amortization, zero-interest handling, bounds va
 and yearly/monthly repayment schedule generation with guaranteed zero ending balance.
 """
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
+from sqlalchemy.orm import Session
+
+from backend.app.engines.cost_engine import ProjectCostEngine
 from backend.app.schemas.financial_plan import (
     FundingStructureRequest,
     FundingStructureResponse,
@@ -18,13 +21,63 @@ class FinancialPlanService:
     """Authoritative Financial Structuring & Amortization Engine."""
 
     @staticmethod
-    def calculate_funding_structure(payload: FundingStructureRequest) -> FundingStructureResponse:
+    def calculate_funding_structure(
+        payload: FundingStructureRequest,
+        db: Optional[Session] = None,
+    ) -> FundingStructureResponse:
         """Calculate loan amount, EMI, totals, and complete reducing-balance amortization schedules."""
-        # 1. Bounds Validation
-        project_cost = max(0.0, float(payload.project_cost))
+        # 1. Authoritative Project Cost Resolution with Provenance Hierarchy
+        resolved_cost = None
+        if db:
+            cost_engine = ProjectCostEngine(db)
+            resolved_cost = cost_engine.resolve_project_cost(
+                business_id=payload.business_id,
+                explicit_project_cost=payload.project_cost,
+                explicit_own_capital=payload.own_capital,
+                business_activity=payload.specific_business,
+                business_category=payload.business_category,
+                location=payload.location or "Odisha",
+            )
+
+        if resolved_cost is not None:
+            project_cost = resolved_cost.project_cost
+            source_type = resolved_cost.source_type
+            source_name = resolved_cost.source_name
+            project_cost_label = resolved_cost.label
+            benchmark_cost = resolved_cost.benchmark_cost
+            max_supportable_project_size = resolved_cost.max_supportable_project_size
+            own_capital_val = resolved_cost.own_capital
+        else:
+            # Fallback when DB session is not passed (e.g. standalone math/unit tests)
+            project_cost = max(0.0, float(payload.project_cost or 0.0))
+            if payload.source_type == "BENCHMARK_ESTIMATE" or (payload.project_cost is None and payload.business_id is None):
+                source_type = "BENCHMARK_ESTIMATE"
+                source_name = "NABARD benchmark"
+                project_cost_label = "Estimated Project Cost"
+            elif payload.source_type == "CALCULATED":
+                source_type = "CALCULATED"
+                source_name = "Financial Engine"
+                project_cost_label = "Calculated Project Cost"
+            else:
+                source_type = "USER_PROVIDED"
+                source_name = "User Input"
+                project_cost_label = "Planned Project Cost"
+
+            benchmark_cost = project_cost
+            own_capital_val = float(payload.own_capital) if payload.own_capital is not None else 0.0
+            max_supportable_project_size = (
+                min(5000000.0, round(own_capital_val / 0.10, 2)) if own_capital_val > 0 else 0.0
+            )
+
+        # 2. Margin & Loan Amount Calculation
         margin_pct = max(0.0, min(100.0, float(payload.margin_pct)))
-        own_margin_capital = round((project_cost * margin_pct) / 100.0, 2)
-        own_margin_capital = min(project_cost, own_margin_capital)
+        if payload.own_capital is not None:
+            own_margin_capital = min(project_cost, max(0.0, float(payload.own_capital)))
+            margin_pct = round((own_margin_capital / project_cost * 100.0), 2) if project_cost > 0 else margin_pct
+        else:
+            own_margin_capital = round((project_cost * margin_pct) / 100.0, 2)
+            own_margin_capital = min(project_cost, own_margin_capital)
+
         loan_amount = max(0.0, round(project_cost - own_margin_capital, 2))
 
         interest_rate_annual = max(0.0, float(payload.interest_rate_annual))
@@ -33,10 +86,10 @@ class FinancialPlanService:
 
         monthly_rate = interest_rate_annual / 12.0 / 100.0
 
-        # 2. Calculate Monthly EMI
+        # 3. Calculate Monthly EMI
         monthly_emi = FinancialPlanService.calculate_emi(loan_amount, monthly_rate, n_months)
 
-        # 3. Generate Monthly & Yearly Amortization Schedules
+        # 4. Generate Monthly & Yearly Amortization Schedules
         monthly_schedule, yearly_schedule, total_payment, total_interest = (
             FinancialPlanService.generate_schedules(
                 loan_amount=loan_amount,
@@ -53,19 +106,28 @@ class FinancialPlanService:
                 "margin_pct": margin_pct,
                 "interest_rate_annual": interest_rate_annual,
                 "tenure_years": tenure_years,
+                "source_type": source_type,
+                "source_name": source_name,
             },
             calculation_rule=(
                 f"Reducing balance amortization: loan = max(0, {project_cost:.2f} - {own_margin_capital:.2f}) = {loan_amount:.2f} INR. "
-                f"Monthly EMI = {monthly_emi:.2f} INR over {n_months} months at {interest_rate_annual:.2f}% p.a."
+                f"Monthly EMI = {monthly_emi:.2f} INR over {n_months} months at {interest_rate_annual:.2f}% p.a. "
+                f"Project Cost Source: {source_name} ({source_type})."
             ),
-            source_authority="RBI Banking Amortization Standards & VITTANAYA Decision Engine",
+            source_authority=f"{source_name} & VITTANAYA Decision Engine",
             source_year="2026",
-            provenance_priority="AUTHORITATIVE_FINANCIAL_ENGINE",
+            provenance_priority="ODISHA_DISTRICT_PRIMARY" if source_type == "BENCHMARK_ESTIMATE" else "AUTHORITATIVE_FINANCIAL_ENGINE",
             official_source_url=None,
         )
 
         return FundingStructureResponse(
             indicative_project_cost=project_cost,
+            project_cost=project_cost,
+            source_type=source_type,
+            source_name=source_name,
+            project_cost_label=project_cost_label,
+            benchmark_cost=benchmark_cost,
+            max_supportable_project_size=max_supportable_project_size,
             own_margin_capital=own_margin_capital,
             margin_pct=margin_pct,
             loan_amount=loan_amount,

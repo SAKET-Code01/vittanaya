@@ -26,6 +26,16 @@ const CAPITAL_CHIPS = [
   { label: '₹ 1,00,000', value: 100000 },
 ];
 
+const PROJECT_COST_CHIPS = [
+  { label: '₹ 1 Lakh', value: 100000 },
+  { label: '₹ 2 Lakh', value: 200000 },
+  { label: '₹ 5 Lakh', value: 500000 },
+  { label: '₹ 8 Lakh', value: 800000 },
+  { label: '₹ 10 Lakh', value: 1000000 },
+  { label: '₹ 15 Lakh', value: 1500000 },
+  { label: '₹ 20 Lakh', value: 2000000 },
+];
+
 /**
  * NewIdeaIntakeScreen Component
  * 
@@ -62,6 +72,7 @@ export default function NewIdeaIntakeScreen({
   const pin = draft.pin || '';
 
   // Section C: Financial & Beneficiary Inputs
+  const projectCost = draft.projectCost ?? draft.project_cost ?? '';
   const ownCapital = draft.ownCapital ?? '';
   const socialCategory = draft.socialCategory || '';
   const areaType = draft.areaType || '';
@@ -319,6 +330,9 @@ export default function NewIdeaIntakeScreen({
     }
 
     // 4. Financial Inputs Validation
+    if (projectCost !== '' && Number(projectCost) < 0) {
+      newErrors.projectCost = 'Project cost cannot be negative';
+    }
     if (!ownCapital && ownCapital !== 0) {
       newErrors.ownCapital = 'Please enter your available starting capital';
     } else if (Number(ownCapital) < 0) {
@@ -400,6 +414,8 @@ export default function NewIdeaIntakeScreen({
         },
         ownCapital: Number(ownCapital),
         available_margin_capital: Number(ownCapital),
+        project_cost: projectCost !== '' && Number(projectCost) > 0 ? Number(projectCost) : 0,
+        projectCost: projectCost !== '' && Number(projectCost) > 0 ? Number(projectCost) : 0,
         existingInvestment: 0,
         socialCategory,
         areaType,
@@ -708,6 +724,74 @@ export default function NewIdeaIntakeScreen({
               <span className="text-[11px] text-blue-700 bg-blue-50 font-bold px-2 py-0.5 rounded-md border border-blue-100">
                 Capital &amp; Scheme Inputs
               </span>
+            </div>
+
+            {/* Planned / Estimated Project Cost Input */}
+            <div>
+              <label htmlFor="projectCostInput" className="text-xs font-bold text-slate-800 flex items-center justify-between mb-1.5">
+                <span className="flex items-center gap-1.5">
+                  <span>Estimated / Planned Project Cost</span>
+                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                    Optional Reference
+                  </span>
+                </span>
+                {projectCost !== '' && Number(projectCost) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => updateField('projectCost', '')}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                  >
+                    Clear (Use Sector Benchmark)
+                  </button>
+                )}
+              </label>
+
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">₹</span>
+                <input
+                  id="projectCostInput"
+                  name="projectCost"
+                  type="number"
+                  value={projectCost}
+                  onChange={(e) => updateField('projectCost', e.target.value)}
+                  min="0"
+                  step="1000"
+                  placeholder="Enter expected total project cost (e.g. 8,00,000)"
+                  className={`w-full min-h-[44px] pl-8 pr-4 py-2.5 rounded-xl border text-sm font-black text-slate-900 transition-all ${
+                    errors.projectCost
+                      ? 'border-rose-300 bg-rose-50/20 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
+                      : 'border-slate-200 hover:border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-500/20 bg-white'
+                  }`}
+                />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Enter the total amount you expect to invest in setting up this business. If you are unsure, VITTANAYA can use a sector benchmark as an estimate.
+              </p>
+              {errors.projectCost && (
+                <p className="text-[11px] font-bold text-rose-500 mt-1 flex items-center gap-1">
+                  <span>⚠</span>
+                  <span>{errors.projectCost}</span>
+                </p>
+              )}
+
+              {/* Quick Project Cost Select Chips */}
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                <span className="text-[10px] font-bold text-slate-400 self-center mr-1">Quick Select:</span>
+                {PROJECT_COST_CHIPS.map((chip) => (
+                  <button
+                    key={chip.value}
+                    type="button"
+                    onClick={() => updateField('projectCost', chip.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                      Number(projectCost) === chip.value
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                    }`}
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Own / Starting Capital Input */}

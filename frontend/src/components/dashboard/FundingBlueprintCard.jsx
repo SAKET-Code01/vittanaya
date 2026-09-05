@@ -10,6 +10,8 @@ export default function FundingBlueprintCard({
   ownCapital = null,
   subsidyPct = null,
   estimatedProjectCost = null,
+  projectCostLabel = 'Estimated Project Cost',
+  projectCostSourceName = 'NABARD benchmark',
   estimatedSubsidy = null,
   estimatedBankLoan = null,
   estimatedEmi = null,
@@ -47,12 +49,19 @@ export default function FundingBlueprintCard({
             </svg>
           </div>
           <h2 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-slate-900">
-            Funding & Subsidy Blueprint
+            Funding &amp; Subsidy Blueprint
           </h2>
         </div>
-        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
-          {cost > 0 ? `Est. Project: ₹${(cost / 100000).toFixed(2)}L` : (isLoading ? '...' : 'Project Cost Pending')}
-        </span>
+        <div className="text-right">
+          <span className="text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-full inline-block">
+            {cost > 0 ? `${projectCostLabel}: ₹${(cost / 100000).toFixed(2)}L` : (isLoading ? '...' : 'Project Cost Pending')}
+          </span>
+          {cost > 0 && (
+            <span className="block text-[10px] font-semibold text-slate-400 mt-1">
+              Source: {projectCostSourceName}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Visual Stack Ratio Bar */}

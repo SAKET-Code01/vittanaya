@@ -51,9 +51,10 @@ def _resolve_business_id(db: Session, business_id: Optional[int]) -> int:
 )
 def calculate_funding_structure(
     data: FundingStructureRequest,
+    db: Session = Depends(get_db),
 ) -> FundingStructureResponse:
     """Calculate authoritative loan amount, EMI, totals, and reducing-balance repayment schedule."""
-    return FinancialPlanService.calculate_funding_structure(data)
+    return FinancialPlanService.calculate_funding_structure(data, db=db)
 
 
 @router.post(

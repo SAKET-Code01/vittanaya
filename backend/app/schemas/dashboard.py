@@ -19,6 +19,14 @@ class DashboardSummaryResponse(BaseModel):
     pending_payables_total: Decimal
     funding_gap: Optional[Decimal] = Decimal("0.00")
 
+    # Authoritative Project Cost & Supportable Size (SIH26091 Grounding)
+    project_cost: Optional[float] = Field(default=None, description="Resolved project cost in INR")
+    project_cost_source_type: Optional[str] = Field(default="BENCHMARK_ESTIMATE", description="USER_PROVIDED, CALCULATED, or BENCHMARK_ESTIMATE")
+    project_cost_source_name: Optional[str] = Field(default="NABARD benchmark", description="User Input, Financial Engine, NABARD benchmark")
+    project_cost_label: Optional[str] = Field(default="Estimated Project Cost", description="Planned Project Cost, Calculated Project Cost, or Estimated Project Cost")
+    max_supportable_project_size: Optional[float] = Field(default=None, description="Maximum supportable project size derived from own capital")
+    benchmark_cost: Optional[float] = Field(default=None, description="Sector benchmark reference cost in INR")
+
     # Dynamic Business Readiness (SIH26091)
     readiness_score: float = Field(default=0.0, description="Calculated readiness %")
     readiness_label: str = Field(default="0% Prepared", description="Readiness badge string")
