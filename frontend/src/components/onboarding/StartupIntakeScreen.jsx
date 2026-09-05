@@ -244,8 +244,10 @@ export default function StartupIntakeScreen({
     if (!village.toString().trim()) {
       newErrors.village = 'Village / Town is required';
     }
-    if (!ownCapital || Number(ownCapital) < 10000) {
-      newErrors.ownCapital = 'Minimum own capital amount is ₹ 10,000';
+    if (!ownCapital && ownCapital !== 0) {
+      newErrors.ownCapital = 'Please enter your available starting capital';
+    } else if (Number(ownCapital) < 0) {
+      newErrors.ownCapital = 'Capital amount cannot be negative';
     }
     if (!socialCategory) {
       newErrors.socialCategory = 'Please select a beneficiary category';

@@ -16,12 +16,14 @@ const POPULAR_CATEGORIES = [
 ];
 
 const CAPITAL_CHIPS = [
+  { label: '₹ 500', value: 500 },
+  { label: '₹ 1,000', value: 1000 },
+  { label: '₹ 2,000', value: 2000 },
+  { label: '₹ 5,000', value: 5000 },
+  { label: '₹ 10,000', value: 10000 },
   { label: '₹ 25,000', value: 25000 },
   { label: '₹ 50,000', value: 50000 },
   { label: '₹ 1,00,000', value: 100000 },
-  { label: '₹ 2,50,000', value: 250000 },
-  { label: '₹ 5,00,000', value: 500000 },
-  { label: '₹ 10,00,000', value: 1000000 },
 ];
 
 /**
@@ -317,8 +319,12 @@ export default function NewIdeaIntakeScreen({
     }
 
     // 4. Financial Inputs Validation
-    if (!ownCapital || Number(ownCapital) < 10000) {
-      newErrors.ownCapital = 'Minimum own margin capital is ₹ 10,000';
+    if (!ownCapital && ownCapital !== 0) {
+      newErrors.ownCapital = 'Please enter your available starting capital';
+    } else if (Number(ownCapital) < 0) {
+      newErrors.ownCapital = 'Capital amount cannot be negative';
+    } else if (Number(ownCapital) === 0 && !ownCapital.toString().trim()) {
+      newErrors.ownCapital = 'Please enter your available starting capital';
     }
     if (!socialCategory) {
       newErrors.socialCategory = 'Please select a beneficiary category';
@@ -699,19 +705,18 @@ export default function NewIdeaIntakeScreen({
                 </span>
                 <span>Financial &amp; Subsidy Parameters</span>
               </h2>
-              <span className="text-[11px] text-emerald-700 bg-emerald-50 font-bold px-2 py-0.5 rounded-md border border-emerald-100">
-                Min 10% Margin
+              <span className="text-[11px] text-blue-700 bg-blue-50 font-bold px-2 py-0.5 rounded-md border border-blue-100">
+                Capital &amp; Scheme Inputs
               </span>
             </div>
 
-            {/* Margin Capital Input */}
+            {/* Own / Starting Capital Input */}
             <div>
               <label htmlFor="ownCapitalInput" className="text-xs font-bold text-slate-800 flex items-center justify-between mb-1.5">
                 <span className="flex items-center gap-1">
-                  <span>Available Margin Capital (Your Own Investment)</span>
+                  <span>Available Own / Starting Capital</span>
                   <span className="text-rose-500 font-black">*</span>
                 </span>
-                <span className="text-[11px] text-slate-400 font-semibold">Min ₹ 10,000</span>
               </label>
 
               <div className="relative">
@@ -723,7 +728,7 @@ export default function NewIdeaIntakeScreen({
                   value={ownCapital}
                   onChange={(e) => updateField('ownCapital', e.target.value)}
                   min="0"
-                  step="5000"
+                  step="1"
                   placeholder="Enter your available capital amount"
                   className={`w-full min-h-[44px] pl-8 pr-4 py-2.5 rounded-xl border text-sm font-black text-slate-900 transition-all ${
                     errors.ownCapital
@@ -732,6 +737,9 @@ export default function NewIdeaIntakeScreen({
                   }`}
                 />
               </div>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Enter the amount you can currently put toward starting this business.
+              </p>
               {errors.ownCapital && (
                 <p className="text-[11px] font-bold text-rose-500 mt-1 flex items-center gap-1">
                   <span>⚠</span>
