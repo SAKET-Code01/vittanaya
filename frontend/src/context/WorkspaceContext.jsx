@@ -9,6 +9,7 @@ import {
 import { DEFAULT_OPERATIONS_CONFIG } from '../data/defaultOperationsConfig';
 import { DEFAULT_CASH_ACCOUNTS, DEFAULT_TRANSACTIONS } from '../data/cashOverviewMockData.js';
 import { apiClient } from '../services/apiClient';
+import { businessService } from '../services/businessService';
 
 const WorkspaceContext = createContext(null);
 
@@ -174,6 +175,46 @@ export function WorkspaceProvider({ children }) {
     // Fresh session: no pre-filled demo data
     return null;
   });
+
+  // Synchronize currentProfile with backend active business on load/refresh
+  useEffect(() => {
+    let isMounted = true;
+    if (isDemoMode) return;
+
+    businessService
+      .listBusinesses()
+      .then((res) => {
+        if (!isMounted) return;
+        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        if (list && list.length > 0) {
+          const latestBiz = list[0];
+          setCurrentProfile((prev) => {
+            if (!prev) return normalizeBusinessProfile(latestBiz);
+            // Match current profile if exists in list, else latestBiz
+            const matchedBiz = (prev.id && list.find((b) => b.id === Number(prev.id))) || latestBiz;
+            return {
+              ...prev,
+              id: matchedBiz.id,
+              name: prev.name || matchedBiz.name,
+              category: prev.category || matchedBiz.category,
+              stage: prev.stage || matchedBiz.stage,
+              own_capital: Number(matchedBiz.own_capital ?? prev.own_capital ?? 0),
+              ownCapital: Number(matchedBiz.own_capital ?? prev.ownCapital ?? 0),
+              project_cost: Number(matchedBiz.project_cost ?? prev.project_cost ?? 0),
+              projectCost: Number(matchedBiz.project_cost ?? prev.projectCost ?? 0),
+              estimatedProjectCost: Number(matchedBiz.project_cost ?? prev.estimatedProjectCost ?? 0),
+            };
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('WorkspaceContext: could not sync active business with backend', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isDemoMode]);
 
   // 2. Dynamic Financial Starting Position (Editable)
   const [financialData, setFinancialData] = useState(() => {

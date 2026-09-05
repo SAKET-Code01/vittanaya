@@ -289,7 +289,7 @@ export default function FinancialPlanPage({
 
   // 1. Authoritative Backend Funding Structure Fetcher
   const recalculateFundingStructure = useCallback(
-    async (cost, margin, rate, tenure) => {
+    async (cost, margin, rate, tenure, sourceOverride = null) => {
       if (!cost || isNaN(Number(cost)) || Number(cost) <= 0) {
         setFundingData(null);
         return;
@@ -304,6 +304,12 @@ export default function FinancialPlanPage({
       const validatedRate = Math.max(0, Number(rate) || 0);
       const validatedTenure = Math.max(1, Number(tenure) || 7);
 
+      const resolvedSourceType = sourceOverride || (
+        ((savedProjectCost && savedProjectCost > 0) || costProvenance === 'User provided')
+          ? 'USER_PROVIDED'
+          : 'BENCHMARK_ESTIMATE'
+      );
+
       try {
         const response = await financeService.calculateFundingStructure({
           business_id: currentProfile?.id ? Number(currentProfile.id) : undefined,
@@ -317,7 +323,7 @@ export default function FinancialPlanPage({
           business_activity: activeActivity,
           business_name: activeTradeName,
           location: activeLocation,
-          source_type: (savedProjectCost && savedProjectCost > 0) || costProvenance?.includes('User') ? 'USER_PROVIDED' : undefined,
+          source_type: resolvedSourceType,
         });
 
         const data = response?.data || response;
@@ -354,7 +360,7 @@ export default function FinancialPlanPage({
       setProjectCostInput(savedProjectCost);
       setMarginPct(profileMarginPct);
       setCostProvenance('User provided');
-      recalculateFundingStructure(savedProjectCost, profileMarginPct, interestRate, loanTenureYears);
+      recalculateFundingStructure(savedProjectCost, profileMarginPct, interestRate, loanTenureYears, 'USER_PROVIDED');
       return;
     }
 
@@ -377,7 +383,7 @@ export default function FinancialPlanPage({
           setBackendCost(data);
           setProjectCostInput(costVal);
           setCostProvenance(data.source_authority || 'NABARD benchmark');
-          recalculateFundingStructure(costVal, marginPct, interestRate, loanTenureYears);
+          recalculateFundingStructure(costVal, marginPct, interestRate, loanTenureYears, 'BENCHMARK_ESTIMATE');
         } else if (isMounted) {
           setProjectCostInput(null);
           setFundingData(null);
@@ -406,7 +412,7 @@ export default function FinancialPlanPage({
     setCostProvenance('User provided');
     setBackendSimulation(null);
     setStressMode(false);
-    recalculateFundingStructure(val, marginPct, interestRate, loanTenureYears);
+    recalculateFundingStructure(val, marginPct, interestRate, loanTenureYears, 'USER_PROVIDED');
 
     // Persist to backend and update current workspace profile
     if (currentProfile?.id) {
@@ -427,7 +433,13 @@ export default function FinancialPlanPage({
     setBackendSimulation(null);
     setStressMode(false);
     if (projectCostInput) {
-      recalculateFundingStructure(projectCostInput, val, interestRate, loanTenureYears);
+      recalculateFundingStructure(
+        projectCostInput,
+        val,
+        interestRate,
+        loanTenureYears,
+        (savedProjectCost && savedProjectCost > 0) || costProvenance === 'User provided' ? 'USER_PROVIDED' : 'BENCHMARK_ESTIMATE'
+      );
     }
   };
 
@@ -437,7 +449,13 @@ export default function FinancialPlanPage({
     setBackendSimulation(null);
     setStressMode(false);
     if (projectCostInput) {
-      recalculateFundingStructure(projectCostInput, marginPct, interestRate, val);
+      recalculateFundingStructure(
+        projectCostInput,
+        marginPct,
+        interestRate,
+        val,
+        (savedProjectCost && savedProjectCost > 0) || costProvenance === 'User provided' ? 'USER_PROVIDED' : 'BENCHMARK_ESTIMATE'
+      );
     }
   };
 
@@ -447,7 +465,13 @@ export default function FinancialPlanPage({
     setBackendSimulation(null);
     setStressMode(false);
     if (projectCostInput) {
-      recalculateFundingStructure(projectCostInput, marginPct, val, loanTenureYears);
+      recalculateFundingStructure(
+        projectCostInput,
+        marginPct,
+        val,
+        loanTenureYears,
+        (savedProjectCost && savedProjectCost > 0) || costProvenance === 'User provided' ? 'USER_PROVIDED' : 'BENCHMARK_ESTIMATE'
+      );
     }
   };
 
@@ -651,17 +675,19 @@ export default function FinancialPlanPage({
 
           <KpiCard
             icon="♙"
-            label={isEstablished ? 'Promoter Margin Money' : 'Promoter Margin Required'}
+            label={isEstablished ? 'Promoter Margin Money' : 'Available Own Capital'}
             value={isLoading ? 'Calculating...' : (ownMarginCapital !== null ? formatINR(ownMarginCapital) : 'Not available')}
             subtitle={
-              userOwnCapital !== null
-                ? `Available Equity: ${formatINR(userOwnCapital)} (${marginPct}% Required)`
-                : `${marginPct}% Equity Margin Requirement`
+              fundingData?.required_margin_capital != null
+                ? `Required: ${formatINR(fundingData.required_margin_capital)} (${fundingData.margin_pct ?? marginPct}%)`
+                : (userOwnCapital !== null
+                    ? `Available Equity: ${formatINR(userOwnCapital)} (${marginPct}% Required)`
+                    : `${marginPct}% Equity Margin Requirement`)
             }
             accent="amber"
             action={
               <SmallAction tone="amber" onClick={() => setShowMarginReason((v) => !v)}>
-                Why {marginPct}%? <Arrow />
+                Why {fundingData?.margin_pct ?? marginPct}%? <Arrow />
               </SmallAction>
             }
           />
@@ -711,11 +737,16 @@ export default function FinancialPlanPage({
             {showMarginReason && (
               <div className="rounded-2xl border border-[#F1E4BF] bg-[#FFFBF0] p-4">
                 <p className="text-xs font-extrabold text-[#B77A0A]">
-                  Why Promoter Contribution Matters
+                  Promoter Margin &amp; Equity Guidance
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[#64748B]">
-                  Standard banking rules require a minimum 10% own equity margin (5% for special categories under PMEGP).
-                  Increasing promoter margin reduces total loan requirement ({formatINR(loanAmount)}) and lowers monthly EMI obligations.
+                  Your committed own capital is <strong>{formatINR(ownMarginCapital)}</strong>.
+                  {fundingData?.required_margin_capital != null && (
+                    <> Standard institutional financing requires a minimum {fundingData.margin_pct ?? marginPct}% promoter margin ({formatINR(fundingData.required_margin_capital)}).</>
+                  )}
+                  {fundingData?.margin_shortfall > 0 && (
+                    <> Current margin shortfall is <strong>{formatINR(fundingData.margin_shortfall)}</strong>. You can augment margin equity or qualify for credit-linked government subsidies (like PMEGP/MUDRA).</>
+                  )}
                 </p>
               </div>
             )}

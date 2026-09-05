@@ -256,6 +256,7 @@ class ProjectCostEngine:
         business_activity: Optional[str] = None,
         business_category: Optional[str] = None,
         location: str = "Odisha",
+        source_type: Optional[str] = None,
     ) -> ResolvedProjectCost:
         """Resolve authoritative project cost with strict source priority:
         1. USER-ENTERED PLANNED PROJECT COST (explicit_project_cost > 0 or business.project_cost > 0)
@@ -309,10 +310,14 @@ class ProjectCostEngine:
         # Source priority:
         # Priority 1: User-entered planned project cost
         user_cost = None
-        if explicit_project_cost is not None and explicit_project_cost > 0:
-            user_cost = float(explicit_project_cost)
-        elif db_biz and float(db_biz.project_cost or 0.0) > 0:
+        if db_biz and float(db_biz.project_cost or 0.0) > 0:
             user_cost = float(db_biz.project_cost)
+        elif explicit_project_cost is not None and explicit_project_cost > 0:
+            if source_type == "USER_PROVIDED":
+                user_cost = float(explicit_project_cost)
+            elif source_type != "BENCHMARK_ESTIMATE" and source_type != "CALCULATED":
+                # Only treat as user input if not explicitly declared as benchmark
+                user_cost = float(explicit_project_cost)
 
         if user_cost is not None:
             return ResolvedProjectCost(

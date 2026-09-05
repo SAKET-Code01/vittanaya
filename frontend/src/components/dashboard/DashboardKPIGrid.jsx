@@ -145,12 +145,14 @@ export default function DashboardKPIGrid({
         ? (Number(maxSupportableProjectSize) >= 100000
             ? `₹ ${(Number(maxSupportableProjectSize) / 100000).toFixed(2)} Lakh`
             : `₹ ${Number(maxSupportableProjectSize).toLocaleString('en-IN')}`)
-        : (estimatedProjectCost != null && Number(estimatedProjectCost) > 0
-            ? `₹ ${(Number(estimatedProjectCost) / 100000).toFixed(2)} Lakh`
+        : (ownCapital != null && Number(ownCapital) > 0
+            ? (Number(ownCapital) * 10 >= 100000
+                ? `₹ ${(Number(ownCapital) * 10 / 100000).toFixed(2)} Lakh`
+                : `₹ ${(Number(ownCapital) * 10).toLocaleString('en-IN')}`)
             : (isLoading ? '...' : 'Not available')),
-      context: maxSupportableProjectSize != null && Number(maxSupportableProjectSize) > 0
+      context: (maxSupportableProjectSize != null && Number(maxSupportableProjectSize) > 0) || (ownCapital != null && Number(ownCapital) > 0)
         ? `Derived from ₹${Number(ownCapital || 0).toLocaleString('en-IN')} own capital (10% margin limit)`
-        : 'Supported by margin leverage',
+        : 'Requires own capital input',
       icon: 'target',
       iconContainer: 'bg-blue-50 text-blue-600 border border-blue-100',
       valueColor: 'text-slate-900',

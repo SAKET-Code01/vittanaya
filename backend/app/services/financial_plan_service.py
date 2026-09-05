@@ -37,6 +37,7 @@ class FinancialPlanService:
                 business_activity=payload.specific_business,
                 business_category=payload.business_category,
                 location=payload.location or "Odisha",
+                source_type=payload.source_type,
             )
 
         if resolved_cost is not None:
@@ -71,13 +72,19 @@ class FinancialPlanService:
 
         # 2. Margin & Loan Amount Calculation
         margin_pct = max(0.0, min(100.0, float(payload.margin_pct)))
+        required_margin_capital = round((project_cost * margin_pct) / 100.0, 2)
+
         if payload.own_capital is not None:
             own_margin_capital = min(project_cost, max(0.0, float(payload.own_capital)))
+            margin_pct = round((own_margin_capital / project_cost * 100.0), 2) if project_cost > 0 else margin_pct
+        elif own_capital_val > 0:
+            own_margin_capital = min(project_cost, own_capital_val)
             margin_pct = round((own_margin_capital / project_cost * 100.0), 2) if project_cost > 0 else margin_pct
         else:
             own_margin_capital = round((project_cost * margin_pct) / 100.0, 2)
             own_margin_capital = min(project_cost, own_margin_capital)
 
+        margin_shortfall = max(0.0, round(required_margin_capital - own_margin_capital, 2))
         loan_amount = max(0.0, round(project_cost - own_margin_capital, 2))
 
         interest_rate_annual = max(0.0, float(payload.interest_rate_annual))
@@ -129,6 +136,8 @@ class FinancialPlanService:
             benchmark_cost=benchmark_cost,
             max_supportable_project_size=max_supportable_project_size,
             own_margin_capital=own_margin_capital,
+            required_margin_capital=required_margin_capital,
+            margin_shortfall=margin_shortfall,
             margin_pct=margin_pct,
             loan_amount=loan_amount,
             interest_rate_annual=interest_rate_annual,
