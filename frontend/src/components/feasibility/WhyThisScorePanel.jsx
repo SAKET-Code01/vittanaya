@@ -16,74 +16,20 @@ export default function WhyThisScorePanel({
   onOpenAiExplainer,
   onOpenMethodology,
 }) {
-  const finalScore = businessFeasibility?.final_score != null
-    ? Number(businessFeasibility.final_score.toFixed(1))
-    : 52.0;
+  if (!businessFeasibility || !businessFeasibility.criteria_traces || businessFeasibility.criteria_traces.length === 0) {
+    return (
+      <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center text-slate-500 space-y-2 animate-fadeIn">
+        <p className="text-sm font-bold text-slate-700">Feasibility evaluation pending or unavailable.</p>
+        <p className="text-xs text-slate-400">Complete intake details for this enterprise to view the multi-factor feasibility breakdown.</p>
+      </div>
+    );
+  }
 
-  const defaultTraces = [
-    {
-      criterion: 'market',
-      label: 'Market Catchment & Demand',
-      raw_score: 88.0,
-      maximum_points: 30,
-      weight_pct: 30.24,
-      contribution: 26.61,
-      data_source: 'Local consumer demand & verified mandi off-take capacity',
-      user_explanation: 'Strong consumer demand in the local catchment provides steady sales volume.',
-    },
-    {
-      criterion: 'financial',
-      label: 'Financial Viability & Margin',
-      raw_score: 10.0,
-      maximum_points: 25,
-      weight_pct: 24.62,
-      contribution: 2.46,
-      data_source: 'Own equity margin ratio (10% of project cost)',
-      user_explanation: 'Your current capital covers a small share of the project requirement, which is reducing your feasibility score.',
-    },
-    {
-      criterion: 'location',
-      label: 'Location & Connectivity',
-      raw_score: 70.0,
-      maximum_points: 15,
-      weight_pct: 15.05,
-      contribution: 10.53,
-      data_source: 'Road corridor and transport transit access',
-      user_explanation: 'Accessible road corridors and transit routes support timely product delivery.',
-    },
-    {
-      criterion: 'competition',
-      label: 'Competition Barrier',
-      raw_score: 50.0,
-      maximum_points: 15,
-      weight_pct: 15.05,
-      contribution: 7.52,
-      data_source: 'Enterprise density in block-level catchment',
-      user_explanation: 'Moderate local competition requires unique local positioning.',
-    },
-    {
-      criterion: 'risk',
-      label: 'Risk Resilience & Buffer',
-      raw_score: 34.2,
-      maximum_points: 15,
-      weight_pct: 15.05,
-      contribution: 5.15,
-      data_source: 'Working capital runway and cash flow stability',
-      user_explanation: 'Operating cash buffer needs reinforcement against seasonal demand dips.',
-    },
-  ];
-
-  const traces = (businessFeasibility?.criteria_traces || defaultTraces).map((t) => {
-    const matchedDefault = defaultTraces.find((d) => d.criterion === t.criterion);
-    return {
-      ...t,
-      user_explanation: t.user_explanation || matchedDefault?.user_explanation || 'Factor contributing to business feasibility.',
-    };
-  });
-
+  const finalScore = Number(businessFeasibility.final_score.toFixed(1));
+  const traces = businessFeasibility.criteria_traces;
   const totalContribution = traces.reduce((acc, t) => acc + (Number(t.contribution) || 0), 0);
-  const isConsistent = businessFeasibility?.ahp_is_consistent ?? (ahpWeights?.is_consistent ?? true);
-  const isLocalVerified = businessFeasibility?.is_local_verified ?? false;
+  const isConsistent = businessFeasibility.ahp_is_consistent ?? (ahpWeights?.is_consistent ?? true);
+  const isLocalVerified = businessFeasibility.is_local_verified ?? false;
 
   return (
     <div className="space-y-6 animate-fadeIn">

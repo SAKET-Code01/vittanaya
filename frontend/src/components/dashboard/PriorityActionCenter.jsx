@@ -9,6 +9,7 @@ import React from 'react';
  */
 export default function PriorityActionCenter({
   socialCategory = 'General',
+  pendingRequirements = [],
   onNavigate,
 }) {
   const handleAction = (destination) => {
@@ -17,35 +18,70 @@ export default function PriorityActionCenter({
     }
   };
 
-  const gates = [
-    {
-      stepNum: '01',
-      tag: 'Step 1 • Scheme',
-      title: 'Apply for Beneficiary Subsidy Clearance',
-      desc: `Prepare entitlement certificates under ${socialCategory} category.`,
-      ctaLabel: 'View Schemes',
-      route: 'scheme',
-      isPrimary: true,
-    },
-    {
-      stepNum: '02',
-      tag: 'Step 2 • Registration',
-      title: 'Udyam Registration & Trade License',
-      desc: 'Zero-cost paperless MSME registration via Aadhaar.',
-      ctaLabel: 'Checklist',
-      route: 'action-plan',
-      isPrimary: false,
-    },
-    {
-      stepNum: '03',
-      tag: 'Step 3 • Capital',
-      title: 'Prepare Bank DPR (Detailed Project Report)',
-      desc: 'Export deterministic financial projections for branch review.',
-      ctaLabel: 'Draft DPR',
-      route: 'financial-plan',
-      isPrimary: false,
-    },
-  ];
+  const gates = React.useMemo(() => {
+    if (pendingRequirements && pendingRequirements.length > 0) {
+      return pendingRequirements.slice(0, 3).map((req, idx) => {
+        const cat = (req.category || '').toLowerCase();
+        let route = 'action-plan';
+        let ctaLabel = 'View Action';
+        let tag = `Step ${idx + 1} • Requirement`;
+
+        if (cat.includes('scheme') || cat.includes('subsidy')) {
+          route = 'scheme';
+          ctaLabel = 'View Schemes';
+          tag = `Step ${idx + 1} • Scheme`;
+        } else if (cat.includes('reg') || cat.includes('license') || cat.includes('permit') || cat.includes('permission')) {
+          route = 'action-plan';
+          ctaLabel = 'Checklist';
+          tag = `Step ${idx + 1} • Compliance`;
+        } else if (cat.includes('capital') || cat.includes('finance') || cat.includes('dpr')) {
+          route = 'financial-plan';
+          ctaLabel = 'Capital Plan';
+          tag = `Step ${idx + 1} • Capital`;
+        }
+
+        return {
+          stepNum: `0${idx + 1}`,
+          tag,
+          title: req.name || req.title,
+          desc: req.description || (req.authority_name ? `Authority: ${req.authority_name}` : 'Pending launch milestone.'),
+          ctaLabel,
+          route,
+          isPrimary: idx === 0,
+        };
+      });
+    }
+
+    return [
+      {
+        stepNum: '01',
+        tag: 'Step 1 • Scheme',
+        title: 'Verify Scheme Entitlement',
+        desc: `Discover eligible subsidies under ${socialCategory} beneficiary category.`,
+        ctaLabel: 'View Schemes',
+        route: 'scheme',
+        isPrimary: true,
+      },
+      {
+        stepNum: '02',
+        tag: 'Step 2 • Registration',
+        title: 'Statutory Clearances & Udyam',
+        desc: 'Zero-cost paperless MSME registration via Aadhaar.',
+        ctaLabel: 'Checklist',
+        route: 'action-plan',
+        isPrimary: false,
+      },
+      {
+        stepNum: '03',
+        tag: 'Step 3 • Capital',
+        title: 'Prepare Bank DPR (Detailed Project Report)',
+        desc: 'Export deterministic financial projections for branch review.',
+        ctaLabel: 'Draft DPR',
+        route: 'financial-plan',
+        isPrimary: false,
+      },
+    ];
+  }, [pendingRequirements, socialCategory]);
 
   return (
     <section className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs space-y-5">

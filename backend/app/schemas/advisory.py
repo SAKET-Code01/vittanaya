@@ -35,6 +35,8 @@ class ChatRequest(BaseModel):
     language: str = Field("English", json_schema_extra={"example": "English"})
     business_context: Optional[BusinessContextInput] = Field(default=None, description="Optional business context")
     history: List[ChatMessage] = Field(default_factory=list, description="Recent conversation turns")
+    confirmed_action: Optional[dict] = Field(default=None, description="Action confirmed by user for execution")
+    confirmed: Optional[bool] = Field(default=None, description="User confirmation state for pending write action")
 
 
 class KeyFact(BaseModel):
@@ -74,3 +76,9 @@ class ChatResponse(BaseModel):
     language: str = Field("English", description="Target language of response")
     traceability: TraceabilityMetadata
     nlp_metadata: Optional[NlpMetadata] = None
+    provenance_label: str = Field("Grounded in VITTANAYA Business Data", description="User-facing subtle provenance badge")
+    action_performed: Optional[str] = Field(None, description="Name of tool or action executed")
+    confirmation_required: bool = Field(False, description="True if proposed state change requires explicit confirmation")
+    confirmation_details: Optional[dict] = Field(None, description="Payload of the action awaiting confirmation")
+    navigation_target: Optional[str] = Field(None, description="Optional target tab/page to navigate user e.g. 'feasibility'")
+    suggested_actions: List[str] = Field(default_factory=list, description="Contextual quick prompts based on active state")

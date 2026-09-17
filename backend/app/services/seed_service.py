@@ -87,10 +87,10 @@ DEFAULT_SCHEME_RULES = [
     },
     {
         "scheme_code": "MUDRA_TARUN",
-        "scheme_name": "Pradhan Mantri MUDRA Yojana - Tarun",
+        "scheme_name": "Pradhan Mantri MUDRA Yojana - Tarun & Tarun Plus",
         "category": "Micro Credit",
-        "max_project_cost_mfg": 1000000.0,
-        "max_project_cost_service": 1000000.0,
+        "max_project_cost_mfg": 2000000.0,
+        "max_project_cost_service": 2000000.0,
         "min_margin_pct_gen": 10.0,
         "min_margin_pct_special": 5.0,
         "max_subsidy_pct_rural_gen": 0.0,
@@ -169,13 +169,79 @@ DEFAULT_SCHEME_RULES = [
         "max_subsidy_pct_urban_special": 0.0,
         "max_subsidy_amount": 0.0,
         "interest_subsidy_pct": 0.0,
-        "collateral_required": True,
+        "collateral_required": False,
         "eligible_categories": "ALL",
         "trading_restricted": False,
         "source_authority": "SIDBI / Department of Financial Services",
         "source_year": "2024",
         "official_source_url": "https://www.standupmitra.in/",
         "notes": "Bank loans between Rs 10 Lakhs and Rs 1 Crore for SC/ST or Women projects.",
+    },
+    {
+        "scheme_code": "CGTMSE",
+        "scheme_name": "Credit Guarantee Fund Trust for Micro and Small Enterprises",
+        "category": "Credit Guarantee Scheme",
+        "max_project_cost_mfg": 50000000.0,
+        "max_project_cost_service": 50000000.0,
+        "min_margin_pct_gen": 10.0,
+        "min_margin_pct_special": 5.0,
+        "max_subsidy_pct_rural_gen": 0.0,
+        "max_subsidy_pct_rural_special": 0.0,
+        "max_subsidy_pct_urban_gen": 0.0,
+        "max_subsidy_pct_urban_special": 0.0,
+        "max_subsidy_amount": 0.0,
+        "interest_subsidy_pct": 0.0,
+        "collateral_required": False,
+        "eligible_categories": "ALL",
+        "trading_restricted": False,
+        "source_authority": "CGTMSE / SIDBI / Ministry of MSME",
+        "source_year": "2024 Revised Guidelines",
+        "official_source_url": "https://www.cgtmse.in/",
+        "notes": "100% Collateral-free credit facility up to Rs. 5 Crore with guarantee coverage up to 85%.",
+    },
+    {
+        "scheme_code": "AIF",
+        "scheme_name": "Agriculture Infrastructure Fund",
+        "category": "Agri-Infrastructure & Post-Harvest Subsidy",
+        "max_project_cost_mfg": 20000000.0,
+        "max_project_cost_service": 20000000.0,
+        "min_margin_pct_gen": 10.0,
+        "min_margin_pct_special": 5.0,
+        "max_subsidy_pct_rural_gen": 0.0,
+        "max_subsidy_pct_rural_special": 0.0,
+        "max_subsidy_pct_urban_gen": 0.0,
+        "max_subsidy_pct_urban_special": 0.0,
+        "max_subsidy_amount": 0.0,
+        "interest_subsidy_pct": 3.0,
+        "collateral_required": False,
+        "eligible_categories": "Dairy, Poultry, Animal husbandry, Agro processing, Food processing, Cold storage, Warehouses, Sorting and grading units",
+        "trading_restricted": True,
+        "source_authority": "Department of Agriculture & Farmers Welfare",
+        "source_year": "2024 Guidelines",
+        "official_source_url": "https://agriinfra.dac.gov.in/",
+        "notes": "3% interest subvention for 7 years on loans up to Rs. 2 Crore, plus CGTMSE fee coverage.",
+    },
+    {
+        "scheme_code": "MSME_CHAMPIONS",
+        "scheme_name": "MSME Champions Scheme (ZED & Technology Modernization)",
+        "category": "MSME Modernization & Quality Subsidy",
+        "max_project_cost_mfg": 10000000.0,
+        "max_project_cost_service": 10000000.0,
+        "min_margin_pct_gen": 10.0,
+        "min_margin_pct_special": 5.0,
+        "max_subsidy_pct_rural_gen": 15.0,
+        "max_subsidy_pct_rural_special": 15.0,
+        "max_subsidy_pct_urban_gen": 15.0,
+        "max_subsidy_pct_urban_special": 15.0,
+        "max_subsidy_amount": 1500000.0,
+        "interest_subsidy_pct": 0.0,
+        "collateral_required": False,
+        "eligible_categories": "Manufacturing, Engineering, Processing, Dairy, Agro-Allied",
+        "trading_restricted": True,
+        "source_authority": "Ministry of MSME",
+        "source_year": "2024",
+        "official_source_url": "https://champions.gov.in/",
+        "notes": "Up to 80% subsidy on ZED certification plus 15% capital subsidy for tech modernization.",
     },
 ]
 
@@ -237,17 +303,34 @@ def seed_project_cost_references(db: Session, csv_path: Path = None) -> int:
 
 
 def seed_scheme_rules(db: Session) -> int:
-    """Seed scheme_rules table with official credit scheme rules if empty."""
-    existing_count = db.query(SchemeRule).count()
-    if existing_count > 0:
-        logger.info(f"scheme_rules contains {existing_count} records. Skipping seed.")
-        return existing_count
+    """Seed scheme_rules table with official credit scheme rules, adding any missing ones or updating guidelines."""
+    existing_rules = {r.scheme_code: r for r in db.query(SchemeRule).all()}
+    new_records = []
+    updated_count = 0
+    for rule_data in DEFAULT_SCHEME_RULES:
+        code = rule_data["scheme_code"]
+        if code not in existing_rules:
+            new_records.append(SchemeRule(**rule_data))
+        else:
+            existing_r = existing_rules[code]
+            # Update ceilings if newer guidelines provide enhanced limit
+            new_mfg = rule_data.get("max_project_cost_mfg")
+            new_serv = rule_data.get("max_project_cost_service")
+            if new_mfg and (existing_r.max_project_cost_mfg or 0) < new_mfg:
+                existing_r.max_project_cost_mfg = new_mfg
+                updated_count += 1
+            if new_serv and (existing_r.max_project_cost_service or 0) < new_serv:
+                existing_r.max_project_cost_service = new_serv
+                updated_count += 1
 
-    records = [SchemeRule(**rule_data) for rule_data in DEFAULT_SCHEME_RULES]
-    db.bulk_save_objects(records)
-    db.commit()
-    logger.info(f"Successfully seeded {len(records)} scheme rules into database.")
-    return len(records)
+    if new_records:
+        db.add_all(new_records)
+    if new_records or updated_count > 0:
+        db.commit()
+        logger.info(f"Successfully seeded {len(new_records)} new, updated {updated_count} scheme rules.")
+
+    total_count = db.query(SchemeRule).count()
+    return total_count
 
 
 def seed_default_user_if_missing(db: Session) -> None:

@@ -9,11 +9,13 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from backend.app.core.logging import logger
+from backend.app.engines.ai_advisor import GroqProvider
 from backend.app.engines.cost_engine import ProjectCostEngine
 from backend.app.engines.feasibility_engine import FeasibilityEngine
 from backend.app.engines.risk_engine import RiskEngine
 from backend.app.engines.scheme_engine import SchemeEngine
 from backend.app.engines.whatif_engine import WhatIfEngine
+from backend.app.models.action_plan import ActionPlanTask
 from backend.app.nlp.intent_classifier import classify_intent
 from backend.app.repositories.business_repository import BusinessRepository
 from backend.app.schemas.advisory import (
@@ -31,8 +33,77 @@ from backend.app.schemas.ml import PredictiveMlRequest
 from backend.app.services.ahp_service import get_ahp_result
 from backend.app.services.business_feasibility_service import BusinessFeasibilityService
 from backend.app.services.cash_flow_service import MINIMUM_BUFFER_MONTHS_COVERAGE, CashFlowService
+from backend.app.services.copilot_tools import CopilotToolRegistry
 from backend.app.services.financial_plan_service import FinancialPlanService
 from backend.app.services.industry_service import IndustryService
+
+LANGUAGE_NORMALIZATION: dict[str, str] = {
+    # ISO 639-1
+    "en": "English",
+    "hi": "Hindi",
+    "or": "Odia",
+    "mr": "Marathi",
+    "bn": "Bengali",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "gu": "Gujarati",
+    # English names
+    "english": "English",
+    "hindi": "Hindi",
+    "odia": "Odia",
+    "oriya": "Odia",
+    "marathi": "Marathi",
+    "bengali": "Bengali",
+    "tamil": "Tamil",
+    "telugu": "Telugu",
+    "gujarati": "Gujarati",
+}
+
+
+def resolve_target_language(raw_lang: Optional[str]) -> Optional[str]:
+    """Resolve user-selected language into canonical name for prompt synthesis.
+
+    Priority order:
+    1. User-selected language from request/dropdown (e.g. 'English', 'Odia', 'Hindi', 'or', 'hi')
+    2. Auto language detection only when raw_lang is None, empty, or 'auto'
+    3. Default English fallback
+    """
+    if not raw_lang:
+        return None
+    cleaned = raw_lang.strip()
+    if not cleaned or cleaned.lower() in ("auto", "none", "detect", "auto-detect"):
+        return None
+
+    # Handle parenthetical display names, e.g. "ଓଡ଼ିଆ (Odia)" -> "Odia", "हिन्दी (Hindi)" -> "Hindi"
+    if "(" in cleaned and ")" in cleaned:
+        inside = cleaned[cleaned.find("(") + 1 : cleaned.find(")")].strip()
+        inside_lower = inside.lower()
+        if inside_lower in LANGUAGE_NORMALIZATION:
+            return LANGUAGE_NORMALIZATION[inside_lower]
+        if inside:
+            return inside
+
+    cleaned_lower = cleaned.lower()
+    if cleaned_lower in LANGUAGE_NORMALIZATION:
+        return LANGUAGE_NORMALIZATION[cleaned_lower]
+
+    # Native script keywords
+    if any(k in cleaned for k in ["हिन्दी", "हिंदी"]):
+        return "Hindi"
+    if any(k in cleaned for k in ["ଓଡ଼ିଆ", "ଉଡ଼ିଆ"]):
+        return "Odia"
+    if "मराठी" in cleaned:
+        return "Marathi"
+    if "বাংলা" in cleaned:
+        return "Bengali"
+    if "தமிழ்" in cleaned:
+        return "Tamil"
+    if "తెలుగు" in cleaned:
+        return "Telugu"
+    if "ગુજરાતી" in cleaned:
+        return "Gujarati"
+
+    return cleaned
 
 
 class AdvisoryService:
@@ -169,6 +240,125 @@ class AdvisoryService:
                     provenance_priority="SAFETY_GUARD",
                 ),
             )
+
+        # Check if user confirmed a write action
+        if payload.confirmed_action and db:
+            action_name = payload.confirmed_action.get("action")
+            task_id = payload.confirmed_action.get("task_id")
+            target_biz_id = active_business_id or int(payload.confirmed_action.get("business_id", 1))
+            if action_name == "complete_action_task" and task_id:
+                exec_res = CopilotToolRegistry.execute_complete_action_task(db, target_biz_id, int(task_id))
+                if exec_res.get("success"):
+                    return ChatResponse(
+                        answer=(
+                            f"Task **{exec_res['task_title']}** is now marked **completed**.\n\n"
+                            f"• Roadmap progress: **{exec_res['completion_pct']}%** ({exec_res['completed_tasks']}/{exec_res['total_tasks']} tasks)\n"
+                            f"• Updated Bankable Readiness: **{exec_res['updated_readiness_score']}/100** ({exec_res['updated_readiness_label']})\n\n"
+                            f"Your dashboard and action plan records have been refreshed in PostgreSQL."
+                        ),
+                        intent="ACTION",
+                        confidence="HIGH",
+                        key_facts=[
+                            KeyFact(label="Completed Task", value=exec_res["task_title"]),
+                            KeyFact(label="Roadmap Progress", value=f"{exec_res['completion_pct']}% ({exec_res['completed_tasks']}/{exec_res['total_tasks']})"),
+                            KeyFact(label="Readiness Score", value=f"{exec_res['updated_readiness_score']}/100"),
+                        ],
+                        why_this_result=[
+                            f"Task {exec_res['task_title']} status updated to 'completed' in database.",
+                            "Readiness service re-evaluated bankable compliance checklist.",
+                        ],
+                        recommended_next_steps=[
+                            "Check remaining milestones in the Action Plan tab.",
+                            "Download refreshed Detailed Project Report (DPR).",
+                        ],
+                        sources=[],
+                        data_status="VERIFIED_DETERMINISTIC",
+                        language=lang,
+                        provenance_label="Authoritative Action Plan & Readiness State • PostgreSQL Verified",
+                        action_performed="complete_action_task",
+                        traceability=TraceabilityMetadata(
+                            input={"confirmed_action": payload.confirmed_action},
+                            calculation_rule="PostgreSQL action_plan_tasks state update + readiness sync.",
+                            source_authority="VITTANAYA Action Plan Engine",
+                            source_year="2026",
+                            provenance_priority="AUTHORITATIVE_WRITE",
+                        ),
+                    )
+
+        # Check for natural language write commands requiring confirmation
+        is_write_intent = any(trig in lower_msg for trig in ["mark ", "complete task", "finish task", "mark done"]) and any(w in lower_msg for w in ["complete", "completed", "done", "finish"])
+        if is_write_intent and db:
+            biz_id_for_tasks = active_business_id or 1
+            try:
+                pending_tasks = db.query(ActionPlanTask).filter(
+                    ActionPlanTask.business_id == biz_id_for_tasks,
+                    ActionPlanTask.status != "completed",
+                ).all()
+                target_task = None
+                if pending_tasks:
+                    for t in pending_tasks:
+                        words = [w.lower() for w in t.title.split() if len(w) > 3]
+                        if any(w in lower_msg for w in words):
+                            target_task = t
+                            break
+                    if not target_task:
+                        target_task = pending_tasks[0]
+
+                if target_task:
+                    return ChatResponse(
+                        answer=(
+                            f"I found **'{target_task.title}'** in your pending action roadmap.\n\n"
+                            f"Would you like me to mark it complete and recalculate your bankable readiness score?"
+                        ),
+                        intent="ACTION",
+                        confidence="HIGH",
+                        key_facts=[
+                            KeyFact(label="Target Task", value=target_task.title),
+                            KeyFact(label="Phase", value=target_task.phase),
+                            KeyFact(label="Current Status", value=target_task.status.capitalize()),
+                        ],
+                        why_this_result=[
+                            "State modifications require explicit user confirmation to maintain authoritative data integrity."
+                        ],
+                        recommended_next_steps=[
+                            "Confirm by clicking the button below or type 'yes' to proceed."
+                        ],
+                        sources=[],
+                        data_status="VERIFIED_DETERMINISTIC",
+                        language=lang,
+                        confirmation_required=True,
+                        confirmation_details={
+                            "action": "complete_action_task",
+                            "task_id": target_task.id,
+                            "task_title": target_task.title,
+                            "business_id": biz_id_for_tasks,
+                        },
+                        provenance_label="Pending User Confirmation • No Database Changes Made Yet",
+                        traceability=TraceabilityMetadata(
+                            input={"message": raw_msg},
+                            calculation_rule="Write confirmation guardrail triggered.",
+                            source_authority="VITTANAYA Safety Protocol",
+                            source_year="2026",
+                            provenance_priority="SAFETY_GUARD",
+                        ),
+                    )
+            except Exception as e:
+                logger.warning(f"Error checking pending tasks for write confirmation: {e}")
+
+        # Detect navigation intent
+        nav_target: Optional[str] = None
+        has_nav_verb = any(a in lower_msg for a in ["open", "go to", "view", "show", "navigate"])
+        if has_nav_verb:
+            if any(v in lower_msg for v in ["feasibility", "opportunity score"]):
+                nav_target = "feasibility"
+            elif any(v in lower_msg for v in ["action plan", "roadmap", "task", "milestone"]):
+                nav_target = "action-plan"
+            elif any(v in lower_msg for v in ["scheme", "subsid"]):
+                nav_target = "schemes"
+            elif any(v in lower_msg for v in ["financial", "finance", "cash flow", "emi"]):
+                nav_target = "financial-plan"
+            elif any(v in lower_msg for v in ["dashboard", "home"]):
+                nav_target = "dashboard"
 
         # 2. Detect Query Intent via Local Offline NLP Classifier (TF-IDF + Logistic Regression)
         intent, intent_confidence, nlp_method = classify_intent(raw_msg)
@@ -757,11 +947,93 @@ class AdvisoryService:
             key_facts.append(KeyFact(label="Location", value=loc))
             key_facts.append(KeyFact(label="Feasibility Score", value=f"{feas_res.overall_opportunity_score:.0f}/100"))
 
+        # Groq AI Conversational Synthesis (Server-Side with Groq openai/gpt-oss-120b)
+        groq = GroqProvider()
+        if groq.is_available():
+            try:
+                facts_str = "; ".join([f"{k.label}: {k.value}" for k in key_facts])
+                target_lang = resolve_target_language(lang)
+                if target_lang and target_lang.lower() != "auto":
+                    lang_rules = (
+                        "CRITICAL MANDATORY LANGUAGE INSTRUCTION (STRICT PRIORITY OVERRIDE):\n"
+                        f"The user has explicitly selected '{target_lang}' as their preferred language.\n"
+                        f"You MUST generate your entire response ONLY in {target_lang}, regardless of what language the user typed their message in.\n"
+                        f"- If the user message is in Odia and selected language is English: You MUST reply in English.\n"
+                        f"- If the user message is in English and selected language is Odia: You MUST reply in Odia.\n"
+                        f"- If the user message is in English and selected language is Hindi: You MUST reply in Hindi.\n"
+                        f"- Do NOT auto-detect or switch away from {target_lang}. Manual selection has highest priority.\n"
+                        "- Never say 'I detected your language' or mention language preference or settings.\n"
+                        "- Keep financial, scheme, and technical terms accurate; do not mistranslate official names.\n\n"
+                    )
+                else:
+                    lang_rules = (
+                        "LANGUAGE RULES:\n"
+                        "1. No manual language preference specified. Detect the language of the user's message automatically.\n"
+                        "2. Reply entirely in that detected language. If the user mixes languages, use the dominant one naturally.\n"
+                        "3. If the language cannot be determined, fall back to English.\n"
+                        "4. Never say 'I detected your language' or mention language detection at all.\n"
+                        "5. Keep financial and business terms accurate; do not mistranslate technical terms.\n\n"
+                    )
+
+                system_prompt = (
+                    "You are Ask VITTANAYA, an AI Business Copilot helping rural micro-entrepreneurs with "
+                    "feasibility analysis, financial planning, loan calculations, government schemes, and business decisions.\n\n"
+                    f"{lang_rules}"
+                    "ADVISORY RULES:\n"
+                    "1. Always answer the actual question first — never give generic capability descriptions.\n"
+                    "2. Maintain a professional, confident advisory tone suited to an entrepreneur audience.\n"
+                    "3. Use the EXACT numbers, rupee amounts, percentages and business data provided below. NEVER alter, hallucinate, or fabricate any figures.\n"
+                    "4. Keep the answer focused: 2–3 short paragraphs, direct and actionable.\n"
+                    "5. Preserve official compliance disclaimers verbatim (e.g., 'Final eligibility is subject to the implementing authority').\n"
+                    "6. Do NOT start with repetitive greetings like 'Namaste! I am Ask VITTANAYA'.\n"
+                    "7. Use clean markdown formatting. No raw JSON or internal diagnostic codes."
+                )
+                user_prompt = (
+                    f"User Query: {raw_msg}\n\n"
+                    f"Business: {bus_name} ({specific_bus}) in {loc}\n"
+                    f"Key Facts: {facts_str}\n"
+                    f"Authoritative Engine Analysis: {answer_text}\n"
+                    f"Recommended Actions: {', '.join(next_steps)}"
+                )
+                synthesized = groq.generate_chat(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    history=payload.history,
+                )
+                if synthesized and len(synthesized.strip()) > 20:
+                    answer_text = synthesized.strip()
+            except Exception as e:
+                logger.warning(f"Groq synthesis failed, using deterministic fallback: {e}")
+
         nlp_meta = NlpMetadata(
             pipeline="TF-IDF + Logistic Regression (100% Offline)",
             confidence_score=intent_confidence,
             method=nlp_method,
         )
+
+        provenance_map = {
+            "SCHEME": "Official Government Scheme Guidelines (KVIC / MoSJE)",
+            "FINANCIAL": "Verified Financial Model & NABARD PLP Benchmarks",
+            "CASH_FLOW": "12-Month Roll-Forward Cash Flow Engine",
+            "FEASIBILITY": "AHP Multi-Dimensional Model (5 Criteria)",
+            "EXPLANATION": "AHP Lineage & Analytical Hierarchy Calculations",
+            "ACTION": "Authoritative Action Plan & Readiness State",
+            "INDUSTRY": "Sector Intelligence & Empirical Norms",
+            "PREDICTIVE_ML": "Machine Learning Ensemble Models (NABARD/MoSJE)",
+            "WHAT_IF": "Sensitivity Simulation Engine",
+            "PROFILE_IDENTITY": "Verified Workspace Business Profile",
+            "REVENUE_EXPENSE": "Active Business Financial Ledger",
+            "RISK": "Risk Matrix & Cash Buffer Assessment",
+            "GENERAL": "Grounded VITTANAYA Business Advisory Engine",
+        }
+        provenance_label = provenance_map.get(intent, "Grounded in VITTANAYA Business Data")
+
+        suggested_actions = [
+            "Explain my feasibility score",
+            "Show matching schemes",
+            "What should I do next?",
+            "Check my financial health",
+        ]
 
         traceability = TraceabilityMetadata(
             input={
@@ -794,6 +1066,9 @@ class AdvisoryService:
             language=lang,
             traceability=traceability,
             nlp_metadata=nlp_meta,
+            provenance_label=provenance_label,
+            navigation_target=nav_target,
+            suggested_actions=suggested_actions,
         )
 
     @staticmethod

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useWorkspace } from '../context/WorkspaceContext';
 import { feasibilityService } from '../services/feasibilityService';
 import { financeService } from '../services/financeService';
+import { businessService } from '../services/businessService';
 import CashFlowSection from '../components/dashboard/CashFlowSection';
 import IndustryKpiCard from '../components/dashboard/IndustryKpiCard';
 import PredictiveMlCard from '../components/dashboard/PredictiveMlCard';
@@ -18,7 +19,7 @@ import PredictiveMlCard from '../components/dashboard/PredictiveMlCard';
  */
 
 const formatINR = (value) => {
-  if (value === undefined || value === null || isNaN(value)) return 'Not available';
+  if (value === undefined || value === null || isNaN(value)) return 'Data unavailable';
   const val = Math.round(value);
   if (val < 0) {
     return `-₹ ${Math.abs(val).toLocaleString('en-IN')}`;
@@ -176,12 +177,14 @@ const KpiCard = ({
   );
 };
 
-export default function FinancialPlanPage({
+function FinancialPlanPageContent({
   currentProfile: propProfile,
   onNavigateHome,
 }) {
   const { currentProfile: contextProfile } = useWorkspace();
   const currentProfile = propProfile || contextProfile;
+  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
+  const navigateBack = onNavigateHome || (() => window.history.back());
 
   // Authoritative Business Profile Inputs
   const savedProjectCost = useMemo(() => {
@@ -236,7 +239,12 @@ export default function FinancialPlanPage({
   const [interestRate, setInterestRate] = useState(8.5);
 
   // Provenance & Source state
-  const [costProvenance, setCostProvenance] = useState(savedProjectCost ? 'User Profile Configuration' : null);
+  const [costProvenance, setCostProvenance] = useState(savedProjectCost ? 'User provided' : null);
+
+  // Backend Data States
+  const [fundingData, setFundingData] = useState(null);
+  const [backendCost, setBackendCost] = useState(null);
+  const [backendSimulation, setBackendSimulation] = useState(null);
 
   // UI Panels Toggle States
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -247,20 +255,43 @@ export default function FinancialPlanPage({
   const [showSchedule, setShowSchedule] = useState(false);
   const [stressMode, setStressMode] = useState(false);
 
-  // Backend Data States
-  const [fundingData, setFundingData] = useState(null);
-  const [backendCost, setBackendCost] = useState(null);
-  const [backendSimulation, setBackendSimulation] = useState(null);
-
   // Loading and Error States
   const [isLoading, setIsLoading] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Authoritative Card Label and Provenance Subtitle
+  const resolvedCardLabel = useMemo(() => {
+    if (isEstablished) return 'Target Financing / Facility';
+    if (fundingData?.project_cost_label) return fundingData.project_cost_label;
+    if (fundingData?.source_type === 'USER_PROVIDED' || (savedProjectCost && savedProjectCost > 0)) {
+      return 'Planned Project Cost';
+    }
+    if (fundingData?.source_type === 'CALCULATED') {
+      return 'Calculated Project Cost';
+    }
+    return 'Estimated Project Cost';
+  }, [isEstablished, fundingData?.project_cost_label, fundingData?.source_type, savedProjectCost]);
+
+  const resolvedCardSubtitle = useMemo(() => {
+    if (projectCostInput === null) return 'Configure in Business Profile';
+    if (fundingData?.source_name) {
+      const src = fundingData.source_name === 'User Input' ? 'User provided' : fundingData.source_name;
+      return `Source: ${src}`;
+    }
+    if (fundingData?.source_type === 'USER_PROVIDED' || (savedProjectCost && savedProjectCost > 0)) {
+      return 'Source: User provided';
+    }
+    if (costProvenance) {
+      return `Source: ${costProvenance}`;
+    }
+    return 'Source: NABARD benchmark';
+  }, [projectCostInput, fundingData?.source_name, fundingData?.source_type, savedProjectCost, costProvenance]);
+
   // 1. Authoritative Backend Funding Structure Fetcher
   const recalculateFundingStructure = useCallback(
-    async (cost, margin, rate, tenure) => {
+    async (cost, margin, rate, tenure, sourceOverride = null) => {
       if (!cost || isNaN(Number(cost)) || Number(cost) <= 0) {
         setFundingData(null);
         return;
@@ -275,10 +306,17 @@ export default function FinancialPlanPage({
       const validatedRate = Math.max(0, Number(rate) || 0);
       const validatedTenure = Math.max(1, Number(tenure) || 7);
 
+      const resolvedSourceType = sourceOverride || (
+        ((savedProjectCost && savedProjectCost > 0) || costProvenance === 'User provided')
+          ? 'USER_PROVIDED'
+          : 'BENCHMARK_ESTIMATE'
+      );
+
       try {
         const response = await financeService.calculateFundingStructure({
           business_id: currentProfile?.id ? Number(currentProfile.id) : undefined,
           project_cost: validatedCost,
+          own_capital: userOwnCapital != null ? userOwnCapital : undefined,
           margin_pct: validatedMargin,
           interest_rate_annual: validatedRate,
           tenure_years: validatedTenure,
@@ -287,11 +325,15 @@ export default function FinancialPlanPage({
           business_activity: activeActivity,
           business_name: activeTradeName,
           location: activeLocation,
+          source_type: resolvedSourceType,
         });
 
         const data = response?.data || response;
         if (data && typeof data === 'object') {
           setFundingData(data);
+          if (data.source_name) {
+            setCostProvenance(data.source_name === 'User Input' ? 'User provided' : data.source_name);
+          }
         } else {
           throw new Error('Invalid backend funding response structure');
         }
@@ -306,7 +348,7 @@ export default function FinancialPlanPage({
         setIsLoading(false);
       }
     },
-    [activeCategory, activeActivity, activeTradeName, activeLocation, currentProfile?.id]
+    [activeCategory, activeActivity, activeTradeName, activeLocation, currentProfile?.id, userOwnCapital, savedProjectCost, costProvenance]
   );
 
   // 2. Fetch Project Cost based on Priority Hierarchy:
@@ -319,8 +361,8 @@ export default function FinancialPlanPage({
     if (savedProjectCost && savedProjectCost > 0) {
       setProjectCostInput(savedProjectCost);
       setMarginPct(profileMarginPct);
-      setCostProvenance('User Profile Configuration');
-      recalculateFundingStructure(savedProjectCost, profileMarginPct, interestRate, loanTenureYears);
+      setCostProvenance('User provided');
+      recalculateFundingStructure(savedProjectCost, profileMarginPct, interestRate, loanTenureYears, 'USER_PROVIDED');
       return;
     }
 
@@ -342,8 +384,8 @@ export default function FinancialPlanPage({
           const costVal = Number(data.indicative_project_cost);
           setBackendCost(data);
           setProjectCostInput(costVal);
-          setCostProvenance(data.source_authority || 'NABARD Odisha Reference Library');
-          recalculateFundingStructure(costVal, marginPct, interestRate, loanTenureYears);
+          setCostProvenance(data.source_authority || 'NABARD benchmark');
+          recalculateFundingStructure(costVal, marginPct, interestRate, loanTenureYears, 'BENCHMARK_ESTIMATE');
         } else if (isMounted) {
           setProjectCostInput(null);
           setFundingData(null);
@@ -363,16 +405,28 @@ export default function FinancialPlanPage({
     return () => {
       isMounted = false;
     };
-  }, [savedProjectCost, activeCategory, activeTradeName, activeActivity, activeLocation, userOwnCapital]);
+  }, [savedProjectCost, activeCategory, activeTradeName, activeActivity, activeLocation, userOwnCapital, currentProfile?.id]);
 
   // Recalculate on input change
   const handleCostChange = (newCost) => {
     const val = Math.max(1000, newCost);
     setProjectCostInput(val);
-    setCostProvenance('User Interactive Parameter');
+    setCostProvenance('User provided');
     setBackendSimulation(null);
     setStressMode(false);
-    recalculateFundingStructure(val, marginPct, interestRate, loanTenureYears);
+    recalculateFundingStructure(val, marginPct, interestRate, loanTenureYears, 'USER_PROVIDED');
+
+    // Persist to backend and update current workspace profile
+    if (currentProfile?.id) {
+      businessService.updateBusiness({ project_cost: val }, currentProfile.id).catch((err) => {
+        console.warn('Backend project cost update notice:', err);
+      });
+      if (currentProfile) {
+        currentProfile.project_cost = val;
+        currentProfile.projectCost = val;
+        currentProfile.estimatedProjectCost = val;
+      }
+    }
   };
 
   const handleMarginChange = (newMargin) => {
@@ -381,7 +435,13 @@ export default function FinancialPlanPage({
     setBackendSimulation(null);
     setStressMode(false);
     if (projectCostInput) {
-      recalculateFundingStructure(projectCostInput, val, interestRate, loanTenureYears);
+      recalculateFundingStructure(
+        projectCostInput,
+        val,
+        interestRate,
+        loanTenureYears,
+        (savedProjectCost && savedProjectCost > 0) || costProvenance === 'User provided' ? 'USER_PROVIDED' : 'BENCHMARK_ESTIMATE'
+      );
     }
   };
 
@@ -391,7 +451,13 @@ export default function FinancialPlanPage({
     setBackendSimulation(null);
     setStressMode(false);
     if (projectCostInput) {
-      recalculateFundingStructure(projectCostInput, marginPct, interestRate, val);
+      recalculateFundingStructure(
+        projectCostInput,
+        marginPct,
+        interestRate,
+        val,
+        (savedProjectCost && savedProjectCost > 0) || costProvenance === 'User provided' ? 'USER_PROVIDED' : 'BENCHMARK_ESTIMATE'
+      );
     }
   };
 
@@ -401,7 +467,13 @@ export default function FinancialPlanPage({
     setBackendSimulation(null);
     setStressMode(false);
     if (projectCostInput) {
-      recalculateFundingStructure(projectCostInput, marginPct, val, loanTenureYears);
+      recalculateFundingStructure(
+        projectCostInput,
+        marginPct,
+        val,
+        loanTenureYears,
+        (savedProjectCost && savedProjectCost > 0) || costProvenance === 'User provided' ? 'USER_PROVIDED' : 'BENCHMARK_ESTIMATE'
+      );
     }
   };
 
@@ -446,9 +518,6 @@ export default function FinancialPlanPage({
       setIsSimulating(false);
     }
   };
-
-  const isEstablished = (currentProfile?.stage || '').toUpperCase() === 'ESTABLISHED';
-  const navigateBack = onNavigateHome || (() => window.history.back());
 
   // Grounded Values Sourced Authoritatively from Backend Funding Structure
   const ownMarginCapital = useMemo(
@@ -572,6 +641,17 @@ export default function FinancialPlanPage({
           </button>
         </div>
 
+        {/* LOADING STATE INDICATOR */}
+        {isLoading && !isError && (
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3.5 text-xs text-blue-900 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent shrink-0" />
+              <span className="font-bold">Syncing authoritative financial structure with backend services...</span>
+            </div>
+            <span className="text-[11px] font-semibold text-blue-700">Loading ground data</span>
+          </div>
+        )}
+
         {/* ERROR STATE ALERT */}
         {isError && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 flex items-center justify-between">
@@ -593,9 +673,9 @@ export default function FinancialPlanPage({
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 items-stretch">
           <KpiCard
             icon="◔"
-            label={isEstablished ? 'Target Financing / Facility' : 'Project Cost'}
+            label={resolvedCardLabel}
             value={isLoading ? 'Calculating...' : (projectCostInput !== null ? formatINR(projectCostInput) : 'Not configured')}
-            subtitle={projectCostInput !== null ? (costProvenance ? `Source: ${costProvenance}` : 'Total CapEx + Working Capital') : 'Configure in Business Profile'}
+            subtitle={resolvedCardSubtitle}
             action={
               <SmallAction onClick={() => setShowBreakdown((v) => !v)}>
                 {showBreakdown ? 'Hide' : 'View Breakdown'} <Arrow />
@@ -605,17 +685,19 @@ export default function FinancialPlanPage({
 
           <KpiCard
             icon="♙"
-            label={isEstablished ? 'Promoter Margin Money' : 'Promoter Margin Required'}
+            label={isEstablished ? 'Promoter Margin Money' : 'Available Own Capital'}
             value={isLoading ? 'Calculating...' : (ownMarginCapital !== null ? formatINR(ownMarginCapital) : 'Not available')}
             subtitle={
-              userOwnCapital !== null
-                ? `Available Equity: ${formatINR(userOwnCapital)} (${marginPct}% Required)`
-                : `${marginPct}% Equity Margin Requirement`
+              fundingData?.required_margin_capital != null
+                ? `Required: ${formatINR(fundingData.required_margin_capital)} (${fundingData.margin_pct ?? marginPct}%)`
+                : (userOwnCapital !== null
+                    ? `Available Equity: ${formatINR(userOwnCapital)} (${marginPct}% Required)`
+                    : `${marginPct}% Equity Margin Requirement`)
             }
             accent="amber"
             action={
               <SmallAction tone="amber" onClick={() => setShowMarginReason((v) => !v)}>
-                Why {marginPct}%? <Arrow />
+                Why {fundingData?.margin_pct ?? marginPct}%? <Arrow />
               </SmallAction>
             }
           />
@@ -665,11 +747,16 @@ export default function FinancialPlanPage({
             {showMarginReason && (
               <div className="rounded-2xl border border-[#F1E4BF] bg-[#FFFBF0] p-4">
                 <p className="text-xs font-extrabold text-[#B77A0A]">
-                  Why Promoter Contribution Matters
+                  Promoter Margin &amp; Equity Guidance
                 </p>
                 <p className="mt-1 text-xs leading-5 text-[#64748B]">
-                  Standard banking rules require a minimum 10% own equity margin (5% for special categories under PMEGP).
-                  Increasing promoter margin reduces total loan requirement ({formatINR(loanAmount)}) and lowers monthly EMI obligations.
+                  Your committed own capital is <strong>{formatINR(ownMarginCapital)}</strong>.
+                  {fundingData?.required_margin_capital != null && (
+                    <> Standard institutional financing requires a minimum {fundingData.margin_pct ?? marginPct}% promoter margin ({formatINR(fundingData.required_margin_capital)}).</>
+                  )}
+                  {fundingData?.margin_shortfall > 0 && (
+                    <> Current margin shortfall is <strong>{formatINR(fundingData.margin_shortfall)}</strong>. You can augment margin equity or qualify for credit-linked government subsidies (like PMEGP/MUDRA).</>
+                  )}
                 </p>
               </div>
             )}
@@ -753,7 +840,7 @@ export default function FinancialPlanPage({
 
             <div className="mt-6 space-y-5">
               <SliderRow
-                label="Total Project Cost"
+                label={resolvedCardLabel}
                 value={projectCostInput ?? 0}
                 displayValue={formatINR(projectCostInput)}
                 min={100000}
@@ -1230,5 +1317,13 @@ export default function FinancialPlanPage({
         </div>
       )}
     </div>
+  );
+}
+
+export default function FinancialPlanPage(props) {
+  return (
+    <SectionErrorBoundary name="Financial Plan">
+      <FinancialPlanPageContent {...props} />
+    </SectionErrorBoundary>
   );
 }

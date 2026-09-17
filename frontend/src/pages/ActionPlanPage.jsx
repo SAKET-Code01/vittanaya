@@ -545,18 +545,26 @@ export default function ActionPlanPage({
       .then((res) => {
         const data = res?.data || res;
         if (isMounted && data && data.tasks && data.tasks.length > 0) {
-          // Merge backend tasks into tasks list
+          // Merge authoritative backend database tasks
           setTasks((prev) =>
-            prev.map((t, idx) => {
-              const backendMatch = data.tasks[idx];
-              if (backendMatch) {
-                return {
-                  ...t,
-                  backendId: backendMatch.id,
-                  done: backendMatch.status === 'completed',
-                };
-              }
-              return t;
+            data.tasks.map((bt, idx) => {
+              const staticT = prev[idx] || {};
+              return {
+                ...staticT,
+                id: bt.id,
+                backendId: bt.id,
+                phase: bt.phase.split(':')[0].trim(),
+                phaseName: bt.phase.split(':')[1]?.trim() || bt.phase,
+                title: bt.title || staticT.title,
+                done: bt.status === 'completed',
+                deadline: bt.due_date || (bt.target_days ? `Day ${bt.target_days}` : staticT.deadline),
+                description: bt.description || staticT.description,
+                steps: staticT.steps || ['Review statutory requirements', 'Compile filings', 'Track acknowledgement'],
+                documents: staticT.documents || ['Statutory Filing', 'Acknowledgement Receipt'],
+                why: staticT.why || `Required milestone governed by ${bt.authority_name || 'statutory authority'}.`,
+                scheme: bt.authority_name || staticT.scheme || 'Compliance Gate',
+                fit: bt.priority || 'Mandatory',
+              };
             })
           );
         }
@@ -665,7 +673,20 @@ export default function ActionPlanPage({
     if (targetTask.backendId && bizId) {
       setUpdatingTaskId(id);
       try {
-        await actionPlanService.updateTaskStatus(targetTask.backendId, newStatus, bizId);
+        const res = await actionPlanService.updateTaskStatus(targetTask.backendId, newStatus, bizId);
+        const resData = res?.data || res;
+        if (resData) {
+          window.dispatchEvent(
+            new CustomEvent('vittanaya-readiness-updated', {
+              detail: {
+                businessId: bizId,
+                readinessScore: resData.readiness_score,
+                readinessLabel: resData.readiness_label,
+                completionPct: resData.completion_pct,
+              },
+            })
+          );
+        }
       } catch (err) {
         console.warn('Task status update error, rolling back:', err);
         // Rollback task state on backend failure

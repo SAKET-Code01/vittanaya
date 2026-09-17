@@ -7,6 +7,13 @@ import { apiClient } from './apiClient';
 
 export const businessService = {
   /**
+   * List all business profiles in the active workspace.
+   */
+  async listBusinesses() {
+    return apiClient.get('/business/list');
+  },
+
+  /**
    * Fetch current authorized business profile.
    * If businessId is null, resolves for the active session's authorized business.
    */

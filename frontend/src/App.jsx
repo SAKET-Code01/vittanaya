@@ -264,6 +264,7 @@ function AppContent() {
           email: profileWithCompletion.email || null,
           description: profileWithCompletion.description || null,
           own_capital: Number(profileWithCompletion.ownCapital || 0.0),
+          project_cost: Number(profileWithCompletion.project_cost || profileWithCompletion.projectCost || 0.0),
           existing_investment: Number(profileWithCompletion.alreadyInvested || 0.0),
           social_category: profileWithCompletion.socialCategory || 'General',
           area_type: profileWithCompletion.areaType || 'Rural',
@@ -272,7 +273,13 @@ function AppContent() {
         })
         .then((savedBiz) => {
           if (savedBiz && savedBiz.id) {
-            setCurrentProfile((prev) => ({ ...prev, id: savedBiz.id }));
+            setCurrentProfile((prev) => ({
+              ...prev,
+              id: savedBiz.id,
+              project_cost: Number(savedBiz.project_cost ?? prev.project_cost ?? 0),
+              projectCost: Number(savedBiz.project_cost ?? prev.projectCost ?? 0),
+              estimatedProjectCost: Number(savedBiz.project_cost ?? prev.estimatedProjectCost ?? 0),
+            }));
           }
         })
         .catch((err) => {

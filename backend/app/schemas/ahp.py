@@ -171,6 +171,26 @@ class BusinessFeasibilityResponse(BaseModel):
         default=0.0,
         description="Indicative reference project cost from sector benchmark",
     )
+    resolved_project_cost: float = Field(
+        default=0.0,
+        description="Authoritative resolved project cost with strict source priority",
+    )
+    project_cost_source_type: str = Field(
+        default="BENCHMARK_ESTIMATE",
+        description="USER_PROVIDED, CALCULATED, or BENCHMARK_ESTIMATE",
+    )
+    project_cost_source_name: str = Field(
+        default="NABARD benchmark",
+        description="User Input, Financial Engine, NABARD benchmark",
+    )
+    project_cost_label: str = Field(
+        default="Estimated Project Cost",
+        description="Planned Project Cost, Calculated Project Cost, or Estimated Project Cost",
+    )
+    max_supportable_project_size: float = Field(
+        default=0.0,
+        description="Maximum supportable project size derived from own capital",
+    )
     market_benchmark_score: float = Field(
         description=(
             "Sector benchmark score from LocalMarketData.base_score — "

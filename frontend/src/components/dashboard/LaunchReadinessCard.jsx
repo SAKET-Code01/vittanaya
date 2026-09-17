@@ -7,6 +7,10 @@ import React from 'react';
  * 4-Step milestone tracker with progress percentage and checklist launch CTA.
  */
 export default function LaunchReadinessCard({
+  readinessScore = null,
+  readinessLabel = null,
+  requirements = [],
+  isLoading = false,
   onNavigate,
   className = '',
 }) {
@@ -16,34 +20,30 @@ export default function LaunchReadinessCard({
     }
   };
 
-  const steps = [
-    {
-      id: 1,
-      title: 'Idea Intake & Category Match',
-      status: '100%',
-      isDone: true,
-      badgeColor: 'text-emerald-700 bg-emerald-50 border-emerald-200/60',
-    },
-    {
-      id: 2,
-      title: 'Scheme Discovery & Entitlement',
-      status: 'In Progress',
-      isCurrent: true,
-      badgeColor: 'text-blue-700 bg-blue-50 border-blue-200/60',
-    },
-    {
-      id: 3,
-      title: 'Statutory Clearances & Udyam',
-      status: 'Pending',
-      badgeColor: 'text-slate-500 bg-slate-100 border-slate-200/60',
-    },
-    {
-      id: 4,
-      title: 'Bank Loan Application',
-      status: 'Upcoming',
-      badgeColor: 'text-slate-500 bg-slate-100 border-slate-200/60',
-    },
-  ];
+  // Map backend requirements into displayed 4 milestone steps
+  const displaySteps = React.useMemo(() => {
+    if (requirements && requirements.length > 0) {
+      return requirements.slice(0, 4).map((req, idx) => {
+        const isDone = req.status === 'completed' || req.status === 'verified';
+        const isCurrent = req.status === 'in_progress' || req.status === 'submitted';
+        return {
+          id: req.id || idx + 1,
+          title: req.name || req.title,
+          status: isDone ? 'Verified' : (isCurrent ? 'In Progress' : 'Pending'),
+          isDone,
+          isCurrent,
+          badgeColor: isDone
+            ? 'text-emerald-700 bg-emerald-50 border-emerald-200/60'
+            : isCurrent
+              ? 'text-blue-700 bg-blue-50 border-blue-200/60'
+              : 'text-slate-500 bg-slate-100 border-slate-200/60',
+        };
+      });
+    }
+    return [];
+  }, [requirements]);
+
+  const displayLabel = readinessLabel || (readinessScore != null ? `${Math.round(readinessScore)}% Prepared` : (isLoading ? '...' : 'Insufficient data'));
 
   return (
     <section className={`bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-5 ${className}`}>
@@ -62,45 +62,55 @@ export default function LaunchReadinessCard({
           </h2>
         </div>
         <span className="text-xs font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100/80">
-          40% Prepared
+          {displayLabel}
         </span>
       </div>
 
-      {/* 4 Steps List */}
+      {/* Steps List */}
       <div className="space-y-3">
-        {steps.map((step) => (
-          <div
-            key={step.id}
-            className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-100"
-          >
-            <div className="flex items-center space-x-3">
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black ${step.isDone
-                    ? 'bg-emerald-600 text-white'
-                    : step.isCurrent
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-200 text-slate-600'
-                  }`}
-              >
-                {step.isDone ? '✓' : step.id}
+        {isLoading ? (
+          <div className="py-6 text-center text-xs text-slate-400 animate-pulse">
+            Loading statutory milestones...
+          </div>
+        ) : displaySteps.length > 0 ? (
+          displaySteps.map((step) => (
+            <div
+              key={step.id}
+              className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50/70 border border-slate-100"
+            >
+              <div className="flex items-center space-x-3 min-w-0 pr-2">
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${step.isDone
+                      ? 'bg-emerald-600 text-white'
+                      : step.isCurrent
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-200 text-slate-600'
+                    }`}
+                >
+                  {step.isDone ? '✓' : step.id}
+                </div>
+                <span
+                  className={`text-xs truncate ${step.isDone || step.isCurrent
+                      ? 'font-bold text-slate-900'
+                      : 'font-medium text-slate-600'
+                    }`}
+                >
+                  {step.title}
+                </span>
               </div>
+
               <span
-                className={`text-xs ${step.isDone || step.isCurrent
-                    ? 'font-bold text-slate-900'
-                    : 'font-medium text-slate-600'
-                  }`}
+                className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${step.badgeColor}`}
               >
-                {step.title}
+                {step.status}
               </span>
             </div>
-
-            <span
-              className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold border ${step.badgeColor}`}
-            >
-              {step.status}
-            </span>
+          ))
+        ) : (
+          <div className="py-6 text-center text-xs text-slate-400">
+            No requirements resolved for this business stage.
           </div>
-        ))}
+        )}
       </div>
 
       {/* Button CTA */}

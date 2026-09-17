@@ -562,3 +562,122 @@ def test_all_14_mandatory_ask_vittanaya_questions(client: TestClient, db_session
         assert data["answer"] and len(data["answer"]) > 10, f"Empty answer for '{question}'"
         assert data["confidence"] in ("HIGH", "MEDIUM", "LOW")
         assert len(data["key_facts"]) > 0, f"Missing key facts for '{question}'"
+
+
+def test_resolve_target_language_mapping():
+    """Verify resolve_target_language accurately normalizes ISO codes, labels, and native strings."""
+    from backend.app.services.advisory_service import resolve_target_language
+
+    # ISO codes
+    assert resolve_target_language("or") == "Odia"
+    assert resolve_target_language("hi") == "Hindi"
+    assert resolve_target_language("en") == "English"
+    assert resolve_target_language("mr") == "Marathi"
+    assert resolve_target_language("bn") == "Bengali"
+    assert resolve_target_language("ta") == "Tamil"
+    assert resolve_target_language("te") == "Telugu"
+    assert resolve_target_language("gu") == "Gujarati"
+
+    # Dropdown display strings with parentheses
+    assert resolve_target_language("ଓଡ଼ିଆ (Odia)") == "Odia"
+    assert resolve_target_language("हिन्दी (Hindi)") == "Hindi"
+    assert resolve_target_language("मराठी (Marathi)") == "Marathi"
+    assert resolve_target_language("বাংলা (Bengali)") == "Bengali"
+    assert resolve_target_language("தமிழ் (Tamil)") == "Tamil"
+    assert resolve_target_language("తెలుగు (Telugu)") == "Telugu"
+    assert resolve_target_language("ગુજરાતી (Gujarati)") == "Gujarati"
+    assert resolve_target_language("English") == "English"
+
+    # Auto / None / empty fallbacks
+    assert resolve_target_language(None) is None
+    assert resolve_target_language("") is None
+    assert resolve_target_language("auto") is None
+    assert resolve_target_language("auto-detect") is None
+
+
+def test_manual_language_selection_overrides_auto_detection_in_groq_prompt(client: TestClient, db_session: Session):
+    """Verify manual dropdown language selection strictly overrides auto language detection."""
+    from backend.app.schemas.advisory import BusinessContextInput, ChatRequest
+    from backend.app.services.advisory_service import AdvisoryService
+
+    captured_prompts = []
+
+    def mock_generate_chat(self, system_prompt, user_prompt, history=None):
+        captured_prompts.append({"system": system_prompt, "user": user_prompt})
+        return "ମୋର ଲୋନ୍ ଏବଂ ପରିକଳ୍ପନା ଅନୁମୋଦିତ ହୋଇଛି।"
+
+    with patch("backend.app.engines.ai_advisor.GroqProvider.is_available", return_value=True), \
+         patch("backend.app.engines.ai_advisor.GroqProvider.generate_chat", mock_generate_chat):
+
+        # 1. Dropdown: Odia, User input: English -> Groq system prompt MUST enforce Odia
+        payload_odia = ChatRequest(
+            message="What is my loan eligibility?",
+            language="ଓଡ଼ିଆ (Odia)",
+            business_context=BusinessContextInput(
+                business_category="Poultry",
+                specific_business="Commercial Broiler Farming",
+                location="Sundargarh, Odisha",
+                available_margin_capital=50000.0,
+            ),
+        )
+        res_odia = AdvisoryService.process_chat(payload_odia, db=db_session)
+        assert res_odia.language == "ଓଡ଼ିଆ (Odia)"
+        assert len(captured_prompts) == 1
+        sys_prompt_odia = captured_prompts[-1]["system"]
+        assert "The user has explicitly selected 'Odia' as their preferred language" in sys_prompt_odia
+        assert "You MUST generate your entire response ONLY in Odia" in sys_prompt_odia
+        assert "Do NOT auto-detect or switch away from Odia" in sys_prompt_odia
+
+        # 2. Dropdown: English, User input: Odia -> Groq system prompt MUST enforce English
+        payload_en = ChatRequest(
+            message="ମୋ ଲୋନ୍ କେତେ ମିଳିବ?",
+            language="English",
+            business_context=BusinessContextInput(
+                business_category="Poultry",
+                specific_business="Commercial Broiler Farming",
+                location="Sundargarh, Odisha",
+                available_margin_capital=50000.0,
+            ),
+        )
+        res_en = AdvisoryService.process_chat(payload_en, db=db_session)
+        assert res_en.language == "English"
+        assert len(captured_prompts) == 2
+        sys_prompt_en = captured_prompts[-1]["system"]
+        assert "The user has explicitly selected 'English' as their preferred language" in sys_prompt_en
+        assert "If the user message is in Odia and selected language is English: You MUST reply in English" in sys_prompt_en
+
+        # 3. Dropdown: Hindi, User input: English -> Groq system prompt MUST enforce Hindi
+        payload_hi = ChatRequest(
+            message="Explain my feasibility score",
+            language="हिन्दी (Hindi)",
+            business_context=BusinessContextInput(
+                business_category="Poultry",
+                specific_business="Commercial Broiler Farming",
+                location="Sundargarh, Odisha",
+                available_margin_capital=50000.0,
+            ),
+        )
+        res_hi = AdvisoryService.process_chat(payload_hi, db=db_session)
+        assert res_hi.language == "हिन्दी (Hindi)"
+        assert len(captured_prompts) == 3
+        sys_prompt_hi = captured_prompts[-1]["system"]
+        assert "The user has explicitly selected 'Hindi' as their preferred language" in sys_prompt_hi
+        assert "You MUST generate your entire response ONLY in Hindi" in sys_prompt_hi
+
+        # 4. No manual language preference (None or 'auto') -> Auto language detection allowed
+        payload_auto = ChatRequest(
+            message="Explain my feasibility score",
+            language="auto",
+            business_context=BusinessContextInput(
+                business_category="Poultry",
+                specific_business="Commercial Broiler Farming",
+                location="Sundargarh, Odisha",
+                available_margin_capital=50000.0,
+            ),
+        )
+        res_auto = AdvisoryService.process_chat(payload_auto, db=db_session)
+        assert res_auto.language == "auto"
+        assert len(captured_prompts) == 4
+        sys_prompt_auto = captured_prompts[-1]["system"]
+        assert "No manual language preference specified. Detect the language of the user's message automatically." in sys_prompt_auto
+
